@@ -1,31 +1,33 @@
 <?php
-// Configuración de conexión
+// Conexion a la case de datos
 $host = "localhost";
-$user = "root"; // usuario por defecto en Laragon
-$password = ""; // contraseña vacía por defecto en Laragon
+$user = "root"; 
+$password = ""; 
 $dbname = "odontosmart_db";
 
-// Crear conexión
+//Para crear la conexion
 $conn = new mysqli($host, $user, $password, $dbname);
 
-// Verificar conexión
+// Para verificar la conexión
 if ($conn->connect_error) {
     die("Error de conexión: " . $conn->connect_error);
 }
 
-$mensaje = ""; // variable para guardar el mensaje
+$mensaje = ""; //Guarda mensajes de exito o error
 
-// Procesar formulario
+// Formulario para crear un nuevo usuario
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nombre = $_POST["nombre_completo"];
     $email = $_POST["email"];
     $password = $_POST["password"];
-    $rol = $_POST["rol"]; // cliente, administrador, medico
+    $cedula = $_POST["cedula"];
+    $telefono = $_POST["telefono"];
+    $rol = $_POST["rol"]; //Ya sea cliente, administrador o medico
 
-    // Hashear la contraseña
+    //Hash para la protección de la contraseña
     $hash_password = password_hash($password, PASSWORD_DEFAULT);
 
-    // Buscar id_rol según el nombre del rol
+    //id, segun el rol seleccionado
     $sqlRol = "SELECT id_rol FROM roles WHERE nombre = ?";
     $stmtRol = $conn->prepare($sqlRol);
     $stmtRol->bind_param("s", $rol);
@@ -36,19 +38,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $rowRol = $resultRol->fetch_assoc();
         $id_rol = $rowRol["id_rol"];
 
-        // Insertar usuario en la tabla
-        $sqlUser = "INSERT INTO usuarios (nombre_completo, email, hash_contrasena, estado, id_rol) 
-                    VALUES (?, ?, ?, 'activo', ?)";
+        //Inserts de usuario
+        $sqlUser = "INSERT INTO usuarios (nombre_completo, email, hash_contrasena, cedula, telefono, estado, id_rol) 
+                    VALUES (?, ?, ?, ?, ?, 'activo', ?)";
         $stmtUser = $conn->prepare($sqlUser);
-        $stmtUser->bind_param("sssi", $nombre, $email, $hash_password, $id_rol);
+        $stmtUser->bind_param("sssssi", $nombre, $email, $hash_password, $cedula, $telefono, $id_rol);
 
         if ($stmtUser->execute()) {
-            $mensaje = "Usuario creado correctamente con rol: $rol";
+            $mensaje = "El usuario se agrego, bajo el rol de: $rol";
         } else {
-            $mensaje = "Error al crear usuario: " . $conn->error;
+            $mensaje = "El usuario no se agrego correctamente: " . $conn->error;
         }
     } else {
-        $mensaje = "El rol seleccionado no existe en la tabla roles.";
+        $mensaje = "Error.";
     }
 }
 ?>
@@ -70,6 +72,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         <label>Contraseña:</label><br>
         <input type="password" name="password" required><br><br>
+
+        <label>Número de Cédula:</label><br>
+        <input type="text" name="cedula" required><br><br>
+
+        <label>Teléfono:</label><br>
+        <input type="text" name="telefono" required><br><br>
 
         <label>Rol:</label><br>
         <select name="rol" required>

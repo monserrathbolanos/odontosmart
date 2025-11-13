@@ -1,14 +1,15 @@
 <?php
 
-$rol = "administrador"; //Puede variar segun el usuario logueado
+$rol = "administrador"; //Puede variar segun el usuario logueado, debe de poder cambiar segun el rol del usuario que inicie sesion //cliente, administrador, medico
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>OdontoSmart - Clínica Dental | Perfil: <?php echo ucfirst($rol); ?></title>
     <style>
-        /* Menu Vertical */
+        /* Menu Vertical*/
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -41,17 +42,18 @@ $rol = "administrador"; //Puede variar segun el usuario logueado
 <body>
     <div class="navbar">
         <?php
-        // el menu cambia segun el rol del usuario
+        //Menu dinamico según rol
         if ($rol == "cliente") {
-            echo '<a href="#" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
+            echo '<a href="info_clinica.php" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
             echo '<a href="#" style="text-align:center; display:block;">Servicios</a>';
             echo '<a href="#" style="text-align:center; display:block;">Ir a pagar</a>';
         } elseif ($rol == "administrador") {
-            echo '<a href="#" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
+            echo '<a href="info_clinica.php" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
+            echo '<a href="total_inventario.php" style="text-align:center; display:block;">Inventario</a>';
             echo '<a href="inventario.php" style="text-align:center; display:block;">Control de inventario</a>';
-            echo '<a href="#" style="text-align:center; display:block;">Gestión de usuarios</a>';
+            echo '<a href="gestion_usuarios.php" style="text-align:center; display:block;">Gestión de usuarios</a>';
         } elseif ($rol == "medico") {
-            echo '<a href="#" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
+            echo '<a href="info_clinica.php" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
         } else {
             echo '<a href="#" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
         
@@ -62,7 +64,6 @@ $rol = "administrador"; //Puede variar segun el usuario logueado
     <div class="content">
         <h1>Bienvenido a OdontoSmart</h1>
         <h2>Perfil actual: <?php echo ucfirst($rol); ?></h2>
-        <p>Este es el contenido principal de la página.</p>
     </div>
 </body>
 </html>

@@ -1,21 +1,21 @@
 <?php
-// Configuración de conexión
+// Conexion a la case de datos
 $host = "localhost";
-$user = "root"; // usuario por defecto en Laragon
-$password = ""; // contraseña vacía por defecto en Laragon
+$user = "root"; 
+$password = ""; 
 $dbname = "odontosmart_db";
 
-// Crear conexión
+//Para crear la conexion
 $conn = new mysqli($host, $user, $password, $dbname);
 
-// Verificar conexión
+// Para verificar la conexión
 if ($conn->connect_error) {
     die("Error de conexión: " . $conn->connect_error);
 }
 
 $mensaje = "";
 
-// Procesar formulario
+// Formulario para agregar un producto
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nombre = $_POST["nombre"];
     $descripcion = $_POST["descripcion"];
@@ -34,13 +34,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("isssdii sd", $id_categoria, $nombre, $descripcion, $unidad, $precio, $stock_minimo, $id_lote, $fecha_caducidad, $costo_unidad);
 
     if ($stmt->execute()) {
-        $mensaje = "✅ Producto creado correctamente.";
+        $mensaje = "El producto si fue agregado correctamente.";
     } else {
-        $mensaje = "❌ Error al crear producto: " . $conn->error;
+        $mensaje = "El producto no fue agregado correctamente." . $conn->error;
     }
 }
 
-// Obtener categorías para el select
+
+// Estas son las diferentes categorias que se pueden seleccionar
 $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos");
 ?>
 <!DOCTYPE html>
@@ -59,7 +60,7 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
         <input type="text" name="descripcion"><br><br>
 
         <label>Unidad:</label><br>
-        <input type="text" name="unidad" placeholder="ej: caja, pieza, ml"><br><br>
+        <input type="text" name="unidad" placeholder="ejemplo: caja, litro, paquete"><br><br>
 
         <label>Precio:</label><br>
         <input type="number" step="0.01" name="precio" required><br><br>
@@ -91,8 +92,9 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
     if (!empty($mensaje)) {
         echo "<p><strong>$mensaje</strong></p>";
     }
+
     ?>
 </body>
-</html>
 
+</html>
 
