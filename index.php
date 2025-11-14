@@ -1,6 +1,9 @@
 <?php
 
-$rol = "administrador"; //Puede variar segun el usuario logueado, debe de poder cambiar segun el rol del usuario que inicie sesion //cliente, administrador, medico
+ // $rol = "administrador"; //Puede variar segun el usuario logueado, debe de poder cambiar segun el rol del usuario que inicie sesion //cliente, administrador, medico
+ $rol = "cliente";
+// $rol = "medico";
+
 ?>
 
 <!DOCTYPE html>
@@ -45,8 +48,8 @@ $rol = "administrador"; //Puede variar segun el usuario logueado, debe de poder 
         //Menu dinamico según rol
         if ($rol == "cliente") {
             echo '<a href="info_clinica.php" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
-            echo '<a href="#" style="text-align:center; display:block;">Servicios</a>';
-            echo '<a href="#" style="text-align:center; display:block;">Ir a pagar</a>';
+            echo '<a href="servicios.php" style="text-align:center; display:block;">Servicios</a>';
+            echo '<a href="pagar.php" style="text-align:center; display:block;">Ir a pagar</a>';
         } elseif ($rol == "administrador") {
             echo '<a href="info_clinica.php" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
             echo '<a href="total_inventario.php" style="text-align:center; display:block;">Inventario</a>';

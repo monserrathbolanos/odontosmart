@@ -1,3 +1,5 @@
+//CODIGO CREATE_USERS.PHP
+
 <?php
 // Conexion a la case de datos
 $host = "localhost";
