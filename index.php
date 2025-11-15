@@ -1,72 +1,104 @@
 <?php
-
- // $rol = "administrador"; //Puede variar segun el usuario logueado, debe de poder cambiar segun el rol del usuario que inicie sesion //cliente, administrador, medico
- $rol = "cliente";
-// $rol = "medico";
-
+// Detecta la página actual
+$currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>OdontoSmart - Clínica Dental | Perfil: <?php echo ucfirst($rol); ?></title>
-    <style>
-        /* Menu Vertical*/
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        .navbar {
-            width: 220px;
-            background-color: #152fbf;
-            height: 100vh;
-            padding-top: 20px;
-            position: fixed;
-        }
-        .navbar a {
-            display: block;
-            color: #ecf0f1;
-            padding: 12px;
-            text-decoration: none;
-            margin: 5px 0;
-            border-radius: 4px;
-        }
-        .navbar a:hover {
-            background-color: #264cbf;
-        }
-        .content {
-            margin-left: 240px;
-            padding: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="navbar">
-        <?php
-        //Menu dinamico según rol
-        if ($rol == "cliente") {
-            echo '<a href="info_clinica.php" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
-            echo '<a href="servicios.php" style="text-align:center; display:block;">Servicios</a>';
-            echo '<a href="pagar.php" style="text-align:center; display:block;">Ir a pagar</a>';
-        } elseif ($rol == "administrador") {
-            echo '<a href="info_clinica.php" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
-            echo '<a href="total_inventario.php" style="text-align:center; display:block;">Inventario</a>';
-            echo '<a href="inventario.php" style="text-align:center; display:block;">Control de inventario</a>';
-            echo '<a href="gestion_usuarios.php" style="text-align:center; display:block;">Gestión de usuarios</a>';
-        } elseif ($rol == "medico") {
-            echo '<a href="info_clinica.php" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
-        } else {
-            echo '<a href="#" style="text-align:center; display:block;">Sobre Nosotros - Clínica Dental</a>';
+<nav class="navbar">
+    <ul>
+       
+        <li>
+            <a href="/auth/login.php" class="<?= $currentPage == '/auth/login.php' ? 'active' : '' ?>">Ingresar</a>
+        </li>
+        <li>
+            <a href="/modulos/usuarios/create_users.php" class="<?= $currentPage == '/modulos/usuarios/create_users.php' ? 'active' : '' ?>">Registrarse</a>
+        </li>
         
-        }
-        ?>
-    </div>
+    </ul>
+</nav>
 
-    <div class="content">
-        <h1>Bienvenido a OdontoSmart</h1>
-        <h2>Perfil actual: <?php echo ucfirst($rol); ?></h2>
-    </div>
-</body>
-</html>
+<style>
+ 
+
+ body {
+  background: linear-gradient(270deg, #264cbf, #182940, #69b7bf);
+  background-size: 300% 300%;
+  animation: rgbFlow 200s ease infinite;
+  font-family: 'Poppins', sans-serif;
+  color: #ffffff;
+
+
+}
+
+.alineado-izquierda {
+    text-align: left;
+  }
+
+
+.logo-fixed {
+  position: fixed;
+  left: 40px;
+  bottom: 100px;
+  width: 400px; /* tamaño pequeño */
+  height: auto;
+  z-index: 1000;
+  opacity: 0.9;
+  pointer-events: none; /* evita que interfiera con clics */
+}
+
+
+/* Animación suave del degradado */
+@keyframes rgbFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+    .navbar {
+        padding: 10px;
+        background: #63aeebff;
+        border-bottom: 2px solid #ccc;
+        font-family: Arial, sans-serif;
+    }
+
+    .navbar ul {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin: 0;
+        padding: 0;
+    }
+
+    .navbar li.logout {
+        margin-left: auto; /* Empuja el botón de cerrar sesión a la derecha */
+    }
+
+    .navbar a {
+        color: black;
+        text-decoration: none;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    .navbar a:hover {
+        color: #deeceeff;
+    }
+
+    .navbar a.active {
+        color: 00bcd4#;
+        border-bottom: 2px solid #e4f0f1ff;
+    }
+    
+</style>
+
+<h1 style="color: #ffffffff" >Bienvenido a OdontoSmart</h1>
+<h5 style="color: #d8f3f7ff" >Inicie sesion con su usuario y contraseña.</h5>
+
+<p class="alineado-izquierda">
+En OdontoSmart nos dedicamos a transformar tu salud bucal con tecnología de vanguardia, atención personalizada y un enfoque humano en cada tratamiento.</p>
+
+<p class="alineado-izquierda">Nuestro compromiso es brindarte una experiencia cómoda, segura y transparente, desde tu primera consulta hasta el seguimiento final.</p>
+
+<p class="alineado-izquierda">Aquí encontrarás un equipo de especialistas que combina conocimiento, innovación y calidez para cuidar de tu sonrisa.</p>
+<p class="alineado-izquierda"> Explora nuestros servicios, agenda tu cita y descubre por qué somos la opción inteligente para tu bienestar dental.</p>
+
+<img src="/assets/img/Odonto.png" class="logo-fixed" alt="Logo OdontoSmart">
