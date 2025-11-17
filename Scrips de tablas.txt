@@ -1,0 +1,31 @@
+//Carrito principal:
+
+CREATE TABLE carrito (
+    id_carrito INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    estado ENUM('activo','pendiente','pagado','cancelado') DEFAULT 'activo',
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario)
+);
+
+//contiene productos agregadps al carrito
+
+CREATE TABLE carrito_detalle (
+    id_detalle INT AUTO_INCREMENT PRIMARY KEY,
+    id_carrito INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad INT NOT NULL,
+    precio_unitario DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (id_carrito) REFERENCES carrito(id_carrito) ON DELETE CASCADE,
+    FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+);
+
+
+/*relaciones:
+
+Relaciones
+
+carrito.id_usuario → usuarios.id_usuario
+carrito_detalle.id_producto → productos.id_producto
+carrito_detalle.id_carrito → carrito.id_carrito */
+
