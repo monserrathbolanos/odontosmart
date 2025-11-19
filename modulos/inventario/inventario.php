@@ -1,26 +1,41 @@
 <?php
-// inventario.php//  Trabaja con las tablas Categoria_productos y  Productos
+// inventario.php // Trabaja con las tablas categoria_productos y productos
 session_start();
 include('../../config/conexion.php');
 $rol = $_SESSION['user']['role'] ?? 'administrador';
 
 // Formulario para agregar un producto
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
     $nombre = $_POST["nombre"];
     $descripcion = $_POST["descripcion"];
     $unidad = $_POST["unidad"];
     $precio = $_POST["precio"];
     $stock_minimo = $_POST["stock_minimo"];
+    $stock_total = $_POST["stock_total"];
     $id_categoria = $_POST["id_categoria"];
-    $id_lote = $_POST["id_lote"];
     $fecha_caducidad = $_POST["fecha_caducidad"];
     $costo_unidad = $_POST["costo_unidad"];
 
+    // Estructura REAL de productos
     $sql = "INSERT INTO productos 
-            (id_categoria, nombre, descripcion, unidad, precio, stock_minimo, activo, id_lote, fecha_caducidad, costo_unidad) 
-            VALUES (?, ?, ?, ?, ?, ?, 'si', ?, ?, ?)";
+            (id_categoria, nombre, descripcion, unidad, precio, costo_unidad, 
+             stock_total, stock_minimo, fecha_caducidad, estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'activo')";
+
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("isssdiisd", $id_categoria, $nombre, $descripcion, $unidad, $precio, $stock_minimo, $id_lote, $fecha_caducidad, $costo_unidad);
+    $stmt->bind_param(
+        "isssddiis", 
+        $id_categoria,
+        $nombre,
+        $descripcion,
+        $unidad,
+        $precio,
+        $costo_unidad,
+        $stock_total,
+        $stock_minimo,
+        $fecha_caducidad
+    );
 
     if ($stmt->execute()) {
         $mensaje = " El producto fue agregado correctamente.";
@@ -147,11 +162,11 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
 
     <div class="content">
         <div class="seccion">
-            <h1> Agregar Producto al Inventario</h1>
+            <h1>Agregar Producto al Inventario</h1>
             <p>Complete el formulario para agregar un nuevo producto al sistema.</p>
 
             <?php if (!empty($mensaje)): ?>
-                <div class="mensaje <?php echo strpos($mensaje, '') !== false ? 'exito' : 'error'; ?>">
+                <div class="mensaje <?php echo strpos($mensaje, 'correctamente') !== false ? 'exito' : 'error'; ?>">
                     <?php echo $mensaje; ?>
                 </div>
             <?php endif; ?>
@@ -182,6 +197,11 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
                     </div>
 
                     <div class="form-group">
+                        <label class="required">Stock total:</label>
+                        <input type="number" name="stock_total" placeholder="0" min="0" required>
+                    </div>
+
+                    <div class="form-group">
                         <label class="required">Stock mínimo:</label>
                         <input type="number" name="stock_minimo" placeholder="0" min="0" required>
                         <div class="form-hint">Cantidad mínima antes de alertar por bajo stock</div>
@@ -200,12 +220,6 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
                     </div>
 
                     <div class="form-group">
-                        <label class="required">ID Lote:</label>
-                        <input type="number" name="id_lote" placeholder="Ej: 1001" min="1" required>
-                        <div class="form-hint">Número único de identificación del lote</div>
-                    </div>
-
-                    <div class="form-group">
                         <label class="required">Fecha de caducidad:</label>
                         <input type="date" name="fecha_caducidad" required>
                     </div>
@@ -216,7 +230,7 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
                         <div class="form-hint">Costo de adquisición en colones (₡)</div>
                     </div>
 
-                    <button type="submit"> Guardar Producto</button>
+                    <button type="submit">Guardar Producto</button>
                 </form>
             </div>
         </div>

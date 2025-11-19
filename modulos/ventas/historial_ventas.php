@@ -6,10 +6,10 @@ session_start();
 include('../../config/conexion.php');
 
 // Obtener historial de ventas
-$sql_ventas = "SELECT v.*, u.nombre_completo as vendedor_nombre
+$sql_ventas = "SELECT v.*, u.nombre_completo AS vendedor_nombre
                FROM ventas v
                LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario
-               ORDER BY v.fecha DESC, v.creado_en DESC
+               ORDER BY v.fecha_venta DESC
                LIMIT 50";
 $ventas = $conn->query($sql_ventas);
 
@@ -111,7 +111,7 @@ $rol = "administrador"; // Temporal
                 <h3>Total Ventas Hoy</h3>
                 <p style="font-size: 24px; margin: 0;">
                     ₡<?php 
-                    $sql_hoy = "SELECT COALESCE(SUM(total), 0) as total_hoy FROM ventas WHERE fecha = CURDATE()";
+                    $sql_hoy = "SELECT COALESCE(SUM(total), 0) AS total_hoy FROM ventas WHERE fecha_venta = CURDATE()";
                     $result_hoy = $conn->query($sql_hoy);
                     echo number_format($result_hoy->fetch_assoc()['total_hoy'], 2);
                     ?>
@@ -121,7 +121,7 @@ $rol = "administrador"; // Temporal
                 <h3>Ventas del Mes</h3>
                 <p style="font-size: 24px; margin: 0;">
                     ₡<?php 
-                    $sql_mes = "SELECT COALESCE(SUM(total), 0) as total_mes FROM ventas WHERE MONTH(fecha) = MONTH(CURDATE())";
+                    $sql_mes = "SELECT COALESCE(SUM(total), 0) as total_mes FROM ventas WHERE MONTH(fecha_venta) = MONTH(CURDATE()) AND YEAR(fecha_venta) = YEAR(CURDATE())";
                     $result_mes = $conn->query($sql_mes);
                     echo number_format($result_mes->fetch_assoc()['total_mes'], 2);
                     ?>

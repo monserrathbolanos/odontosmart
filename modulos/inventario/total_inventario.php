@@ -7,8 +7,10 @@ $rol = "administrador"; // Temporal
 // Función para mostrar tabla por categoría
 function mostrarCategoria($conn, $categoriaNombre) {
     echo "<div class='categoria-titulo'> $categoriaNombre</div>";
-    $sql = "SELECT p.id_producto, p.nombre, p.descripcion, p.unidad, p.precio, p.stock_minimo,p.stock_total,
-                   c.nombre AS categoria, p.id_lote, p.fecha_caducidad, p.costo_unidad
+    $sql = "SELECT   p.id_producto, p.nombre, p.descripcion, p.unidad,
+                     p.id_categoria, p.precio, p.costo_unidad, p.stock_total,
+                     p.stock_minimo, p.fecha_creacion, p.actualizado_en,
+                     p.fecha_caducidad, p.estado, c.nombre AS categoria
             FROM productos p
             JOIN categoria_productos c ON p.id_categoria = c.id_categoria
             WHERE c.nombre = ?";
@@ -29,7 +31,6 @@ function mostrarCategoria($conn, $categoriaNombre) {
                         <th>Stock Mínimo</th>
                         <th>Stock Actual</th>
                         <th>Categoría</th>
-                        <th>Lote</th>
                         <th>Caducidad</th>
                         <th>Costo</th>
                     </tr>
@@ -43,8 +44,8 @@ function mostrarCategoria($conn, $categoriaNombre) {
                     <td>{$row['unidad']}</td>
                     <td>₡" . number_format($row['precio'], 2) . "</td>
                     <td>{$row['stock_minimo']}</td>
+                    <td>{$row['stock_total']}</td>
                     <td>{$row['categoria']}</td>
-                    <td>{$row['id_lote']}</td>
                     <td>{$row['fecha_caducidad']}</td>
                     <td>₡" . number_format($row['costo_unidad'], 2) . "</td>
                   </tr>";
@@ -143,7 +144,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
     <div class="content">
         <div class="seccion">
             <h1> Inventario General</h1>
-            <p>En esta sección se muestra el inventario completo de productos disponibles en la clínica dental OdontoSmart. Aquí podrás ver detalles como el nombre del producto, descripción, unidad, precio, stock mínimo, categoría, ID de lote, fecha de caducidad y costo por unidad.</p>
+            <p>En esta sección se muestra el inventario completo de productos disponibles en la clínica dental OdontoSmart. Aquí podrás ver detalles como el nombre del producto, descripción, unidad, precio, stock mínimo, categoría, fecha de caducidad y costo por unidad.</p>
 
             <?php
             // Mostrar las 4 categorías

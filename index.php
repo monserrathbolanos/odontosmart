@@ -7,10 +7,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <ul>
        
         <li>
-            <a href="http://localhost/ProyectoOdonto/auth/login.php" class="<?= $currentPage == '/auth/login.php' ? 'active' : '' ?>">Ingresar</a>
+            <a href="http://localhost/odontosmart/auth/login.php" class="<?= $currentPage == '/auth/login.php' ? 'active' : '' ?>">Ingresar</a>
         </li>
         <li>
-            <a href="http://localhost/ProyectoOdonto/modulos/usuarios/create_users.php" class="<?= $currentPage == '/modulos/usuarios/create_users.php' ? 'active' : '' ?>">Registrarse</a>
+            <a href="http://localhost/odontosmart/modulos/usuarios/create_users.php" class="<?= $currentPage == '/modulos/usuarios/create_users.php' ? 'active' : '' ?>">Registrarse</a>
         </li>
         
     </ul>
