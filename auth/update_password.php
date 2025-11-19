@@ -4,7 +4,7 @@ $email = $_POST['email'];
 $new_password = password_hash($_POST['new_password'], PASSWORD_DEFAULT);
 
 // Actualizar contraseña
-$stmt = $conn->prepare("UPDATE usuarios SET hash_contrasena = ? WHERE email = ?");
+$stmt = $conn->prepare("UPDATE usuarios SET password = ? WHERE email = ?");
 $stmt->bind_param("ss", $new_password, $email);
 $stmt->execute();
 
@@ -48,7 +48,7 @@ $email = $result->fetch_assoc()['email'];
 $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
 // Actualizar la contraseña en la tabla usuarios
-$update_stmt = $conn->prepare("UPDATE usuarios SET hash_contrasena = ? WHERE email = ?");
+$update_stmt = $conn->prepare("UPDATE usuarios SET password = ? WHERE email = ?");
 $update_stmt->bind_param("ss", $hashed_password, $email);
 $update_stmt->execute();
 

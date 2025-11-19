@@ -28,7 +28,7 @@ if ($username === '' || $password === '') {
 }
 
 // Consulta de la tabla usuarios para obtener los datos del usuario y su rol
-$sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.hash_contrasena, r.nombre AS rol
+$sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.password, r.nombre AS rol
         FROM usuarios u
         JOIN roles r ON u.id_rol = r.id_rol
         WHERE u.nombre_completo = ?";
@@ -51,7 +51,7 @@ $user = $result->fetch_assoc(); //obtiene una fila del resultado como un array a
 $stmt->close();
 
 // Verifica que la contraseña ingresada coincida con el hash almacenado
-if (password_verify($password, $user['hash_contrasena'])) {
+if (password_verify($password, $user['password'])) {
     session_regenerate_id(true); // Regenera el ID de sesión por seguridad
     
     // Guarda los datos del usuario en la sesión
