@@ -7,11 +7,11 @@ $rol = $_SESSION['user']['role'] ?? 'cliente';
 
 <div class="navbar">
     <?php
-    if ($rol == "cliente") {
+    if ($rol == "Cliente") {
         echo '<a href="/odontosmart/public/info_clinica.php"> Sobre Nosotros</a>';
         echo '<a href="/odontosmart/modulos/ventas/servicios.php"> Servicios</a>';
         echo '<a href="/odontosmart/modulos/ventas/pagar.php"> Ir a pagar</a>';
-    } elseif ($rol == "administrador") {
+    } elseif ($rol == "Administrador") {
         echo '<a href="/odontosmart/public/info_clinica.php"> Sobre Nosotros</a>';
         echo '<a href="/odontosmart/modulos/inventario/total_inventario.php"> Inventario</a>';
         echo '<a href="/odontosmart/modulos/inventario/inventario.php"> Control de inventario</a>';
@@ -19,7 +19,7 @@ $rol = $_SESSION['user']['role'] ?? 'cliente';
         echo '<a href="/odontosmart/modulos/ventas/servicios.php"> Servicios</a>';
         echo '<a href="/odontosmart/modulos/ventas/historial_ventas.php"> Historial Ventas</a>';
         
-    } elseif ($rol == "medico") {
+    } elseif ($rol == "Medico") {
         echo '<a href="/odontosmart/public/info_clinica.php"> Sobre Nosotros</a>';
         echo '<a href="gestion_citas.php"> Gestión de Citas</a>';  //no esta el fichero
         echo '<a href="/odontosmart/modulos/ventas/servicios.php"> Servicios</a>';

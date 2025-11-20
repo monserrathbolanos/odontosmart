@@ -9,7 +9,7 @@ if (!isset($_SESSION['user'])) {
 }
 
 $rol = $_SESSION['user']['role']; // cliente, administrador, medico
-$username = $_SESSION['user']['username'];
+$username = $_SESSION['user']['nombre_completo'];
 ?>
 
 
@@ -27,7 +27,7 @@ $username = $_SESSION['user']['username'];
         }
         .navbar {
             width: 220px;
-            background-color: #152fbf;
+            background-color: #235f66ff;
             height: 100vh;
             padding-top: 20px;
             position: fixed;
@@ -57,7 +57,7 @@ $username = $_SESSION['user']['username'];
         <h1>Bienvenido a OdontoSmart</h1>
         <h2>Perfil actual: <?php echo ucfirst($rol); ?></h2>
         
-<p>Usuario: <?php echo htmlspecialchars($_SESSION['user']['username']); ?></p>
+<p>Usuario: <?php echo htmlspecialchars($_SESSION['user']['nombre_completo']); ?></p>
 
 
 <!-- Ya el logout se encuentra en el Navbar -->

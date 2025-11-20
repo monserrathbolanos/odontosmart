@@ -18,31 +18,31 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !validate_csrf_token($_POST['csrf_t
 
 // Obtiene y limpia los datos del formulario con trim
 
-$username = trim($_POST['username'] ?? '');
+$email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 
 // Verifica que ambos campos estén completados
-if ($username === '' || $password === '') {
-    header('Location: login.php?error=' . urlencode('Usuario y contraseña son obligatorios.')); //sino redirige a login
+if ($email === '' || $password === '') {
+    header('Location: login.php?error=' . urlencode('Correo y contraseña son obligatorios.')); //sino redirige a login
     exit;
 }
 
 // Consulta de la tabla usuarios para obtener los datos del usuario y su rol
-$sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.hash_contrasena, r.nombre AS rol
+$sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.password, r.nombre AS rol
         FROM usuarios u
         JOIN roles r ON u.id_rol = r.id_rol
-        WHERE u.nombre_completo = ?";
+        WHERE u.email = ?";
 
 // Prepara y ejecuta la consulta
 
 $stmt = $conn->prepare($sql);  //$conn es la conexión a la base de datos, prepare($sql) crea una consulta preparada a partir de la sentencia SQL que está en $sql
-$stmt->bind_param("s", $username);   //Asocia el valor de la variable $username al parametro de la consulta preparada.
+$stmt->bind_param("s", $email);   //Asocia el valor de la variable $username al parametro de la consulta preparada.
 $stmt->execute(); //ejecuta la consulta preparada
 $result = $stmt->get_result(); //Obtiene el resultado de la consulta en forma de objeto mysqli_result.
 
 // Si no se encuentra el usuario, redirige con error
 if ($result->num_rows === 0) {
-    header('Location: login.php?error=' . urlencode('Usuario o contraseña incorrectos.'));
+    header('Location: login.php?error=' . urlencode('Correo o contraseña incorrectos.'));
     exit;
 }
 
@@ -51,12 +51,12 @@ $user = $result->fetch_assoc(); //obtiene una fila del resultado como un array a
 $stmt->close();
 
 // Verifica que la contraseña ingresada coincida con el hash almacenado
-if (password_verify($password, $user['hash_contrasena'])) {
+if (password_verify($password, $user['password'])) {
     session_regenerate_id(true); // Regenera el ID de sesión por seguridad
     
     // Guarda los datos del usuario en la sesión
 $_SESSION['user'] = [
-        'username' => $user['nombre_completo'],
+        'nombre_completo' => $user['nombre_completo'],
         'email'    => $user['email'],
         'role'     => $user['rol']
     ];

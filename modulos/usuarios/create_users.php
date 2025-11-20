@@ -13,7 +13,7 @@ $csrf_token = generate_csrf_token();
 
 // Obtener roles de la base de datos
 $roles = [];
-$result = $conn->query("SELECT id_rol, nombre FROM roles where id_rol=1");
+$result = $conn->query("SELECT id_rol, nombre FROM roles where id_rol=3");
 while ($row = $result->fetch_assoc()) {
     $roles[] = $row;  //Guarda los roles disponibles en un arreglo
 }
@@ -28,17 +28,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Sanitiza y valida los datos del formulario
 
-        $username = trim($_POST['username'] ?? '');
+        $nombre_completo = trim($_POST['nombre_completo'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
         $role_id = intval($_POST['role'] ?? 0);
-        $cedula = trim($_POST['cedula'] ?? '');
+        $identificacion = trim($_POST['identificacion'] ?? '');
         $telefono = trim($_POST['telefono'] ?? '');
         
           // Validaciones básicas
 
-        if ($username === '' || $email === '' || $password === '') {
+        if ($nombre_completo === '' || $email === '' || $password === '') {
             $error = "Todos los campos son obligatorios.";
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = "Correo inválido.";
@@ -56,21 +56,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Rol inválido.";
             } else {
                  // Verifica si el usuario o correo ya existen
-                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR cedula =?");
-                $stmt->bind_param("ssi", $email, $username, $cedula);
+                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion =?");
+                $stmt->bind_param("sss", $email, $nombre_completo, $identificacion);
                 $stmt->execute();
                 if ($stmt->get_result()->num_rows > 0) {
-                    $error = "Usuario, cedula o correo ya se encuentra en uso.";
+                    $error = "Usuario, identificacion o correo ya se encuentra en uso.";
                 } else {
 
                     // Inserta el nuevo usuario en la base de datos
                     $hash = password_hash($password, PASSWORD_DEFAULT);  // Encripta la contraseña
 
                     $stmtInsert = $conn->prepare("
-                        INSERT INTO usuarios (nombre_completo, email, hash_contrasena, estado, id_rol, telefono, cedula)
-                        VALUES (?, ?, ?, 'activo', ?,?,?)
+                        INSERT INTO usuarios (nombre_completo, email,password,id_rol, telefono, identificacion)
+                        VALUES (?, ?, ?, ?,?,?)
                     ");
-                    $stmtInsert->bind_param("sssiii", $username, $email, $hash, $role_id, $telefono, $cedula);
+                    $stmtInsert->bind_param("sssiss", $nombre_completo, $email, $hash, $role_id, $telefono, $identificacion);
                     if ($stmtInsert->execute()) {
                         $success = "✅ Usuario creado exitosamente.";
                     } else {
@@ -127,9 +127,9 @@ $conn->close();
             <!-- Campo: Nombre completo -->
 
             <div class="mb-3">
-                <label for="username" class="form-label">Nombre completo</label>
-                <input type="text" name="username" id="username" class="form-control"
-                       value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" required>
+                <label for="nombre_completo" class="form-label">Nombre completo</label>
+                <input type="text" name="nombre_completo" id="nombre_completo" class="form-control"
+                       value="<?= htmlspecialchars($_POST['nombre_completo'] ?? '') ?>" required>
             </div>
 
               <!-- Campo: Correo electrónico -->
@@ -143,9 +143,9 @@ $conn->close();
             <!-- Campo: Cédula -->
 
             <div class="mb-3">
-                <label for="cedula" class="form-label">Cédula</label>
-                <input type="cedula" name="cedula" id="cedula" class="form-control"
-                       value="<?= htmlspecialchars($_POST['cedula'] ?? '') ?>" required>
+                <label for="identificacion" class="form-label">Identificación</label>
+                <input type="identificacion" name="identificacion" id="identificacion" class="form-control"
+                       value="<?= htmlspecialchars($_POST['identificacion'] ?? '') ?>" required>
             </div>
 
                <!-- Campo: Teléfono -->
@@ -186,7 +186,7 @@ $conn->close();
                
             <!-- Botones de acción -->
             <button type="submit" class="btn btn-success w-100">Crear usuario</button>
-            <a href="../../index.php" class="btn btn-primary w-100 mt-2">Volver al inicio</a>
+            <a href="/odontosmart/index.php" class="btn btn-primary w-100 mt-2">Volver al inicio</a>
             
             <a href="../../auth/login.php" class="btn btn-secondary  W-500 mt-2" style="width: 450px;">Iniciar sesión</a>
             

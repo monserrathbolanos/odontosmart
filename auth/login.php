@@ -1,7 +1,7 @@
 <?php
 session_start();
-require '../config/csrf.php';
-$csrf_token = generate_csrf_token();
+require '../config/csrf.php'; //Incluye el archivo donde tienes la función que crea tokens CSRF.
+$csrf_token = generate_csrf_token();   //Genera un token único de seguridad
 
 // Si el usuario ya inició sesión, lo redirige al área protegida
 if (!empty($_SESSION['user'])) {
@@ -15,7 +15,7 @@ if (!empty($_SESSION['user'])) {
     <meta charset="utf-8">
     <title>Login</title>
     <!--  Enlace correcto a Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">  
 </head>
 
 
@@ -48,8 +48,8 @@ if (!empty($_SESSION['user'])) {
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
 
         <div class="mb-3">
-            <label for="username" class="form-label">Usuario</label>
-            <input id="username" name="username" class="form-control" required>
+            <label for="email" class="form-label">Email</label>
+            <input id="email" name="email" class="form-control" required>
         </div>
 
         <div class="mb-3">

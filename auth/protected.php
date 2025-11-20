@@ -14,7 +14,7 @@ header('X-Content-Type-Options: nosniff');
 header('X-XSS-Protection: 1; mode=block');
 
 //  Datos del usuario
-$username = htmlspecialchars($_SESSION['user']['username']);
+$nombre_completo = htmlspecialchars($_SESSION['user']['nombre_completo']);
 $email = htmlspecialchars($_SESSION['user']['email']);
 $role = htmlspecialchars($_SESSION['user']['role']);
 ?>
@@ -28,12 +28,12 @@ $role = htmlspecialchars($_SESSION['user']['role']);
 <body class="bg-light d-flex align-items-center justify-content-center vh-100">
 
 <div class="card shadow p-4 text-center" style="max-width: 500px; width: 100%;">
-    <h2>Bienvenido, <?= $username ?> </h2>
+    <h2>Bienvenido, <?= $nombre_completo ?> </h2>
     <p><strong>Correo:</strong> <?= $email ?></p>
     <p><strong>Rol:</strong> <?= $role ?></p>
     <hr>
     <a href="logout.php" class="btn btn-danger w-100">Cerrar sesión</a>
-    <a href="http://localhost/ProyectoOdonto/public/home.php" class="btn btn-secondary w-100">Continuar</a>
+    <a href="/Odontosmart/public/home.php" class="btn btn-secondary w-100">Continuar</a>
 </div>
 
 </body>

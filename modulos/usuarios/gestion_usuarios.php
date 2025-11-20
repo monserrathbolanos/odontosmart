@@ -7,9 +7,9 @@ $usuario = null;
 
 // Buscar usuario por cédula
 if (isset($_POST["buscar"])) {
-    $cedula = $_POST["cedula"];
-    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE cedula=?");
-    $stmt->bind_param("s", $cedula);
+    $identificacion = $_POST["identificacion"];
+    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE identificacion=?");
+    $stmt->bind_param("s", $identificacion);
     $stmt->execute();
     $resultado = $stmt->get_result();
     if ($resultado->num_rows > 0) {
@@ -21,8 +21,8 @@ if (isset($_POST["buscar"])) {
 
 // Actualizar usuario
 if (isset($_POST["actualizar"])) {
-    $stmt = $conn->prepare("UPDATE usuarios SET nombre_completo=?, email=?, telefono=?, cedula=?, id_rol=? WHERE id_usuario=?");
-    $stmt->bind_param("ssssii", $_POST["nombre"], $_POST["email"], $_POST["telefono"], $_POST["cedula"], $_POST["rol"], $_POST["id_usuario"]);
+    $stmt = $conn->prepare("UPDATE usuarios SET nombre_completo=?, email=?, telefono=?, identificacion=?, id_rol=? WHERE id_usuario=?");
+    $stmt->bind_param("ssssii", $_POST["nombre"], $_POST["email"], $_POST["telefono"], $_POST["identificacion"], $_POST["rol"], $_POST["id_usuario"]);
     if ($stmt->execute()) { 
         $mensaje = " Usuario actualizado correctamente."; 
     } else { 
@@ -129,10 +129,17 @@ if (isset($_POST["actualizar"])) {
             <div class="form-group">
                 <h3> Buscar Usuario</h3>
                 <form method="POST">
-                    <input type="text" name="cedula" placeholder="Ingrese la cédula" required>
+                    <input type="text" name="identificacion" placeholder="Ingrese la cédula" required>
                     <button type="submit" name="buscar">Buscar Usuario</button>
+                    
                 </form>
+            
+                    
+               <button onclick="location.href='/odontosmart/modulos/usuarios/admin_create_users.php'">Crear Usuario</button>
+
             </div>
+
+            
 
             <!-- Mensajes -->
             <?php if (!empty($mensaje)): ?>
@@ -165,19 +172,24 @@ if (isset($_POST["actualizar"])) {
                     
                     <div class="form-group">
                         <label>Cédula:</label>
-                        <input type="text" name="cedula" value="<?= $usuario['cedula'] ?>" placeholder="Cédula" required>
+                        <input type="text" name="identificacion" value="<?= $usuario['identificacion'] ?>" placeholder="Cédula" required>
                     </div>
                     
                     <div class="form-group">
                         <label>Rol:</label>
                         <select name="rol" required>
-                            <option value="1" <?= ($usuario['id_rol']==1?"selected":"") ?>> Cliente</option>
-                            <option value="2" <?= ($usuario['id_rol']==2?"selected":"") ?>> Administrador</option>
-                            <option value="3" <?= ($usuario['id_rol']==3?"selected":"") ?>> Médico</option>
+                            <option value="1" <?= ($usuario['id_rol']==1?"selected":"") ?>> Administrador</option>
+                            <option value="2" <?= ($usuario['id_rol']==2?"selected":"") ?>> Médico</option>
+                            <option value="3" <?= ($usuario['id_rol']==3?"selected":"") ?>> Cliente</option>
+                            <option value="4" <?= ($usuario['id_rol']==4?"selected":"") ?>> Recepcionista</option>
                         </select>
-                    </div>
+
+                    
                     
                     <button type="submit" name="actualizar"> Actualizar Usuario</button>
+                    
+                    
+
                 </form>
             </div>
             <?php endif; ?>
