@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 19, 2025 at 11:15 PM
+-- Generation Time: Nov 20, 2025 at 12:38 AM
 -- Server version: 8.4.3
 -- PHP Version: 8.4.13
 
@@ -120,6 +120,17 @@ CREATE TABLE `categoria_productos` (
   `nombre` varchar(100) NOT NULL,
   `descripcion` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `categoria_productos`
+--
+
+INSERT INTO `categoria_productos` (`id_categoria`, `nombre`, `descripcion`) VALUES
+(1, 'Medicamentos', NULL),
+(2, 'Servicios', NULL),
+(3, 'Equipo médico complejo', NULL),
+(4, 'Instrumento dental', NULL),
+(5, 'Productos de higiene', NULL);
 
 -- --------------------------------------------------------
 
@@ -275,6 +286,15 @@ CREATE TABLE `productos` (
   `estado` enum('activo','inactivo') DEFAULT 'activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `productos`
+--
+
+INSERT INTO `productos` (`id_producto`, `nombre`, `descripcion`, `unidad`, `id_categoria`, `precio`, `costo_unidad`, `stock_total`, `stock_minimo`, `fecha_creacion`, `actualizado_en`, `fecha_caducidad`, `estado`) VALUES
+(1, 'Anestesia', 'Anestesia general', '2', 1, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:36:51', '2025-11-19 03:36:51', '2026-01-15', 'activo'),
+(2, 'Anestesiate', 'Anestesia servicio', '2', 2, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:37:44', '2025-11-19 03:37:44', '2026-01-15', 'activo'),
+(3, 'Anestesiate3', 'Anestesia servicio', '2', 4, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:45:33', '2025-11-19 03:45:33', '2026-01-15', 'activo');
+
 -- --------------------------------------------------------
 
 --
@@ -323,17 +343,17 @@ CREATE TABLE `usuarios` (
   `identificacion` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
   `id_rol` int NOT NULL,
-  `fecha_creacion` datetime DEFAULT CURRENT_TIMESTAMP,
-  `estado` text NOT NULL
+  `fecha_creacion` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `usuarios`
 --
 
-INSERT INTO `usuarios` (`id_usuario`, `nombre_completo`, `email`, `telefono`, `identificacion`, `password`, `id_rol`, `fecha_creacion`, `estado`) VALUES
-(1, 'Josue Acuna Flores', 'josueacunaflores@gmail.com', '62043116', '207820616', 'Jacuna546*', 1, '2025-11-18 21:08:03', ''),
-(2, 'brayan', 'brayan@correo.com', '1', '1', '$2y$12$jw1a3U3OjSqYNxmKN/SGZO7n9TSGtiMtpFEd6a9oC2EqXTIKx5K1y', 1, '2025-11-19 17:12:55', 'activo');
+INSERT INTO `usuarios` (`id_usuario`, `nombre_completo`, `email`, `telefono`, `identificacion`, `password`, `id_rol`, `fecha_creacion`) VALUES
+(2, 'isaac Rodríguez Víquez', 'viquezisaac373@gmail.com', '85102283', '208630471', '$2y$12$Z5fUbAyvOplt6tMfRzZU0u9W0fFiY1eYq7tl0oSOE5E2vSm3Jo0L2', 1, '2025-11-19 17:20:08'),
+(3, 'Admin', 'admin@gmail.com', '85102283', '1512356213', '$2y$12$7hX2eSPgIfJ4aGEHehJNze6BGBBF0IeR9vrG.XthD2DVgXOiyT8GG', 3, '2025-11-19 17:39:46'),
+(4, 'admin2', 'admin298@gmail.com', '124387365', '123456789', '$2y$12$D/iF9YxUXRsIQarahDNrb.Rw54O1XDvVSqN.AoAMULFS2uqiWRwWS', 4, '2025-11-19 17:46:20');
 
 -- --------------------------------------------------------
 
@@ -557,7 +577,7 @@ ALTER TABLE `carrito_detalle`
 -- AUTO_INCREMENT for table `categoria_productos`
 --
 ALTER TABLE `categoria_productos`
-  MODIFY `id_categoria` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_categoria` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `citas`
@@ -617,13 +637,13 @@ ALTER TABLE `permisos`
 -- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `id_rol` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_rol` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `rol_permisos`
@@ -635,7 +655,7 @@ ALTER TABLE `rol_permisos`
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `ventas`
