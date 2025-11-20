@@ -57,7 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                  // Verifica si el usuario o correo ya existen
                 $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion =?");
+<<<<<<< HEAD
                 $stmt->bind_param("ssi", $email, $nombre_completo, $identificacion);
+=======
+                $stmt->bind_param("ssi", $email, $username, $identificacion);
+>>>>>>> 99e26a8ef065a902bb1c5020deacf8573ddc1119
                 $stmt->execute();
                 if ($stmt->get_result()->num_rows > 0) {
                     $error = "Usuario, identificacion o correo ya se encuentra en uso.";
@@ -68,10 +72,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $hash = password_hash($password, PASSWORD_DEFAULT);  // Encripta la contraseña
 
                     $stmtInsert = $conn->prepare("
+<<<<<<< HEAD
                         INSERT INTO usuarios (nombre_completo, email,password,id_rol, telefono, identificacion)
                         VALUES (?, ?, ?, ?,?,?)
                     ");
                     $stmtInsert->bind_param("sssiss", $nombre_completo, $email, $hash, $role_id, $telefono, $identificacion);
+=======
+                        INSERT INTO usuarios (nombre_completo, email, password, estado, id_rol, telefono, identificacion)
+                        VALUES (?, ?, ?, 'activo', ?,?,?)
+                    ");
+                    $stmtInsert->bind_param("sssiii", $username, $email, $hash, $role_id, $telefono, $identificacion);
+>>>>>>> 99e26a8ef065a902bb1c5020deacf8573ddc1119
                     if ($stmtInsert->execute()) {
                         $success = "✅ Usuario creado exitosamente.";
                     } else {
