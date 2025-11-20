@@ -45,7 +45,7 @@ if (isset($_POST["actualizar"])) {
         }
         .navbar { 
             width: 220px; 
-            background-color: #152fbf; 
+            background-color: #69B7BF; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
@@ -114,16 +114,27 @@ if (isset($_POST["actualizar"])) {
             margin-bottom: 5px;
             font-weight: bold;
         }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;        /* Ajustá lo alto o bajo que querás */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;        /* Tamaño del logo */
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-    </div>
+    <?php include('../../views/navbar.php'); ?>
+
+    <!-- Logo inferior del menú -->
+    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+</div>
 
     <div class="content">
         <div class="seccion">
-            <h1> Gestión de Usuarios</h1>
+            <h1 style="color: #69B7BF;"> Gestión de Usuarios</h1>
             
             <!-- Búsqueda de usuario -->
             <div class="form-group">

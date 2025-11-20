@@ -28,7 +28,7 @@ if ($email === '' || $password === '') {
 }
 
 // Consulta de la tabla usuarios para obtener los datos del usuario y su rol
-$sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.password, r.nombre AS rol
+$sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.password, u.id_rol, r.nombre AS rol
         FROM usuarios u
         JOIN roles r ON u.id_rol = r.id_rol
         WHERE u.email = ?";
@@ -51,27 +51,45 @@ $user = $result->fetch_assoc(); //obtiene una fila del resultado como un array a
 $stmt->close();
 
 // Verifica que la contraseña ingresada coincida con el hash almacenado
-if (password_verify($password, $user['password'])) {
-    session_regenerate_id(true); // Regenera el ID de sesión por seguridad
-    
-    // Guarda los datos del usuario en la sesión
-$_SESSION['user'] = [
-        'nombre_completo' => $user['nombre_completo'],
-        'email'    => $user['email'],
-        'role'     => $user['rol']
-    ];
-
-    
-    // Redirige al index.php tras inicio de sesión exitoso
-
-    header('Location: ../public/home.php');
-    exit;
-} else {
-
-    // Si la contraseña no coincide, redirige con mensaje de error
+if (!password_verify($password, $user['password'])) {
     header('Location: login.php?error=' . urlencode('Usuario o contraseña incorrectos.'));
     exit;
+} // Regenera el ID de sesión por seguridad
+
+$permisos = [];
+    
+$stmtPerm = $conn->prepare("
+    SELECT p.nombre
+    FROM permisos p
+    INNER JOIN rol_permisos rp ON p.id_permiso = rp.id_permiso
+    WHERE rp.id_rol = ?
+");
+$stmtPerm->bind_param("i", $user['id_rol']);
+$stmtPerm->execute();
+$resPerm = $stmtPerm->get_result();
+
+while ($row = $resPerm->fetch_assoc()) {
+    $permisos[] = $row['nombre'];
 }
+
+$stmtPerm->close();
+
+session_regenerate_id(true); //true para borrar la sesión anterior
+
+    // Guarda los datos del usuario en la sesión
+$_SESSION['user'] = [
+    'id_usuario'      => $user['id_usuario'],
+    'nombre_completo' => $user['nombre_completo'],
+    'email'           => $user['email'],
+    'role'            => $user['rol'],      // Cliente, Administrador, Médico
+    'id_rol'          => $user['id_rol'],
+    'permisos'        => $permisos 
+];
+
+    // Redirige al index.php tras inicio de sesión exitoso
+$conn->close();
+header('Location: ../public/home.php');
+exit;
 
 // Cierra la conexión a la base de datos
 

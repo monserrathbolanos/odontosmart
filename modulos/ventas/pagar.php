@@ -47,7 +47,7 @@ $total = $subtotal + $iva;
         }
         .navbar { 
             width: 220px; 
-            background-color: #152fbf; 
+            background-color: #69B7BF; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
@@ -61,7 +61,7 @@ $total = $subtotal + $iva;
             border-radius: 4px; 
         }
         .navbar a:hover { 
-            background-color: #264cbf; 
+            background-color: #69B7BF; 
         }
         .content { 
             margin-left: 240px; 
@@ -111,16 +111,28 @@ $total = $subtotal + $iva;
         .btn-vaciar {
             background: #dc3545;
         }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;   /* ajustá si querés subirlo o bajarlo */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;   /* tamaño del logo */
+            opacity: 0.9;
+        }
+
     </style>
 </head>
 <body>
     <!-- Menú -->
     <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-    </div>
+    <!-- Logo inferior del menú -->
+    <?php include('../../views/navbar.php'); ?>
+    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+</div>
+
 
     <div class="content">
-        <h1>Carrito de Compras - OdontoSmart</h1>
+        <h1 style="color: #69B7BF;">Carrito de Compras - OdontoSmart</h1>
 
         <?php if ($carrito_vacio): ?>
             <div class="seccion">

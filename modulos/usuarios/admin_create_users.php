@@ -1,33 +1,31 @@
 <?php
 // --- Login para crear usuarios desde el rol de administrador, se debe agregaar el boton en gestion de usuarios, que rerefecnie a este fichero
 // Inicia sesión y carga dependencias necesarias
-
+ 
 require '../../config/conexion.php'; // Conexión a la base de datos
 require '../../config/csrf.php';  // Protección contra ataques CSRF
-
+ 
 session_start();
-
+ 
 // Genera un token CSRF para proteger el formulario
-
 $csrf_token = generate_csrf_token();
-
+ 
 // Obtener roles de la base de datos
 $roles = [];
 $result = $conn->query("SELECT id_rol, nombre FROM roles");
 while ($row = $result->fetch_assoc()) {
     $roles[] = $row;  //Guarda los roles disponibles en un arreglo
 }
-
+ 
 // --- Procesar formulario cuando se envía vía POST ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-      // Verifica el token CSRF
+ 
+    // Verifica el token CSRF
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
         $error = "Token de seguridad inválido. Por favor, vuelve a intentarlo.";
     } else {
-
+ 
         // Sanitiza y valida los datos del formulario
-
         $nombre_completo = trim($_POST['nombre_completo'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -35,9 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $role_id = intval($_POST['role'] ?? 0);
         $identificacion = trim($_POST['identificacion'] ?? '');
         $telefono = trim($_POST['telefono'] ?? '');
-        
-          // Validaciones básicas
-
+ 
+        // Validaciones básicas
         if ($nombre_completo === '' || $email === '' || $password === '') {
             $error = "Todos los campos son obligatorios.";
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -47,58 +44,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (strlen($password) < 6) {
             $error = "La contraseña debe tener al menos 6 caracteres.";
         } else {
+ 
             // Verifica que el rol seleccionado exista
-
             $stmtRole = $conn->prepare("SELECT id_rol FROM roles WHERE id_rol = ?");
             $stmtRole->bind_param("i", $role_id);
             $stmtRole->execute();
+ 
             if ($stmtRole->get_result()->num_rows === 0) {
                 $error = "Rol inválido.";
             } else {
-                 // Verifica si el usuario o correo ya existen
-                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion =?");
-<<<<<<< HEAD
-                $stmt->bind_param("ssi", $email, $nombre_completo, $identificacion);
-=======
-                $stmt->bind_param("ssi", $email, $username, $identificacion);
->>>>>>> 99e26a8ef065a902bb1c5020deacf8573ddc1119
+ 
+                // Verifica si el usuario o correo ya existen
+                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios
+                                        WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
+                $stmt->bind_param("sss", $email, $nombre_completo, $identificacion);
                 $stmt->execute();
+ 
                 if ($stmt->get_result()->num_rows > 0) {
                     $error = "Usuario, identificacion o correo ya se encuentra en uso.";
                 } else {
-
-                    // Inserta el nuevo usuario en la base de datos
+ 
                     // Inserta el nuevo usuario en la base de datos
                     $hash = password_hash($password, PASSWORD_DEFAULT);  // Encripta la contraseña
-
+ 
                     $stmtInsert = $conn->prepare("
-<<<<<<< HEAD
-                        INSERT INTO usuarios (nombre_completo, email,password,id_rol, telefono, identificacion)
-                        VALUES (?, ?, ?, ?,?,?)
+                        INSERT INTO usuarios (nombre_completo, email, password, id_rol, telefono, identificacion)
+                        VALUES (?, ?, ?, ?, ?, ?)
                     ");
-                    $stmtInsert->bind_param("sssiss", $nombre_completo, $email, $hash, $role_id, $telefono, $identificacion);
-=======
-                        INSERT INTO usuarios (nombre_completo, email, password, estado, id_rol, telefono, identificacion)
-                        VALUES (?, ?, ?, 'activo', ?,?,?)
-                    ");
-                    $stmtInsert->bind_param("sssiii", $username, $email, $hash, $role_id, $telefono, $identificacion);
->>>>>>> 99e26a8ef065a902bb1c5020deacf8573ddc1119
+ 
+                    $stmtInsert->bind_param(
+                        "sssiss",
+                        $nombre_completo,
+                        $email,
+                        $hash,
+                        $role_id,
+                        $telefono,
+                        $identificacion
+                    );
+ 
                     if ($stmtInsert->execute()) {
                         $success = "✅ Usuario creado exitosamente.";
                     } else {
                         $error = "Error al crear usuario.";
                     }
+ 
                     $stmtInsert->close();
                 }
+ 
                 $stmt->close();
             }
+ 
             $stmtRole->close();
         }
     }
 }
+ 
 $conn->close();
 ?>
-
+ 
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -106,83 +109,76 @@ $conn->close();
     <title>Crear Usuario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-
+ 
 <style>
   body {
   background: linear-gradient(270deg, #152fbf, #264cbf, #182940, #69b7bf); /* Gradiente animado */
    /* background-image: url(' Odonto.png');  */
   background-size: 300% 300%;
   animation: rgbFlow 150s ease infinite;  /* Movimiento suave del fondo */
-
+ 
   font-family: 'Poppins', sans-serif;
   color: #ffffff;
 }
-
 </style>
+ 
 <body class="bg-light">
-
+ 
 <div class="container mt-5">
     <div class="card shadow-lg p-4" style="max-width: 500px; margin: auto;">
         <h3 class="text-center mb-4"><strong>Crear Nuevo Usuario</strong></h3>
-
+ 
         <!-- Mensajes de éxito o error -->
         <?php if (isset($success)): ?>
             <div class="alert alert-success text-center"><?= htmlspecialchars($success) ?></div>
         <?php elseif (isset($error)): ?>
             <div class="alert alert-danger text-center"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
-
-            <!-- Formulario de registro -->
+ 
+        <!-- Formulario de registro -->
         <form method="POST" action="">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-             
+ 
             <!-- Campo: Nombre completo -->
-
             <div class="mb-3">
                 <label for="nombre_completo" class="form-label">Nombre completo</label>
                 <input type="text" name="nombre_completo" id="nombre_completo" class="form-control"
                        value="<?= htmlspecialchars($_POST['nombre_completo'] ?? '') ?>" required>
             </div>
-
-              <!-- Campo: Correo electrónico -->
-
+ 
+            <!-- Campo: Correo electrónico -->
             <div class="mb-3">
                 <label for="email" class="form-label">Correo electrónico</label>
                 <input type="email" name="email" id="email" class="form-control"
                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
             </div>
-               
+ 
             <!-- Campo: Cédula -->
-
             <div class="mb-3">
                 <label for="identificacion" class="form-label">Cédula</label>
-                <input type="identificacion" name="identificacion" id="identificacion" class="form-control"
+                <input type="text" name="identificacion" id="identificacion" class="form-control"
                        value="<?= htmlspecialchars($_POST['identificacion'] ?? '') ?>" required>
             </div>
-
-               <!-- Campo: Teléfono -->
-
+ 
+            <!-- Campo: Teléfono -->
             <div class="mb-3">
                 <label for="telefono" class="form-label">Teléfono</label>
-                <input type="telefono" name="telefono" id="telefono" class="form-control" required>
+                <input type="text" name="telefono" id="telefono" class="form-control" required>
             </div>
-
-               <!-- Campo: Contraseña -->
-
+ 
+            <!-- Campo: Contraseña -->
             <div class="mb-3">
                 <label for="password" class="form-label">Contraseña</label>
                 <input type="password" name="password" id="password" class="form-control" required>
             </div>
-
-              <!-- Campo: Confirmar contraseña -->
-
+ 
+            <!-- Campo: Confirmar contraseña -->
             <div class="mb-3">
                 <label for="confirm_password" class="form-label">Confirmar contraseña</label>
                 <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
             </div>
-              
+ 
             <!-- Campo: Rol -->
-
             <div class="mb-3">
                 <label for="role" class="form-label">Rol</label>
                 <select name="role" id="role" class="form-select" required>
@@ -195,24 +191,15 @@ $conn->close();
                     <?php endforeach; ?>
                 </select>
             </div>
-               
+ 
             <!-- Botones de acción -->
             <button type="submit" class="btn btn-success w-100">Crear usuario</button>
             <a href="/odontosmart/modulos/usuarios/gestion_usuarios.php" class="btn btn-primary w-100 mt-2">Volver</a>
-            
-            <!-- <a href="../../auth/login.php" class="btn btn-secondary  W-500 mt-2" style="width: 450px;">Iniciar sesión</a> -->
-            
-
-            
+ 
         </form>
-
-        
-   </div>
-           
+ 
     </div>
-
-    
 </div>
-
+ 
 </body>
 </html>

@@ -27,7 +27,7 @@ $username = $_SESSION['user']['nombre_completo'];
         }
         .navbar {
             width: 220px;
-            background-color: #235f66ff;
+            background-color: #69B7BF;
             height: 100vh;
             padding-top: 20px;
             position: fixed;
@@ -47,17 +47,27 @@ $username = $_SESSION['user']['nombre_completo'];
             margin-left: 240px;
             padding: 20px;
         }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;       /* distancia desde abajo */
+            left: 50%;          /* centrado horizontal */
+            transform: translateX(-50%);
+            width: 140px;       /* tamaño del logo */
+            opacity: 0.9;
+}
     </style>
 </head>
 <body>
      <div class="navbar">
-        <?php include('../views/navbar.php'); ?>
-    </div>
+    <?php include('../views/navbar.php'); ?>
+
+    <img src="../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+</div>
     <div class="content">
-        <h1>Bienvenido a OdontoSmart</h1>
+        <h1 style="color: #69B7BF;">OdontoSmart - Clínica Dental</h1>
+        <h2 style="color:#264CBF;">Bienvenido (a): <?php echo htmlspecialchars($_SESSION['user']['nombre_completo']); ?></h2>
         <h2>Perfil actual: <?php echo ucfirst($rol); ?></h2>
         
-<p>Usuario: <?php echo htmlspecialchars($_SESSION['user']['nombre_completo']); ?></p>
 
 
 <!-- Ya el logout se encuentra en el Navbar -->

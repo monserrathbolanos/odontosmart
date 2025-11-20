@@ -21,7 +21,7 @@ if (!empty($_SESSION['user'])) {
 
 <style>
   body {
-  background: linear-gradient(270deg, #152fbf, #264cbf, #182940, #69b7bf); /* colores seleccionados */
+  background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #D5E7F2, #69B7BF); /* colores seleccionados */
    /* background-image: url(' Odonto.png');  */
   background-size: 300% 300%;
   animation: rgbFlow 150s ease infinite;

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 20, 2025 at 12:38 AM
+-- Generation Time: Nov 20, 2025 at 10:08 PM
 -- Server version: 8.4.3
 -- PHP Version: 8.4.13
 
@@ -264,6 +264,20 @@ CREATE TABLE `permisos` (
   `descripcion` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `permisos`
+--
+
+INSERT INTO `permisos` (`id_permiso`, `nombre`, `descripcion`) VALUES
+(1, 'ver_info_clinica', 'Puede ver la página de información de la clínica'),
+(2, 'ver_servicios', 'Puede ver la lista de servicios'),
+(3, 'ir_a_pagar', 'Puede ir a la pantalla de pago'),
+(4, 'ver_inventario', 'Puede ver el inventario general'),
+(5, 'control_inventario', 'Puede gestionar el inventario'),
+(6, 'gestion_usuarios', 'Puede gestionar usuarios'),
+(7, 'ver_historial_ventas', 'Puede ver el historial de ventas'),
+(8, 'gestion_citas', 'Puede gestionar las citas');
+
 -- --------------------------------------------------------
 
 --
@@ -329,6 +343,29 @@ CREATE TABLE `rol_permisos` (
   `id_permiso` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `rol_permisos`
+--
+
+INSERT INTO `rol_permisos` (`id_rol_permiso`, `id_rol`, `id_permiso`) VALUES
+(1, 3, 1),
+(2, 3, 2),
+(3, 3, 3),
+(4, 1, 1),
+(5, 1, 2),
+(6, 1, 3),
+(7, 1, 4),
+(8, 1, 5),
+(9, 1, 6),
+(10, 1, 7),
+(11, 2, 1),
+(12, 2, 2),
+(13, 2, 8),
+(14, 4, 1),
+(15, 4, 2),
+(16, 4, 3),
+(17, 4, 8);
+
 -- --------------------------------------------------------
 
 --
@@ -353,7 +390,10 @@ CREATE TABLE `usuarios` (
 INSERT INTO `usuarios` (`id_usuario`, `nombre_completo`, `email`, `telefono`, `identificacion`, `password`, `id_rol`, `fecha_creacion`) VALUES
 (2, 'isaac Rodríguez Víquez', 'viquezisaac373@gmail.com', '85102283', '208630471', '$2y$12$Z5fUbAyvOplt6tMfRzZU0u9W0fFiY1eYq7tl0oSOE5E2vSm3Jo0L2', 1, '2025-11-19 17:20:08'),
 (3, 'Admin', 'admin@gmail.com', '85102283', '1512356213', '$2y$12$7hX2eSPgIfJ4aGEHehJNze6BGBBF0IeR9vrG.XthD2DVgXOiyT8GG', 3, '2025-11-19 17:39:46'),
-(4, 'admin2', 'admin298@gmail.com', '124387365', '123456789', '$2y$12$D/iF9YxUXRsIQarahDNrb.Rw54O1XDvVSqN.AoAMULFS2uqiWRwWS', 4, '2025-11-19 17:46:20');
+(4, 'admin2', 'admin298@gmail.com', '124387365', '123456789', '$2y$12$D/iF9YxUXRsIQarahDNrb.Rw54O1XDvVSqN.AoAMULFS2uqiWRwWS', 4, '2025-11-19 17:46:20'),
+(5, 'Monserrath Bolaños Alfaro', 'monserrath@gmail.com', '86743429', '207870964', '$2y$12$S/wmxfTRiTBbjplYLM3JF.4G1Rm0CATrHVVLx/dh6HCJ/8T6uJ4OS', 1, '2025-11-19 19:11:49'),
+(6, 'Carey Aguilar', 'carey@gmail.com', '85753421', '27870961', '$2y$12$1.Lj3WgQ0pV7ms//2LiJOuDVqJyfGfZidkQTbE4EeSYqlpSJplnXe', 4, '2025-11-20 14:29:12'),
+(7, 'Veronica Alfaro', 'veronica@gmail.com', '83213475', '205020970', '$2y$12$aTeFhIr4ojmUl8qBHaPBEOQiJNI2GkOLW9DRcnxrdVbdyZpEPRq3u', 4, '2025-11-20 14:51:42');
 
 -- --------------------------------------------------------
 
@@ -631,7 +671,7 @@ ALTER TABLE `pagos`
 -- AUTO_INCREMENT for table `permisos`
 --
 ALTER TABLE `permisos`
-  MODIFY `id_permiso` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_permiso` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `productos`
@@ -649,13 +689,13 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `rol_permisos`
 --
 ALTER TABLE `rol_permisos`
-  MODIFY `id_rol_permiso` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_rol_permiso` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `ventas`

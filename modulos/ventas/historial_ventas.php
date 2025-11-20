@@ -20,7 +20,7 @@ $rol = "administrador"; // Temporal
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Historial de Ventas - OdontoSmart</title>
+    <title >Historial de Ventas - OdontoSmart</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -30,7 +30,7 @@ $rol = "administrador"; // Temporal
         }
         .navbar { 
             width: 220px; 
-            background-color: #152fbf; 
+            background-color: #69B7BF; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
@@ -68,7 +68,7 @@ $rol = "administrador"; // Temporal
             border-bottom: 1px solid #ddd; 
         }
         th { 
-            background: #152fbf; 
+            background: #69B7BF; 
             color: white; 
         }
         tr:hover {
@@ -76,7 +76,7 @@ $rol = "administrador"; // Temporal
         }
         .btn-ver {
             padding: 5px 10px;
-            background: #28a745;
+            background: #264CBF;
             color: white;
             border: none;
             border-radius: 3px;
@@ -89,21 +89,31 @@ $rol = "administrador"; // Temporal
         }
         .estadistica-card {
             flex: 1;
-            background: #152fbf;
+            background: #182940;
             color: white;
             padding: 15px;
             border-radius: 5px;
             text-align: center;
         }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;        /* Ajustá lo alto o bajo que querás */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;        /* Tamaño del logo */
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
     <div class="navbar">
-       <?php include('../../views/navbar.php'); ?>
-    </div>
+    <!-- Logo inferior del menú -->
+    <?php include('../../views/navbar.php'); ?>
+    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+</div>
 
     <div class="content">
-        <h1> Historial de Ventas - OdontoSmart</h1>
+        <h1 style="color: #69B7BF;"> Historial de Ventas - OdontoSmart</h1>
 
         <!-- Estadísticas Rápidas -->
         <div class="estadisticas">
@@ -117,7 +127,7 @@ $rol = "administrador"; // Temporal
                     ?>
                 </p>
             </div>
-            <div class="estadistica-card" style="background: #28a745;">
+            <div class="estadistica-card" style="background: #264CBF;">
                 <h3>Ventas del Mes</h3>
                 <p style="font-size: 24px; margin: 0;">
                     ₡<?php 

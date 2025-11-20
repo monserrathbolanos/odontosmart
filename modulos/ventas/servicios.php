@@ -83,7 +83,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
         }
         .navbar { 
             width: 220px; 
-            background-color: #152fbf; 
+            background-color: #69B7BF; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
@@ -121,20 +121,20 @@ function mostrarCategoria($conn, $categoriaNombre) {
             border-bottom: 1px solid #ddd; 
         }
         th { 
-            background: #152fbf; 
+            background: #69B7BF; 
             color: white; 
         }
         tr:hover {
             background: #f9f9f9;
         }
         .categoria-titulo {
-            background: #e8f4ff;
+            background: #D5E7F2;
             padding: 15px;
             margin: 25px 0 10px 0;
             border-radius: 5px;
             font-size: 18px;
             font-weight: bold;
-            border-left: 4px solid #152fbf;
+            border-left: 4px solid #69B7BF;
         }
         .sin-productos {
             padding: 20px;
@@ -146,17 +146,29 @@ function mostrarCategoria($conn, $categoriaNombre) {
             color: #28a745;
             font-weight: bold;
         }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;        /* distancia desde abajo (ajustable) */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;        /* tamaño del logo */
+            opacity: 0.9;
+        }
+
     </style>
 </head>
 <body>
     
     <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-    </div>
+    <!-- Logo inferior del menú -->
+    <?php include('../../views/navbar.php'); ?>
+    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+</div>
+
 
     <div class="content">
         <div class="seccion">
-            <h1> Servicios y Productos</h1>
+            <h1 style="color: #69B7BF;"> Servicios y Productos</h1>
             <p>En esta sección se muestra el catálogo de productos y servicios disponibles en la clínica dental OdontoSmart.</p>
 
             <?php

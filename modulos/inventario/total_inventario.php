@@ -71,7 +71,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
         }
         .navbar { 
             width: 220px; 
-            background-color: #152fbf; 
+            background-color: #69B7BF; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
@@ -85,7 +85,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
             border-radius: 4px; 
         }
         .navbar a:hover { 
-            background-color: #264cbf; 
+            background-color: #69B7BF; 
         }
         .content { 
             margin-left: 240px; 
@@ -106,23 +106,23 @@ function mostrarCategoria($conn, $categoriaNombre) {
         th, td { 
             padding: 12px; 
             text-align: left; 
-            border-bottom: 1px solid #ddd; 
+            border-bottom: 1px solid #D5E7F2; 
         }
         th { 
-            background: #152fbf; 
+            background: #69B7BF; 
             color: white; 
         }
         tr:hover {
             background: #f9f9f9;
         }
         .categoria-titulo {
-            background: #e8f4ff;
+            background: #D5E7F2;
             padding: 15px;
             margin: 25px 0 10px 0;
             border-radius: 5px;
             font-size: 18px;
             font-weight: bold;
-            border-left: 4px solid #152fbf;
+            border-left: 4px solid #69B7BF;
         }
         .sin-productos {
             padding: 20px;
@@ -134,16 +134,27 @@ function mostrarCategoria($conn, $categoriaNombre) {
             color: #28a745;
             font-weight: bold;
         }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;   /* ajustá si querés subirlo o bajarlo */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;   /* tamaño del logo */
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-    </div>
+    <?php include('../../views/navbar.php'); ?>
+
+    <!-- Logo inferior del menú -->
+    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+</div>
 
     <div class="content">
         <div class="seccion">
-            <h1> Inventario General</h1>
+            <h1 style="color: #69B7BF;"> Inventario General</h1>
             <p>En esta sección se muestra el inventario completo de productos disponibles en la clínica dental OdontoSmart. Aquí podrás ver detalles como el nombre del producto, descripción, unidad, precio, stock mínimo, categoría, fecha de caducidad y costo por unidad.</p>
 
             <?php

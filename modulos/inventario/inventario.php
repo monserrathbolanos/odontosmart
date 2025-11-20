@@ -62,7 +62,7 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
         }
         .navbar { 
             width: 220px; 
-            background-color: #152fbf; 
+            background-color: #69B7BF; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
@@ -76,7 +76,7 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
             border-radius: 4px; 
         }
         .navbar a:hover { 
-            background-color: #264cbf; 
+            background-color: #69B7BF; 
         }
         .content { 
             margin-left: 240px; 
@@ -108,9 +108,9 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
             font-size: 14px;
         }
         input:focus, select:focus {
-            border-color: #152fbf;
+            border-color: #69B7BF;
             outline: none;
-            box-shadow: 0 0 5px rgba(21, 47, 191, 0.3);
+            box-shadow: 0 0 5px rgba(105, 183, 191, 0.3);
         }
         button {
             padding: 12px 25px;
@@ -153,16 +153,27 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
             color: #6c757d;
             margin-top: 5px;
         }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;        /* Ajustá lo alto o bajo que querás */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;        /* Tamaño del logo */
+            opacity: 0.9;
+        }
+
     </style>
 </head>
 <body>
     <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-    </div>
+    <!-- Logo inferior del menú -->
+    <?php include('../../views/navbar.php'); ?>
+    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+</div>
 
     <div class="content">
         <div class="seccion">
-            <h1>Agregar Producto al Inventario</h1>
+            <h1 style="color: #69B7BF;">Agregar Producto al Inventario</h1>
             <p>Complete el formulario para agregar un nuevo producto al sistema.</p>
 
             <?php if (!empty($mensaje)): ?>

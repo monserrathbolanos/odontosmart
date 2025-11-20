@@ -20,7 +20,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
  
 
  body {
-  background: linear-gradient(270deg, #264cbf, #182940, #69b7bf);
+  background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #92c4e4ff, #7ed5dfff); /* colores seleccionados */
+   /* background-image: url(' Odonto.png');  */
   background-size: 300% 300%;
   animation: rgbFlow 200s ease infinite;
   font-family: 'Poppins', sans-serif;
@@ -54,8 +55,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 }
     .navbar {
         padding: 10px;
-        background: #63aeebff;
-        border-bottom: 2px solid #ccc;
+        background: #69B7BF;
+        border-bottom: 2px solid #D5E7F2;
         font-family: Arial, sans-serif;
     }
 
@@ -80,18 +81,18 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     }
 
     .navbar a:hover {
-        color: #deeceeff;
+        color: #D5E7F2;
     }
 
     .navbar a.active {
         color: 00bcd4#;
-        border-bottom: 2px solid #e4f0f1ff;
+        border-bottom: 2px solid #D5E7F2;
     }
     
 </style>
 
-<h1 style="color: #ffffffff" >Bienvenido a OdontoSmart</h1>
-<h5 style="color: #d8f3f7ff" >Inicie sesion con su usuario y contraseña.</h5>
+<h1 style="color: #69B7BF" >Bienvenido (a) a OdontoSmart</h1>
+<h3 style="color: #69B7BF2" >Inicie sesion con su usuario y contraseña.</h3>
 
 <p class="alineado-izquierda">
 En OdontoSmart nos dedicamos a transformar tu salud bucal con tecnología de vanguardia, atención personalizada y un enfoque humano en cada tratamiento.</p>
@@ -101,4 +102,4 @@ En OdontoSmart nos dedicamos a transformar tu salud bucal con tecnología de van
 <p class="alineado-izquierda">Aquí encontrarás un equipo de especialistas que combina conocimiento, innovación y calidez para cuidar de tu sonrisa.</p>
 <p class="alineado-izquierda"> Explora nuestros servicios, agenda tu cita y descubre por qué somos la opción inteligente para tu bienestar dental.</p>
 
-<img src="/assets/img/Odonto.png" class="logo-fixed" alt="Logo OdontoSmart">
+<img src="assets/img/odonto.png" class="logo-fixed" alt="Logo OdontoSmart">

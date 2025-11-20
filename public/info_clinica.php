@@ -18,7 +18,7 @@ include('../config/conexion.php');
         }
         .navbar { 
             width: 220px; 
-            background-color: #152fbf; 
+            background-color: #69B7BF; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
@@ -53,21 +53,33 @@ include('../config/conexion.php');
             margin: 20px 0;
         }
         .card {
-            background: #e8f4ff;
+            background: #D5E7F2;
             padding: 20px;
             border-radius: 8px;
-            border-left: 4px solid #152fbf;
+            border-left: 4px solid #69B7BF;
         }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;       /* distancia desde abajo (ajustable) */
+            left: 50%;          
+            transform: translateX(-50%);
+             width: 140px;
+            opacity: 0.9;
+        }
+
     </style>
 </head>
 <body>
     <div class="navbar">
-        <?php include('../views/navbar.php'); ?>
-    </div>
+    <?php include('../views/navbar.php'); ?>
+
+    <img src="../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+</div>
+
 
     <div class="content">
         <div class="seccion">
-            <h1> Sobre Nosotros - Clínica OdontoSmart</h1>
+            <h1 style="color: #69B7BF;"> Sobre Nosotros - Clínica OdontoSmart</h1>
             <p>Bienvenidos a la Clínica OdontoSmart. Somos un equipo de profesionales dedicados a brindar atención odontológica de calidad, con un enfoque humano y cercano a nuestros pacientes.</p>
             
             <div class="mision-vision">
@@ -86,5 +98,6 @@ include('../config/conexion.php');
             <p><strong>¡Gracias por preferirnos y estar aquí! Tu salud dental es nuestra prioridad.</strong></p>
         </div>
     </div>
+    
 </body>
 </html>
