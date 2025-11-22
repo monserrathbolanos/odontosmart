@@ -1,191 +1,127 @@
 <?php
-// factura.php
 session_start();
-include('../../config/conexion.php');
+require '../../config/conexion.php';
 
-$id_venta = $_GET['id_venta'] ?? ($_SESSION['ultima_venta'] ?? '');
-
-if (empty($id_venta)) {
-    header("Location: servicios.php");
-    exit();
+// Verificar que se recibió un id_venta por URL
+if (!isset($_GET['id_venta'])) {
+    die("No se indicó la venta.");
 }
 
-// Obtener datos de la venta SIN la tabla pacientes
-$sql_venta = "SELECT v.*, u.nombre_completo as vendedor_nombre
+$id_venta = $_GET['id_venta'];
+
+// Obtener datos generales de la venta junto con los datos del cliente
+$sql_venta = "SELECT v.id_venta, v.fecha_venta, v.subtotal, v.impuestos, v.total, 
+                     v.metodo_pago, c.nombre, c.apellido, c.telefono, c.correo
               FROM ventas v
-              LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario
-              WHERE v.id_ventas = ?";
-$stmt_venta = $conn->prepare($sql_venta);
-$stmt_venta->bind_param("i", $id_venta);
-$stmt_venta->execute();
-$venta = $stmt_venta->get_result()->fetch_assoc();
+              JOIN clientes c ON v.id_cliente = c.id_cliente
+              WHERE v.id_venta = ?";
 
+$stmt = $conn->prepare($sql_venta);
+$stmt->bind_param("i", $id_venta);
+$stmt->execute();
+$venta = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+// Verificar si la venta existe
 if (!$venta) {
-    die("Venta no encontrada");
+    die("Venta no encontrada.");
 }
 
-// Obtener detalles de la venta -
-$sql_detalles = "SELECT dv.*, p.nombre as producto_nombre, p.descripcion
-                 FROM detalle_venta dv
-                 LEFT JOIN productos p ON dv.id_producto = p.id_producto
-                 WHERE dv.id_venta = ?";
-$stmt_detalles = $conn->prepare($sql_detalles);
-$stmt_detalles->bind_param("i", $id_venta);
-$stmt_detalles->execute();
-$detalles = $stmt_detalles->get_result();
+// Consultar detalle de productos comprados
+$sql_detalle = "SELECT dv.id_producto, p.nombre, dv.cantidad, dv.precio_unitario, dv.total
+                FROM detalle_venta dv
+                JOIN productos p ON dv.id_producto = p.id_producto
+                WHERE dv.id_venta = ?";
 
-$rol = "administrador"; // Temporal
+$stmt2 = $conn->prepare($sql_detalle);
+$stmt2->bind_param("i", $id_venta);
+$stmt2->execute();
+$result_detalle = $stmt2->get_result();
+
+// Arreglo para almacenar los productos de la factura
+$productos = [];
+while ($row = $result_detalle->fetch_assoc()) {
+    $productos[] = $row;
+}
+$stmt2->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Factura - OdontoSmart</title>
+    <title>Factura #<?php echo $venta['id_venta']; ?></title>
+
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .factura-container {
-            background: white;
-            padding: 30px;
-            margin: 0 auto;
-            max-width: 800px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
-        }
-        .header {
-            text-align: center;
-            border-bottom: 2px solid #152fbf;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        .clinic-info h1 {
-            color: #152fbf;
-            margin: 0;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background: #152fbf;
-            color: white;
-        }
-        .totales {
-            background: #e8f4ff;
-            padding: 20px;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
-        .btn {
-            padding: 10px 20px;
-            background: #152fbf;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px;
-            text-decoration: none;
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #152fbf; color: white; }
+        tfoot td { font-weight: bold; }
+
+        .boton-carrito {
             display: inline-block;
-        }
-        @media print {
-            .no-print { display: none; }
-            body { background: white; }
-            .factura-container { box-shadow: none; }
+            background: #28a745;
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="factura-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="clinic-info">
-                <h1>OdontoSmart</h1>
-                <p>Clínica Dental Especializada</p>
-                <p>Teléfono: (506) 2222-2222 | Email: info@odontosmart.com</p>
-            </div>
-        </div>
 
-        <!-- Información de Factura -->
-        <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
-            <div>
-                <h3>Información de Venta</h3>
-                <p><strong>Cliente:</strong> Cliente General</p>
-                <p><strong>ID Cliente:</strong> <?php echo $venta['id_cliente']; ?></p>
-                <p><strong>Vendedor:</strong> <?php echo $venta['vendedor_nombre'] ?? 'Sistema'; ?></p>
-            </div>
-            <div>
-                <h3>Factura</h3>
-                <p><strong>Número:</strong> <?php echo $venta['numero_factura']; ?></p>
-                <p><strong>Fecha:</strong> <?php echo $venta['fecha']; ?></p>
-                <p><strong>Método de Pago:</strong> <?php echo ucfirst($venta['metodo_pago']); ?></p>
-            </div>
-        </div>
+    <h1>Factura #<?php echo $venta['id_venta']; ?></h1>
+    <p><strong>Fecha:</strong> <?php echo $venta['fecha_venta']; ?></p>
+    <p><strong>Cliente:</strong> <?php echo $venta['nombre'] . " " . $venta['apellido']; ?></p>
+    <p><strong>Teléfono:</strong> <?php echo $venta['telefono']; ?> |
+       <strong>Correo:</strong> <?php echo $venta['correo']; ?></p>
+    <p><strong>Método de pago:</strong> <?php echo $venta['metodo_pago']; ?></p>
 
-        <!-- Detalles de Productos -->
-        <h3>Detalles de la Venta</h3>
-        <?php if ($detalles->num_rows > 0): ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Descripción</th>
-                        <th>Cantidad</th>
-                        <th>Precio Unit.</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php while($detalle = $detalles->fetch_assoc()): ?>
-                    <tr>
-                        <td><?php echo $detalle['producto_nombre']; ?></td>
-                        <td><?php echo $detalle['descripcion'] ?? 'N/A'; ?></td>
-                        <td><?php echo $detalle['cantidad']; ?></td>
-                        <td>₡<?php 
-                            $precio_unitario = $detalle['total_definitivo'] / $detalle['cantidad'];
-                            echo number_format($precio_unitario, 2); 
-                        ?></td>
-                        <td>₡<?php echo number_format($detalle['total_definitivo'], 2); ?></td>
-                    </tr>
-                    <?php endwhile; ?>
-                </tbody>
-            </table>
-        <?php else: ?>
-            <p style="color: #dc3545; text-align: center; padding: 20px;">
-                No se encontraron detalles para esta venta.
-            </p>
-        <?php endif; ?>
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio unitario</th>
+                <th>Total</th>
+            </tr>
+        </thead>
 
-        <!-- Totales -->
-        <div class="totales">
-            <h3>Resumen de Pagos</h3>
-            <p><strong>Subtotal: ₡<?php echo number_format($venta['subtotal'], 2); ?></strong></p>
-            <p>IVA (13%): ₡<?php echo number_format($venta['iva_monto'], 2); ?></p>
-            <p style="font-size: 20px; color: #152fbf;"><strong>Total: ₡<?php echo number_format($venta['total'], 2); ?></strong></p>
-        </div>
+        <tbody>
+            <?php foreach ($productos as $p): ?>
+            <tr>
+                <td><?php echo $p['nombre']; ?></td>
+                <td><?php echo $p['cantidad']; ?></td>
+                <td>₡<?php echo number_format($p['precio_unitario'], 2); ?></td>
+                <td>₡<?php echo number_format($p['total'], 2); ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
 
-        <!-- Mensaje de agradecimiento -->
-        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
-            <p><strong>¡Gracias por su compra!</strong></p>
-            <p>Factura generada electrónicamente - <?php echo date('d/m/Y H:i:s'); ?></p>
-        </div>
+        <tfoot>
+            <tr>
+                <td colspan="3" style="text-align:right;">Subtotal:</td>
+                <td>₡<?php echo number_format($venta['subtotal'], 2); ?></td>
+            </tr>
+            <tr>
+                <td colspan="3" style="text-align:right;">Impuestos:</td>
+                <td>₡<?php echo number_format($venta['impuestos'], 2); ?></td>
+            </tr>
+            <tr>
+                <td colspan="3" style="text-align:right;">Total:</td>
+                <td>₡<?php echo number_format($venta['total'], 2); ?></td>
+            </tr>
+        </tfoot>
+    </table>
 
-        <!-- Botones de Acción -->
-        <div class="no-print" style="text-align: center; margin-top: 20px;">
-            <button class="btn" onclick="window.print()">Imprimir Factura</button>
-            <a href="servicios.php" class="btn">Nueva Venta</a>
-            <a href="historial_ventas.php" class="btn">Historial</a>
-        </div>
+    <div style="text-align: center;">
+        <a href="carrito.php" class="boton-carrito">Volver al carrito</a>
     </div>
+
 </body>
 </html>

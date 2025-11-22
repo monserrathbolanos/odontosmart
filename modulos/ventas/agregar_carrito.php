@@ -1,45 +1,69 @@
-<?php
-// Iniciar sesión para poder almacenar el carrito
-
-//se relaciona con las tablas Productos.
-
-//No guarda datos en la base de datos, solo en la sesión ($_SESSION['carrito']).
-//El carrito se construye en memoria y luego se redirige a pagar.php(revisar si hay que cambiar el carrito a una tabla y no en memoria)
-
+<?php 
 session_start();
+
+// verificar sesión
+if (!isset($_SESSION['user']['id_usuario'])) {
+    die("No hay usuario logueado.");
+}
 
 include('../../config/conexion.php');
 
-// Validar que venga el producto y cantidad
-if (!isset($_POST['id_producto']) || !isset($_POST['cantidad'])) {
-    echo "Error: No se seleccionó ningún producto.";
-    exit();
+// obtener id_usuario
+$id_usuario = $_SESSION['user']['id_usuario'];
+
+// obtener id_producto desde POST
+$id_producto = $_POST['id_producto'] ?? null;
+
+if (!$id_producto) {
+    die("No se ha enviado ningún producto.");
 }
 
-// Guardar datos recibidos
-$id_producto = $_POST['id_producto'];
-$cantidad = $_POST['cantidad'];
+// verificar si el usuario ya tiene un carrito
+$sql_carrito = "SELECT id_carrito FROM carrito WHERE id_usuario = ? LIMIT 1";
+$stmt = $conn->prepare($sql_carrito);
+$stmt->bind_param("i", $id_usuario);
+$stmt->execute();
+$result = $stmt->get_result();
 
-// Obtener información del producto seleccionado
-$sql = "SELECT * FROM productos WHERE id_producto = $id_producto";
-$producto = $conn->query($sql)->fetch_assoc();
-
-// Si no existe el carrito, lo creamos
-// El carrito se guarda en la sesión
-if (!isset($_SESSION['carrito'])) {
-    $_SESSION['carrito'] = [];
+if ($result->num_rows > 0) {
+    $id_carrito = $result->fetch_assoc()['id_carrito'];
+} else {
+    // crear carrito
+    $fecha_creacion = date("Y-m-d H:i:s");
+    $sql_insert_carrito = "INSERT INTO carrito (id_usuario, fecha_creacion) VALUES (?, ?)";
+    $stmt = $conn->prepare($sql_insert_carrito);
+    $stmt->bind_param("is", $id_usuario, $fecha_creacion);
+    $stmt->execute();
+    $id_carrito = $conn->insert_id;
 }
 
-// Agregar producto al carrito (NO a la BD, solo sesión)
-$_SESSION['carrito'][] = [
-    'id_producto' => $producto['id_producto'],
-    'nombre' => $producto['nombre'],
-    'precio' => $producto['precio'],
-    'id_lote' => $producto['id_lote'],
-    'cantidad' => $cantidad
-];
+// verificar si el producto ya está en el carrito
+$sql_check_detalle = "SELECT id_detalle, cantidad FROM carrito_detalle WHERE id_carrito = ? AND id_producto = ?";
+$stmt = $conn->prepare($sql_check_detalle);
+$stmt->bind_param("ii", $id_carrito, $id_producto);
+$stmt->execute();
+$result_detalle = $stmt->get_result();
 
-// Redirigir a pagar.php
-header("Location: pagar.php");
-exit();
+if ($result_detalle->num_rows > 0) {
+    // si ya existe aumentar cantidad
+    $row_detalle = $result_detalle->fetch_assoc();
+    $cantidad_nueva = $row_detalle['cantidad'] + 1;
+
+    $sql_update = "UPDATE carrito_detalle SET cantidad = ? WHERE id_detalle = ?";
+    $stmt = $conn->prepare($sql_update);
+    $stmt->bind_param("ii", $cantidad_nueva, $row_detalle['id_detalle']);
+    $stmt->execute();
+
+} else {
+    // insertar nuevo registro
+    $cantidad = 1;
+    $sql_insert_detalle = "INSERT INTO carrito_detalle (id_carrito, id_producto, cantidad) VALUES (?, ?, ?)";
+    $stmt = $conn->prepare($sql_insert_detalle);
+    $stmt->bind_param("iii", $id_carrito, $id_producto, $cantidad);
+    $stmt->execute();
+}
+
+echo "<script>alert('Producto agregado correctamente'); window.location.href='servicios.php';</script>";
+exit;
+
 ?>

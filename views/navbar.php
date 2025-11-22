@@ -19,6 +19,8 @@ function tienePermiso(string $permiso, array $permisos): bool {
 <div class="navbar">
     <?php
 
+    echo '<a href="/odontosmart/public/home.php"> Inicio</a>';
+    
     if (tienePermiso('ver_info_clinica', $permisos)) {
         echo '<a href="/odontosmart/public/info_clinica.php"> Sobre Nosotros</a>';
     }
@@ -28,7 +30,7 @@ function tienePermiso(string $permiso, array $permisos): bool {
     }
 
     if (tienePermiso('ir_a_pagar', $permisos)) {
-        echo '<a href="/odontosmart/modulos/ventas/pagar.php"> Ir a pagar</a>';
+        echo '<a href="/odontosmart/modulos/ventas/carrito.php"> Ir a pagar</a>';
     }
 
     if (tienePermiso('ver_inventario', $permisos)) {
@@ -48,7 +50,7 @@ function tienePermiso(string $permiso, array $permisos): bool {
     }
 
     if (tienePermiso('gestion_citas', $permisos)) {
-        echo '<a href="/odontosmart/modulos/citas/gestion_citas.php"> Gestión de Citas</a>';
+        //echo '<a href="/odontosmart/modulos/citas/gestion_citas.php"> Gestión de Citas</a>';
     }
 
     //Menu por defecto donde si el usuario no tiene permisos asignados entonces se le muestra un menu con lo minimo que es informacion clinica, servicios y pagar. 

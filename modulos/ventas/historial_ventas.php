@@ -6,14 +6,20 @@ session_start();
 include('../../config/conexion.php');
 
 // Obtener historial de ventas
-$sql_ventas = "SELECT v.*, u.nombre_completo AS vendedor_nombre
+$sql_ventas = "SELECT 
+                    v.id_venta,
+                    v.fecha_venta,
+                    v.id_cliente,
+                    v.metodo_pago,
+                    v.total,
+                    u.nombre_completo AS vendedor_nombre
                FROM ventas v
                LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario
                ORDER BY v.fecha_venta DESC
                LIMIT 50";
+
 $ventas = $conn->query($sql_ventas);
 
-$rol = "administrador"; // Temporal
 ?>
 
 <!DOCTYPE html>
@@ -115,23 +121,30 @@ $rol = "administrador"; // Temporal
     <div class="content">
         <h1 style="color: #69B7BF;"> Historial de Ventas - OdontoSmart</h1>
 
-        <!-- Estadísticas Rápidas -->
+          <!-- Estadísticas Rápidas -->
         <div class="estadisticas">
             <div class="estadistica-card">
                 <h3>Total Ventas Hoy</h3>
                 <p style="font-size: 24px; margin: 0;">
                     ₡<?php 
-                    $sql_hoy = "SELECT COALESCE(SUM(total), 0) AS total_hoy FROM ventas WHERE fecha_venta = CURDATE()";
+                    $sql_hoy = "SELECT COALESCE(SUM(total), 0) AS total_hoy 
+                                FROM ventas 
+                                WHERE fecha_venta = CURDATE()";
                     $result_hoy = $conn->query($sql_hoy);
                     echo number_format($result_hoy->fetch_assoc()['total_hoy'], 2);
                     ?>
                 </p>
             </div>
-            <div class="estadistica-card" style="background: #264CBF;">
+
+            <div class="estadistica-card" style="background: #28a745;">
                 <h3>Ventas del Mes</h3>
                 <p style="font-size: 24px; margin: 0;">
                     ₡<?php 
-                    $sql_mes = "SELECT COALESCE(SUM(total), 0) as total_mes FROM ventas WHERE MONTH(fecha_venta) = MONTH(CURDATE()) AND YEAR(fecha_venta) = YEAR(CURDATE())";
+                    $sql_mes = "SELECT COALESCE(SUM(total), 0) AS total_mes 
+                               FROM ventas 
+                               WHERE MONTH(fecha_venta) = MONTH(CURDATE()) 
+                               AND YEAR(fecha_venta) = YEAR(CURDATE())";
+
                     $result_mes = $conn->query($sql_mes);
                     echo number_format($result_mes->fetch_assoc()['total_mes'], 2);
                     ?>
@@ -142,30 +155,32 @@ $rol = "administrador"; // Temporal
         <!-- Tabla de Ventas -->
         <div class="seccion">
             <h3> Últimas Ventas</h3>
+
             <table>
                 <thead>
                     <tr>
-                        <th>Factura</th>
+                        <th>ID Venta</th>
                         <th>Fecha</th>
-                        <th>Cliente ID</th>
+                        <th>ID Cliente</th>
                         <th>Vendedor</th>
                         <th>Método Pago</th>
                         <th>Total</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     <?php while($venta = $ventas->fetch_assoc()): ?>
                     <tr>
-                        <td><?php echo $venta['numero_factura']; ?></td>
-                        <td><?php echo $venta['fecha']; ?></td>
+                        <td><?php echo $venta['id_venta']; ?></td>
+                        <td><?php echo $venta['fecha_venta']; ?></td>
                         <td><?php echo $venta['id_cliente']; ?></td>
                         <td><?php echo $venta['vendedor_nombre'] ?? 'Sistema'; ?></td>
                         <td><?php echo ucfirst($venta['metodo_pago']); ?></td>
                         <td>₡<?php echo number_format($venta['total'], 2); ?></td>
                         <td>
-                            <button class="btn-ver" onclick="verFactura(<?php echo $venta['id_ventas']; ?>)">
-                                 Ver Factura
+                            <button class="btn-ver" onclick="verFactura(<?php echo $venta['id_venta']; ?>)">
+                                Ver Factura
                             </button>
                         </td>
                     </tr>

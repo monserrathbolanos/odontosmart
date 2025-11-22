@@ -1,43 +1,22 @@
 <?php
-// pagar.php 
-
-//no se relaciona directamente con tablas o base de datos, todo el flujo se maneja en la sesion carrito, SIN EMBARGO depende indirectamente de datos que provienen de la tabla Productos
+// pagar.php - Página para que el usuario ingrese datos de tarjeta
 session_start();
-// Vaciar carrito si se recibe la acción.
 
-
-// Los datos del carrito (id_producto, nombre, precio, id_lote) provienen originalmente de la tabla productos, pero fueron cargados en el archivo agregar_carrito.php.
-// Cuando el usuario hace clic en "Pagar ahora", se envía el formulario a procesar_pago.php, y ahí sí se insertan datos en las tablas:
-
-// ventas
-// detalle_venta
-// Se consulta usuarios.
-
-
-if (isset($_GET['vaciar'])) {
-    unset($_SESSION['carrito']);
-    header("Location: pagar.php");
-    exit();
+// Verificar si el usuario está logueado
+if (!isset($_SESSION['user']['id_usuario'])) {
+    echo "<p>No hay usuario logueado.</p>";
+    exit;
 }
 
-// Verificar si el carrito está vacío
-$carrito_vacio = !isset($_SESSION['carrito']) || empty($_SESSION['carrito']);
-$carrito = $carrito_vacio ? [] : $_SESSION['carrito'];
-
-// Calcular totales
-$subtotal = 0;
-foreach ($carrito as $item) {
-    $subtotal += $item['precio'] * $item['cantidad'];
-}
-$iva = $subtotal * 0.13;
-$total = $subtotal + $iva;
+$id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Carrito de Compras - OdontoSmart</title>
+    <title>OdontoSmart - Pago con Tarjeta</title>
+
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -45,13 +24,15 @@ $total = $subtotal + $iva;
             padding: 0; 
             background: #f5f5f5;
         }
+
         .navbar { 
             width: 220px; 
-            background-color: #69B7BF; 
+            background-color: #152fbf; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
         }
+
         .navbar a { 
             display: block; 
             color: #ecf0f1; 
@@ -60,133 +41,122 @@ $total = $subtotal + $iva;
             margin: 5px 0; 
             border-radius: 4px; 
         }
-        .navbar a:hover { 
-            background-color: #69B7BF; 
-        }
+
         .content { 
             margin-left: 240px; 
             padding: 20px; 
         }
+
         .seccion {
             background: white;
-            padding: 20px;
-            margin: 15px 0;
+            padding: 30px;
+            margin: 15px auto;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 500px;
         }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 15px 0;
+
+        .form-group {
+            margin: 20px 0;
         }
-        th, td { 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid #ddd; 
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
         }
-        th { 
-            background: #152fbf; 
-            color: white; 
-        }
-        .totales {
-            background: #e8f4ff;
-            padding: 15px;
+
+        input {
+            padding: 12px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
             border-radius: 5px;
-            margin: 15px 0;
+            width: 100%;
+            font-size: 14px;
         }
+
+        input:focus {
+            border-color: #152fbf;
+            outline: none;
+            box-shadow: 0 0 5px rgba(21, 47, 191, 0.3);
+        }
+
         button {
-            padding: 10px 15px;
-            background: #152fbf;
+            padding: 12px 25px;
+            background: #28a745;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin: 5px;
-        }
-        .btn-pagar {
-            background: #28a745;
-            padding: 12px 25px;
             font-size: 16px;
-        }
-        .btn-vaciar {
-            background: #dc3545;
-        }
-        .logo-navbar {
-            position: absolute;
-            bottom: 80px;   /* ajustá si querés subirlo o bajarlo */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 140px;   /* tamaño del logo */
-            opacity: 0.9;
+            margin-top: 10px;
+            width: 100%;
+            font-weight: bold;
         }
 
+        button:hover {
+            background: #218838;
+        }
+
+        a {
+            display: block;
+            margin-top: 15px;
+            color: #152fbf;
+            text-decoration: none;
+            text-align: center;
+        }
     </style>
 </head>
-<body>
-    <!-- Menú -->
-    <div class="navbar">
-    <!-- Logo inferior del menú -->
-    <?php include('../../views/navbar.php'); ?>
-    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
-</div>
 
+<body>
+
+    <!-- Menú lateral -->
+    <div class="navbar">
+        <?php include('../../views/navbar.php'); ?>
+    </div>
 
     <div class="content">
-        <h1 style="color: #69B7BF;">Carrito de Compras - OdontoSmart</h1>
 
-        <?php if ($carrito_vacio): ?>
-            <div class="seccion">
-                <h2>No hay productos en el carrito.</h2>
-                <a href="servicios.php"><button>Seguir comprando</button></a>
-            </div>
+        <div class="seccion">
+            <h1 style="color: #69B7BF;">Confirmar Pago</h1>
+            <p>Ingrese los datos de su tarjeta para procesar el pago.</p>
 
-        <?php else: ?>
-            <div class="seccion">
-                <h2>Productos Seleccionados</h2>
-                <table>
-                    <tr>
-                        <th>ID Producto</th>
-                        <th>Nombre</th>
-                        <th>ID Lote</th>
-                        <th>Cantidad</th>
-                        <th>Precio Unitario</th>
-                        <th>Total</th>
-                    </tr>
+            <form action="procesar_pago.php" method="POST">
 
-                    <?php foreach ($carrito as $item): 
-                        $total_producto = $item['precio'] * $item['cantidad'];
-                    ?>
-                        <tr>
-                            <td><?= $item['id_producto'] ?></td>
-                            <td><?= $item['nombre'] ?></td>
-                            <td><?= $item['id_lote'] ?></td>
-                            <td><?= $item['cantidad'] ?></td>
-                            <td>₡<?= number_format($item['precio'], 2) ?></td>
-                            <td>₡<?= number_format($total_producto, 2) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </table>
-
-                <!-- Totales -->
-                <div class="totales">
-                    <h3>Resumen de Pago</h3>
-                    <p><strong>Subtotal: ₡<?= number_format($subtotal, 2) ?></strong></p>
-                    <p>IVA (13%): ₡<?= number_format($iva, 2) ?></p>
-                    <p style="font-size: 18px; color: #152fbf;"><strong>Total: ₡<?= number_format($total, 2) ?></strong></p>
+                <!-- Nombre del titular -->
+                <div class="form-group">
+                    <label class="required">Nombre en la tarjeta:</label>
+                    <input type="text" name="nombre" required>
                 </div>
 
-                <!-- Botones de acción -->
-                <div>
-                    <a href="servicios.php"><button> Seguir comprando</button></a>
-                    <a href="pagar.php?vaciar=1"><button class="btn-vaciar">Vaciar carrito</button></a>
-                    
-                  
-                    <form action="procesar_pago.php" method="POST" style="display: inline;">
-                        <button type="submit" class="btn-pagar">Pagar ahora</button>
-                    </form>
+                <!-- Número de tarjeta -->
+                <div class="form-group">
+                    <label class="required">Número de tarjeta:</label>
+                    <input type="text" name="tarjeta" maxlength="16" minlength="16" 
+                           required placeholder="16 dígitos">
                 </div>
-            </div>
-        <?php endif; ?>
+
+                <!-- Fecha igual a inventario: YYYY-MM-DD -->
+                <div class="form-group">
+                    <label class="required">Fecha de vencimiento:</label>
+                    <input type="date" name="vencimiento" required>
+                </div>
+
+                <!-- CVV -->
+                <div class="form-group">
+                    <label class="required">CVV:</label>
+                    <input type="password" name="cvv" maxlength="3" minlength="3" 
+                           required placeholder="3 dígitos">
+                </div>
+
+                <button type="submit">Procesar pago</button>
+            </form>
+
+            <a href="carrito.php">← Volver al carrito</a>
+        </div>
+
     </div>
+
 </body>
 </html>
