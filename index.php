@@ -20,7 +20,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
  
 
  body {
-  background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #92c4e4ff, #7ed5dfff); /* colores seleccionados */
+  background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #92c4e4ff, #69B7BF); /* colores seleccionados */
    /* background-image: url(' Odonto.png');  */
   background-size: 300% 300%;
   animation: rgbFlow 200s ease infinite;

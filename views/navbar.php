@@ -1,7 +1,6 @@
 <?php
-// navbar.php
 
-// Asegurar que la sesión esté iniciada
+//
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -15,6 +14,7 @@ function tienePermiso(string $permiso, array $permisos): bool {
     return in_array($permiso, $permisos);
 }
 ?>
+
 <!-- Navbar ahora responde a los permisos de usuario segun el rol asignado -->
 <div class="navbar">
     <?php
@@ -27,6 +27,10 @@ function tienePermiso(string $permiso, array $permisos): bool {
 
     if (tienePermiso('ver_servicios', $permisos)) {
         echo '<a href="/odontosmart/modulos/ventas/servicios.php"> Servicios</a>';
+    }
+
+    if (tienePermiso('agendar_cita', $permisos)) {
+        echo '<a href="/odontosmart/modulos/citas/agendar_cita.php"> Agendar Cita</a>';
     }
 
     if (tienePermiso('ir_a_pagar', $permisos)) {
@@ -50,7 +54,7 @@ function tienePermiso(string $permiso, array $permisos): bool {
     }
 
     if (tienePermiso('gestion_citas', $permisos)) {
-        //echo '<a href="/odontosmart/modulos/citas/gestion_citas.php"> Gestión de Citas</a>';
+        echo '<a href="/odontosmart/modulos/citas/gestion_citas.php"> Gestión de Citas</a>';
     }
 
     //Menu por defecto donde si el usuario no tiene permisos asignados entonces se le muestra un menu con lo minimo que es informacion clinica, servicios y pagar. 

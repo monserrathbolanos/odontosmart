@@ -56,7 +56,7 @@ $stmt2->close();
         body { font-family: Arial, sans-serif; margin: 40px; }
         h1 { text-align: center; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th, td { border: 1px solid #69B7BF; padding: 10px; text-align: left; }
         th { background: #152fbf; color: white; }
         tfoot td { font-weight: bold; }
 

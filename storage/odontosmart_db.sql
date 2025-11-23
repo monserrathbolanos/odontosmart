@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 20, 2025 at 10:08 PM
+-- Generation Time: Nov 23, 2025 at 08:44 PM
 -- Server version: 8.4.3
 -- PHP Version: 8.4.13
 
@@ -52,6 +52,13 @@ CREATE TABLE `atencion_cita` (
   `requiere_control` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `atencion_cita`
+--
+
+INSERT INTO `atencion_cita` (`id_atencion`, `id_cita`, `hora_llegada`, `hora_inicio_atencion`, `hora_fin_atencion`, `observaciones`, `requiere_control`) VALUES
+(1, 4, '2025-11-23 13:40:17', NULL, NULL, 'Proxima cita, seguir con el control.', 1);
+
 -- --------------------------------------------------------
 
 --
@@ -96,6 +103,13 @@ CREATE TABLE `carrito` (
   `fecha_creacion` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `carrito`
+--
+
+INSERT INTO `carrito` (`id_carrito`, `id_usuario`, `fecha_creacion`) VALUES
+(1, 7, '2025-11-22 03:22:54');
+
 -- --------------------------------------------------------
 
 --
@@ -108,6 +122,13 @@ CREATE TABLE `carrito_detalle` (
   `id_producto` int NOT NULL,
   `cantidad` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `carrito_detalle`
+--
+
+INSERT INTO `carrito_detalle` (`id_detalle`, `id_carrito`, `id_producto`, `cantidad`) VALUES
+(1, 1, 2, 2);
 
 -- --------------------------------------------------------
 
@@ -147,6 +168,16 @@ CREATE TABLE `citas` (
   `motivo` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `citas`
+--
+
+INSERT INTO `citas` (`id_cita`, `id_cliente`, `id_odontologo`, `fecha_cita`, `estado`, `motivo`) VALUES
+(2, 8, 1, '2025-11-25 10:30:00', 'cancelada', 'Extraccion de muelas.'),
+(3, 8, 2, '2025-11-24 09:30:00', 'cancelada', 'Caries en varios dientes.'),
+(4, 8, 2, '2025-11-26 10:30:00', 'atendida', 'Revision general.'),
+(5, 8, 2, '2025-11-24 11:00:00', 'pendiente', 'Revision general.');
+
 -- --------------------------------------------------------
 
 --
@@ -161,6 +192,13 @@ CREATE TABLE `clientes` (
   `correo` varchar(120) DEFAULT NULL,
   `fecha_registro` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `clientes`
+--
+
+INSERT INTO `clientes` (`id_cliente`, `nombre`, `apellido`, `telefono`, `correo`, `fecha_registro`) VALUES
+(8, 'Brayan Aguilar', '', '85743426', 'brayan@gmail.com', '2025-11-23 10:59:41');
 
 -- --------------------------------------------------------
 
@@ -177,6 +215,13 @@ CREATE TABLE `detalle_venta` (
   `precio_unitario` decimal(10,2) DEFAULT NULL,
   `total` decimal(10,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `detalle_venta`
+--
+
+INSERT INTO `detalle_venta` (`id_detalle`, `id_venta`, `id_producto`, `id_lote`, `cantidad`, `precio_unitario`, `total`) VALUES
+(1, 1, 5, NULL, 1, 20000.00, 20000.00);
 
 -- --------------------------------------------------------
 
@@ -238,6 +283,14 @@ CREATE TABLE `odontologos` (
   `id_usuario` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `odontologos`
+--
+
+INSERT INTO `odontologos` (`id_odontologo`, `nombre`, `apellido`, `especialidad`, `telefono`, `correo`, `id_usuario`) VALUES
+(1, 'isaac Rodríguez Víquez', '', 'Odontología General', '85102283', 'viquezisaac373@gmail.com', 2),
+(2, 'Monserrath Bolaños Alfaro', '', 'Odontología General', '86743429', 'monserrath@gmail.com', 5);
+
 -- --------------------------------------------------------
 
 --
@@ -276,7 +329,8 @@ INSERT INTO `permisos` (`id_permiso`, `nombre`, `descripcion`) VALUES
 (5, 'control_inventario', 'Puede gestionar el inventario'),
 (6, 'gestion_usuarios', 'Puede gestionar usuarios'),
 (7, 'ver_historial_ventas', 'Puede ver el historial de ventas'),
-(8, 'gestion_citas', 'Puede gestionar las citas');
+(8, 'gestion_citas', 'Puede gestionar las citas'),
+(9, 'agendar_cita', 'Puede agendar una cita en la clínica');
 
 -- --------------------------------------------------------
 
@@ -307,7 +361,11 @@ CREATE TABLE `productos` (
 INSERT INTO `productos` (`id_producto`, `nombre`, `descripcion`, `unidad`, `id_categoria`, `precio`, `costo_unidad`, `stock_total`, `stock_minimo`, `fecha_creacion`, `actualizado_en`, `fecha_caducidad`, `estado`) VALUES
 (1, 'Anestesia', 'Anestesia general', '2', 1, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:36:51', '2025-11-19 03:36:51', '2026-01-15', 'activo'),
 (2, 'Anestesiate', 'Anestesia servicio', '2', 2, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:37:44', '2025-11-19 03:37:44', '2026-01-15', 'activo'),
-(3, 'Anestesiate3', 'Anestesia servicio', '2', 4, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:45:33', '2025-11-19 03:45:33', '2026-01-15', 'activo');
+(3, 'Anestesiate3', 'Anestesia servicio', '2', 4, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:45:33', '2025-11-19 03:45:33', '2026-01-15', 'activo'),
+(4, 'Fluor', 'Prodicto para la prevencio de caries y el fortalecimiento de dientes.', 'Unidad', 1, 2000.00, 1500.00, 10, 1, '2025-11-21 17:57:26', '2025-11-21 23:57:26', '2025-12-21', 'activo'),
+(5, 'Revision General', 'Revision general del estado del paciente. ', 'Hora', 2, 20000.00, 20000.00, 19, 0, '2025-11-21 17:58:48', '2025-11-23 16:59:41', '2025-11-21', 'activo'),
+(6, 'Fluor', 'Evitar caries. ', 'Litro', 1, 4000.00, 500.00, 10, 1, '2025-11-23 14:24:30', '2025-11-23 20:24:30', '2025-11-30', 'activo'),
+(7, 'Jeringa', 'Uso diario.', 'Caja', 4, 1000.00, 200.00, 20, 1, '2025-11-23 14:25:49', '2025-11-23 20:25:49', '2025-11-16', 'activo');
 
 -- --------------------------------------------------------
 
@@ -364,7 +422,12 @@ INSERT INTO `rol_permisos` (`id_rol_permiso`, `id_rol`, `id_permiso`) VALUES
 (14, 4, 1),
 (15, 4, 2),
 (16, 4, 3),
-(17, 4, 8);
+(17, 4, 8),
+(18, 3, 9),
+(19, 2, 9),
+(20, 4, 9),
+(21, 1, 8),
+(22, 4, 8);
 
 -- --------------------------------------------------------
 
@@ -388,12 +451,13 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id_usuario`, `nombre_completo`, `email`, `telefono`, `identificacion`, `password`, `id_rol`, `fecha_creacion`) VALUES
-(2, 'isaac Rodríguez Víquez', 'viquezisaac373@gmail.com', '85102283', '208630471', '$2y$12$Z5fUbAyvOplt6tMfRzZU0u9W0fFiY1eYq7tl0oSOE5E2vSm3Jo0L2', 1, '2025-11-19 17:20:08'),
+(2, 'isaac Rodríguez Víquez', 'viquezisaac373@gmail.com', '85102283', '208630471', '$2y$12$Z5fUbAyvOplt6tMfRzZU0u9W0fFiY1eYq7tl0oSOE5E2vSm3Jo0L2', 2, '2025-11-19 17:20:08'),
 (3, 'Admin', 'admin@gmail.com', '85102283', '1512356213', '$2y$12$7hX2eSPgIfJ4aGEHehJNze6BGBBF0IeR9vrG.XthD2DVgXOiyT8GG', 3, '2025-11-19 17:39:46'),
 (4, 'admin2', 'admin298@gmail.com', '124387365', '123456789', '$2y$12$D/iF9YxUXRsIQarahDNrb.Rw54O1XDvVSqN.AoAMULFS2uqiWRwWS', 4, '2025-11-19 17:46:20'),
-(5, 'Monserrath Bolaños Alfaro', 'monserrath@gmail.com', '86743429', '207870964', '$2y$12$S/wmxfTRiTBbjplYLM3JF.4G1Rm0CATrHVVLx/dh6HCJ/8T6uJ4OS', 1, '2025-11-19 19:11:49'),
+(5, 'Monserrath Bolaños Alfaro', 'monserrath@gmail.com', '86743429', '207870964', '$2y$12$S/wmxfTRiTBbjplYLM3JF.4G1Rm0CATrHVVLx/dh6HCJ/8T6uJ4OS', 2, '2025-11-19 19:11:49'),
 (6, 'Carey Aguilar', 'carey@gmail.com', '85753421', '27870961', '$2y$12$1.Lj3WgQ0pV7ms//2LiJOuDVqJyfGfZidkQTbE4EeSYqlpSJplnXe', 4, '2025-11-20 14:29:12'),
-(7, 'Veronica Alfaro', 'veronica@gmail.com', '83213475', '205020970', '$2y$12$aTeFhIr4ojmUl8qBHaPBEOQiJNI2GkOLW9DRcnxrdVbdyZpEPRq3u', 4, '2025-11-20 14:51:42');
+(7, 'Veronica Alfaro', 'veronica@gmail.com', '83213475', '205020970', '$2y$12$aTeFhIr4ojmUl8qBHaPBEOQiJNI2GkOLW9DRcnxrdVbdyZpEPRq3u', 1, '2025-11-20 14:51:42'),
+(8, 'Brayan Aguilar', 'brayan@gmail.com', '85743426', '207870973', '$2y$12$O5ZVhb3jZx27z.pfNjgNc.1SgtVLBZIXwMwC58PL8a4aCrGytno9S', 3, '2025-11-23 10:57:39');
 
 -- --------------------------------------------------------
 
@@ -412,6 +476,13 @@ CREATE TABLE `ventas` (
   `metodo_pago` varchar(50) DEFAULT NULL,
   `estado` tinyint(1) DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `ventas`
+--
+
+INSERT INTO `ventas` (`id_venta`, `id_usuario`, `id_cliente`, `fecha_venta`, `subtotal`, `impuestos`, `total`, `metodo_pago`, `estado`) VALUES
+(1, 8, 8, '2025-11-23 10:59:41', 20000.00, 0.00, 20000.00, 'Tarjeta', 1);
 
 --
 -- Indexes for dumped tables
@@ -587,7 +658,7 @@ ALTER TABLE `agendar_medico`
 -- AUTO_INCREMENT for table `atencion_cita`
 --
 ALTER TABLE `atencion_cita`
-  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `auditoria_stock`
@@ -605,13 +676,13 @@ ALTER TABLE `bitacoras`
 -- AUTO_INCREMENT for table `carrito`
 --
 ALTER TABLE `carrito`
-  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `carrito_detalle`
 --
 ALTER TABLE `carrito_detalle`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `categoria_productos`
@@ -623,19 +694,19 @@ ALTER TABLE `categoria_productos`
 -- AUTO_INCREMENT for table `citas`
 --
 ALTER TABLE `citas`
-  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `historial_clinico`
@@ -659,7 +730,7 @@ ALTER TABLE `lote_producto`
 -- AUTO_INCREMENT for table `odontologos`
 --
 ALTER TABLE `odontologos`
-  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `pagos`
@@ -671,13 +742,13 @@ ALTER TABLE `pagos`
 -- AUTO_INCREMENT for table `permisos`
 --
 ALTER TABLE `permisos`
-  MODIFY `id_permiso` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_permiso` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -689,19 +760,19 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `rol_permisos`
 --
 ALTER TABLE `rol_permisos`
-  MODIFY `id_rol_permiso` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id_rol_permiso` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables
