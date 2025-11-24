@@ -1,0 +1,25 @@
+* [33mf9008e2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Parte de gestion de citas agregada, ademas que se hicieron mejoras en la base de datos por lo que esta es la utima mas actualizada
+* [33m42ae1be[m Servicios, carrito y proceso de pago ya funcionan
+* [33ma860dc6[m Asignacion de roles ya funciona bajo la tabla de permisos por id, el UI estandarizado a color y logo
+* [33m265bae7[m Cambios realizados
+*   [33m4be1d12[m Mi cambio
+[32m|[m[33m\[m  
+[32m|[m * [33m99e26a8[m Arregla algunas columnas faltantes y agrega la bd
+* [33m|[m [33me4aa898[m Cambios realizados hoy
+[33m|[m[33m/[m  
+* [33m8cf6340[m Cambios realizados hoy
+*   [33mbbfd365[m Uniendo proyecto local con repo remoto odontosmart
+[34m|[m[35m\[m  
+[34m|[m * [33m70d8bad[m Add initial README with test comment
+[34m|[m * [33m55dd527[m Delete views directory
+[34m|[m * [33m1c8684b[m Delete public directory
+[34m|[m * [33m3574edf[m Delete modulos directory
+[34m|[m * [33mbbd3774[m Delete config directory
+[34m|[m * [33me8aa73b[m Delete assets directory
+[34m|[m * [33m53a0975[m Delete auth directory
+[34m|[m * [33m2441759[m Delete index.php
+[34m|[m * [33m5189311[m Fixing project and adding file structure
+[34m|[m * [33mfc0b80b[m Added changes for managing services and payment
+[34m|[m * [33m7b1c738[m Commit antes de forzar push
+[34m|[m * [33m90d95f7[m first commit
+* [33mb86b275[m first commit

@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Rol inválido.";
             } else {
  
-                // Validar si existe usuario/correo/identificación
+                // Validar si existe usuario/correo/identificación para que no hayan duplicados
                 $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
                 $stmt->bind_param("sss", $email, $nombre_completo, $identificacion);
                 $stmt->execute();
@@ -63,31 +63,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Insertar usuario
                     $hash = password_hash($password, PASSWORD_DEFAULT);
  
-                    $stmtInsert = $conn->prepare("
-                        INSERT INTO usuarios (nombre_completo, email, password, id_rol, telefono, identificacion)
-                        VALUES (?, ?, ?,?, ?, ?)
-                    ");
- 
-                    $stmtInsert->bind_param(
-                        "sssiss",
-                        $nombre_completo,
-                        $email,
-                        $hash,
-                        $role_id,
-                        $telefono,
-                        $identificacion
-                    );
- 
-                    if ($stmtInsert->execute()) {
-                        $success = "Usuario creado exitosamente.";
+                  //Aqui se realiza el ingreso del usuario usando el procedimiento almacenado sp_crear_usuario.
+                $stmtCheck = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
+                $stmtCheck->bind_param("sss", $email, $nombre_completo, $identificacion);
+                $stmtCheck->execute();
+
+                    if ($stmtCheck->get_result()->num_rows > 0) {
+                         $error = "Usuario, identificación o correo ya está en uso.";
                     } else {
-                        $error = "Error al crear usuario.";
-                    }
- 
-                    $stmtInsert->close();
-                }
- 
-                $stmt->close();
+                 // 2)Se encripta la contraseña y se llama al procedimiento almacenado para crear el usuario.
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+
+                //Se llama al procedimiento almacenado sp_crear_usuario para insertar el nuevo usuario en la base de datos.
+                $stmtSp = $conn->prepare("CALL sp_crear_usuario(?,?,?,?,?,?,?, @resultado)");
+                $stmtSp->bind_param(
+                     "sssisss",
+                $nombre_completo,
+                $email,
+                $hash,
+                $role_id,
+                $telefono,
+                $identificacion,
+                $_SERVER['REMOTE_ADDR']
+                );
+                    $stmtSp->execute();
+
+                 $res = $conn->query("SELECT @resultado AS res")->fetch_assoc();
+                 $resultado = $res['res'];
+
+    if ($resultado === "OK") {
+        $success = "Usuario creado exitosamente.";
+    } elseif ($resultado === "DUPLICADO") {
+        $error = "Usuario, identificación o correo ya está en uso.";
+    } else {
+        $error = "Error inesperado.";
+    }
+
+    $stmtSp->close();
+}
+
+$stmtCheck->close();
+}
             }
  
             $stmtRole->close();

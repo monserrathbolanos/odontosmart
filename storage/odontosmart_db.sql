@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 23, 2025 at 08:44 PM
+-- Generation Time: Nov 24, 2025 at 03:45 PM
 -- Server version: 8.4.3
 -- PHP Version: 8.4.13
 
@@ -20,6 +20,67 @@ SET time_zone = "+00:00";
 --
 -- Database: `odontosmart_db`
 --
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre_completo` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_password` VARCHAR(255), IN `p_id_rol` INT, IN `p_telefono` VARCHAR(50), IN `p_identificacion` VARCHAR(50), IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(255))   BEGIN
+    DECLARE
+        existe INT DEFAULT 0 ;
+        -- Validar duplicados
+    SELECT
+        COUNT(*)
+    INTO existe
+FROM
+    usuarios
+WHERE
+    email = p_email OR nombre_completo = p_nombre_completo OR identificacion = p_identificacion ; IF existe > 0 THEN
+SET
+    p_resultado = 'DUPLICADO' ;
+INSERT INTO bitacoras(
+    id_usuario,
+    accion,
+    ip,
+    detalles
+)
+VALUES(
+    NULL,
+    'Intento fallido de creación',
+    p_ip,
+    'Datos duplicados'
+) ; ELSE
+-- Insertar usuario
+INSERT INTO usuarios(
+    nombre_completo,
+    email,
+    PASSWORD,
+    id_rol,
+    telefono,
+    identificacion
+)
+VALUES(
+    p_nombre_completo,
+    p_email,
+    p_password,
+    p_id_rol,
+    p_telefono,
+    p_identificacion
+) ;
+-- Registrar bitácora
+INSERT INTO bitacoras(
+    id_usuario,
+    accion,
+    ip,
+    detalles
+)
+VALUES(
+    LAST_INSERT_ID(), 'Usuario creado', p_ip, CONCAT('Usuario: ', p_email)) ;
+SET
+    p_resultado = 'OK' ;
+END IF ; END$$
+
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -90,6 +151,14 @@ CREATE TABLE `bitacoras` (
   `ip` varchar(50) DEFAULT NULL,
   `detalles` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `bitacoras`
+--
+
+INSERT INTO `bitacoras` (`id_bitacora`, `id_usuario`, `accion`, `fecha`, `ip`, `detalles`) VALUES
+(1, 9, 'Usuario creado', '2025-11-23 18:59:24', '::1', 'Usuario: valeria@hotmail.com'),
+(2, 10, 'Usuario creado', '2025-11-24 09:36:53', '::1', 'Usuario: pandora@gmail.com');
 
 -- --------------------------------------------------------
 
@@ -176,7 +245,10 @@ INSERT INTO `citas` (`id_cita`, `id_cliente`, `id_odontologo`, `fecha_cita`, `es
 (2, 8, 1, '2025-11-25 10:30:00', 'cancelada', 'Extraccion de muelas.'),
 (3, 8, 2, '2025-11-24 09:30:00', 'cancelada', 'Caries en varios dientes.'),
 (4, 8, 2, '2025-11-26 10:30:00', 'atendida', 'Revision general.'),
-(5, 8, 2, '2025-11-24 11:00:00', 'pendiente', 'Revision general.');
+(5, 8, 2, '2025-11-24 11:00:00', 'pendiente', 'Revision general.'),
+(6, 8, 2, '2025-11-24 08:00:00', 'pendiente', ''),
+(10, 8, 2, '2025-12-01 09:00:00', 'pendiente', ''),
+(11, 11, 2, '2025-12-03 13:00:00', 'pendiente', 'Cita');
 
 -- --------------------------------------------------------
 
@@ -186,6 +258,7 @@ INSERT INTO `citas` (`id_cita`, `id_cliente`, `id_odontologo`, `fecha_cita`, `es
 
 CREATE TABLE `clientes` (
   `id_cliente` int NOT NULL,
+  `id_usuario` int NOT NULL,
   `nombre` varchar(100) NOT NULL,
   `apellido` varchar(100) DEFAULT NULL,
   `telefono` varchar(20) DEFAULT NULL,
@@ -197,8 +270,11 @@ CREATE TABLE `clientes` (
 -- Dumping data for table `clientes`
 --
 
-INSERT INTO `clientes` (`id_cliente`, `nombre`, `apellido`, `telefono`, `correo`, `fecha_registro`) VALUES
-(8, 'Brayan Aguilar', '', '85743426', 'brayan@gmail.com', '2025-11-23 10:59:41');
+INSERT INTO `clientes` (`id_cliente`, `id_usuario`, `nombre`, `apellido`, `telefono`, `correo`, `fecha_registro`) VALUES
+(8, 8, 'Brayan Aguilar', '', '85743426', 'brayan@gmail.com', '2025-11-23 10:59:41'),
+(9, 3, 'Admin', 'Admin', '85102283', 'admin@gmail.com', '2025-11-24 09:43:25'),
+(10, 9, 'Valeria', 'Bolanos', '85743422', 'valeria@hotmail.com', '2025-11-24 09:43:25'),
+(11, 10, 'Pandora', 'Aguilar', '817743429', 'pandora@gmail.com', '2025-11-24 09:43:25');
 
 -- --------------------------------------------------------
 
@@ -457,7 +533,9 @@ INSERT INTO `usuarios` (`id_usuario`, `nombre_completo`, `email`, `telefono`, `i
 (5, 'Monserrath Bolaños Alfaro', 'monserrath@gmail.com', '86743429', '207870964', '$2y$12$S/wmxfTRiTBbjplYLM3JF.4G1Rm0CATrHVVLx/dh6HCJ/8T6uJ4OS', 2, '2025-11-19 19:11:49'),
 (6, 'Carey Aguilar', 'carey@gmail.com', '85753421', '27870961', '$2y$12$1.Lj3WgQ0pV7ms//2LiJOuDVqJyfGfZidkQTbE4EeSYqlpSJplnXe', 4, '2025-11-20 14:29:12'),
 (7, 'Veronica Alfaro', 'veronica@gmail.com', '83213475', '205020970', '$2y$12$aTeFhIr4ojmUl8qBHaPBEOQiJNI2GkOLW9DRcnxrdVbdyZpEPRq3u', 1, '2025-11-20 14:51:42'),
-(8, 'Brayan Aguilar', 'brayan@gmail.com', '85743426', '207870973', '$2y$12$O5ZVhb3jZx27z.pfNjgNc.1SgtVLBZIXwMwC58PL8a4aCrGytno9S', 3, '2025-11-23 10:57:39');
+(8, 'Brayan Aguilar', 'brayan@gmail.com', '85743426', '207870973', '$2y$12$O5ZVhb3jZx27z.pfNjgNc.1SgtVLBZIXwMwC58PL8a4aCrGytno9S', 3, '2025-11-23 10:57:39'),
+(9, 'Valeria Bolanos', 'valeria@hotmail.com', '85743422', '207870912', '$2y$12$omXuF294aj/yYx2sglVEXubXvNzFDrOkIylBzlgw0NDX/0X7M841u', 3, '2025-11-23 18:59:24'),
+(10, 'Pandora Aguilar', 'pandora@gmail.com', '817743429', '107870964', '$2y$12$KN.6C2bPrtnMAKGs2bdm5OQuQv6o.HYODESmWeqj3CmvheShqbyQW', 3, '2025-11-24 09:36:53');
 
 -- --------------------------------------------------------
 
@@ -551,7 +629,8 @@ ALTER TABLE `citas`
 -- Indexes for table `clientes`
 --
 ALTER TABLE `clientes`
-  ADD PRIMARY KEY (`id_cliente`);
+  ADD PRIMARY KEY (`id_cliente`),
+  ADD KEY `fk_clientes_usuarios` (`id_usuario`);
 
 --
 -- Indexes for table `detalle_venta`
@@ -670,7 +749,7 @@ ALTER TABLE `auditoria_stock`
 -- AUTO_INCREMENT for table `bitacoras`
 --
 ALTER TABLE `bitacoras`
-  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT;
+  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `carrito`
@@ -694,13 +773,13 @@ ALTER TABLE `categoria_productos`
 -- AUTO_INCREMENT for table `citas`
 --
 ALTER TABLE `citas`
-  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `detalle_venta`
@@ -766,7 +845,7 @@ ALTER TABLE `rol_permisos`
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `ventas`
@@ -823,6 +902,12 @@ ALTER TABLE `carrito_detalle`
 ALTER TABLE `citas`
   ADD CONSTRAINT `citas_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`),
   ADD CONSTRAINT `citas_ibfk_2` FOREIGN KEY (`id_odontologo`) REFERENCES `odontologos` (`id_odontologo`);
+
+--
+-- Constraints for table `clientes`
+--
+ALTER TABLE `clientes`
+  ADD CONSTRAINT `fk_clientes_usuarios` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `detalle_venta`

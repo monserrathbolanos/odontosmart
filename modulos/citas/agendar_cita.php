@@ -7,18 +7,43 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
-// Obtiene el id del cliente desde la sesion.
-$id_cliente = intval($_SESSION['user']['id_cliente'] ?? $_SESSION['user']['id_usuario'] ?? 0);
-
-if ($id_cliente <= 0) {
-    die('No se pudo obtener el ID del cliente desde la sesión.');
-}
-
 //Se incluye la conexion con la base de datos. 
 require_once '../../config/conexion.php';
 
 $mensaje_error = '';
 $mensaje_ok    = '';
+
+$idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
+
+if ($idUsuarioSesion <= 0) {
+    die('No se pudo obtener el ID del usuario desde la sesión.');
+}
+
+// Buscar el cliente asociado a ese usuario
+$sqlCli = "SELECT id_cliente FROM clientes WHERE id_usuario = ?";
+$stmtCli = $conn->prepare($sqlCli);
+
+if (!$stmtCli) {
+    die('Error al preparar la consulta de cliente.');
+}
+
+//Asigna los paramentros que son los datos que se van a buscar en la base de datos.
+$stmtCli->bind_param("i", $idUsuarioSesion);
+$stmtCli->execute();
+$resCli = $stmtCli->get_result()->fetch_assoc();
+$stmtCli->close();
+
+//Verifica que el usuario tenga un cliente asociado.
+if (!$resCli) {
+    die('Este usuario no está registrado como cliente. Por favor complete su registro como cliente.');
+}
+
+//Obtiene el id del cliente.
+$id_cliente = intval($resCli['id_cliente']);
+
+if ($id_cliente <= 0) {
+    die('ID de cliente inválido.');
+}
 
 //Se utiliza para obtener la lista de los odontolodos que estan registrados en la base de datos.
 $odontologos = [];
@@ -49,21 +74,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($id_odontologo <= 0) {
         $mensaje_error = 'Seleccione a uno de nuestros odontólogos disponibles para su cita.';
     } else {
-        //Validacion de la hora que selecciona el usuario. 
+        // Validación de la hora que selecciona el usuario. 
         $partesHora = explode(':', $hora);
         $h = isset($partesHora[0]) ? intval($partesHora[0]) : -1;
         $m = isset($partesHora[1]) ? intval($partesHora[1]) : -1;
 
-        //Solo permite al usuario elegir citas en el tiempo definido con intervalos de 30 minutos.
+        // Solo permite al usuario elegir citas en el tiempo definido con intervalos de 30 minutos.
         if ($h < 8 || $h > 16 || !in_array($m, [0, 30], true) || ($h == 16 && $m != 0)) {
             $mensaje_error = 'La hora seleccionada no es válida. Nuestro horario de atencion es de 8:00 a.m. a 4:00 p.m..';
         } else {
-            //Combina la hora y fecha para que pueda ser guardada en la base de datos.
+            // Combina la fecha y hora
             $fecha_cita = $fecha . ' ' . $hora . ':00';
 
-            //No permite al usuario agendar una cita en una fecha que ya paso. 
+            //No permite que el usuario agende citas en fechas pasadas.
             if ($fecha < date('Y-m-d')) {
                 $mensaje_error = 'Su cita no puede ser agendada en una fecha pasada, por favor seleccione otra fecha.';
+            } else {
+                //Los domingos no se permiten agendar citas.
+                $diaSemana = date('w', strtotime($fecha)); // 0 = domingo, 1 = lunes...
+
+                if ($diaSemana == 0) {
+                    $mensaje_error = 'Las citas solo se pueden agendar de lunes a sábado. Por favor seleccione otra fecha.';
+                }
             }
         }
     }
@@ -261,24 +293,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <script>
-        // Evitar que el usuario deje seleccionado un domingo
-        const inputFecha = document.getElementById('fecha_cita');
-
-         if (inputFecha) {
-                inputFecha.addEventListener('change', function () {
-            if (!this.value) return;
-
-            const seleccionada = new Date(this.value + 'T00:00:00');
-            const diaSemana = seleccionada.getUTCDay(); 
-            // 0 = domingo, 1 = lunes, ..., 6 = sábado
-
-            if (diaSemana === 0) { // si es domingo
-                alert('Las citas solo se pueden agendar de lunes a sábado. Por favor seleccione otra fecha.');
-                this.value = ''; // limpia el campo
-            }
-        });
-    }
-</script>
 </body>
 </html>

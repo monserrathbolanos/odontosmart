@@ -357,7 +357,7 @@ if (isset($_GET['id_cita'])) {
                         $alertaEspera      = '';
 
                         if (!empty($c['hora_llegada']) && empty($c['hora_inicio_atencion'])) {
-                            // Llegó pero aún no se inicia atención
+                            //Indica que el paciente ya llegó pero aún no se inicia la atención, mostrar tiempo de espera actual
                             $llegada = new DateTime($c['hora_llegada']);
                             $ahora   = new DateTime();
                             $diff    = $llegada->diff($ahora);
@@ -367,7 +367,7 @@ if (isset($_GET['id_cita'])) {
                                 $alertaEspera = 'Tiempo máximo de espera superado. Informar al paciente que la cita previa fue más tardada.';
                             }
                         } elseif (!empty($c['hora_llegada']) && !empty($c['hora_inicio_atencion'])) {
-                            // Ya se inició la atención, mostrar cuánto esperó
+                            //Indica que la atención ya inició, mostrar cuánto tiempo esperó el paciente
                             $llegada = new DateTime($c['hora_llegada']);
                             $inicio  = new DateTime($c['hora_inicio_atencion']);
                             $diff    = $llegada->diff($inicio);
@@ -392,7 +392,7 @@ if (isset($_GET['id_cita'])) {
                             <td>
                                 <?php if ($c['estado'] !== 'cancelada' && $c['estado'] !== 'atendida'): ?>
                                     <?php if (empty($c['hora_llegada'])): ?>
-                                        <!-- Registrar llegada -->
+                                        <!-- Registra la llegada del paciente a la cita -->
                                         <form method="post" style="display:inline;">
                                             <input type="hidden" name="accion" value="registrar_llegada">
                                             <input type="hidden" name="id_cita" value="<?php echo $c['id_cita']; ?>">
@@ -401,7 +401,7 @@ if (isset($_GET['id_cita'])) {
                                     <?php endif; ?>
 
                                     <?php if (!empty($c['hora_llegada']) && empty($c['hora_inicio_atencion'])): ?>
-                                        <!-- Iniciar atención -->
+                                        <!-- Marca el inicio de la atención al paciente -->
                                         <form method="post" style="display:inline;">
                                             <input type="hidden" name="accion" value="iniciar_atencion">
                                             <input type="hidden" name="id_cita" value="<?php echo $c['id_cita']; ?>">
@@ -410,7 +410,7 @@ if (isset($_GET['id_cita'])) {
                                     <?php endif; ?>
 
                                     <?php if (!empty($c['hora_inicio_atencion']) && empty($c['hora_fin_atencion'])): ?>
-                                        <!-- Finalizar atención -->
+                                        <!-- Marca el fin de la atención al paciente -->
                                         <form method="post" style="display:inline;">
                                             <input type="hidden" name="accion" value="finalizar_atencion">
                                             <input type="hidden" name="id_cita" value="<?php echo $c['id_cita']; ?>">
@@ -418,12 +418,12 @@ if (isset($_GET['id_cita'])) {
                                         </form>
                                     <?php endif; ?>
 
-                                    <!-- Registrar resultado / control -->
+                                    <!-- Registro del resultado y control de la atención al paciente -->
                                     <a href="gestion_citas.php?id_cita=<?php echo $c['id_cita']; ?>" class="btn btn-atender">
                                         Resultado / Control
                                     </a>
 
-                                    <!-- Cancelar cita -->
+                                    <!-- Marca la cancelación de la cita -->
                                     <form method="post" style="display:inline;" onsubmit="return confirm('¿Seguro que desea cancelar esta cita?');">
                                         <input type="hidden" name="accion" value="cancelar_cita">
                                         <input type="hidden" name="id_cita" value="<?php echo $c['id_cita']; ?>">
