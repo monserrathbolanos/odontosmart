@@ -15,6 +15,13 @@ if (!in_array('gestion_citas', $permisos, true)) {
 
 //Se conecta a la base de datos. 
 require_once '../../config/conexion.php'; 
+
+//Se obtiene el ID del usuario desde la sesión, para que funcione con el storage procedure
+$idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
+if ($idUsuarioSesion <= 0) {
+    die('No se pudo obtener el ID del usuario desde la sesión.');
+}
+
 //Inicializa variables para mensajes los mensajes.
 $mensaje_error = '';
 $mensaje_ok    = '';
@@ -52,82 +59,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         //Procesa distintas acciones segun el boton que se haya presionado en el formulario.
-        if ($accion === 'registrar_llegada') {
+       $observaciones    = '';
+        $requiere_control = 0;
 
-            //Registra la hora de llegada del paciente a la cita.
-            $sql = "UPDATE atencion_cita 
-                    SET hora_llegada = NOW()
-                    WHERE id_cita = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $id_cita);
-            if ($stmt->execute()) {
-                $mensaje_ok = 'Hora de llegada fue registrada correctamente.';
-            } else {
-                $mensaje_error = 'Hubo un error al registrar la hora de llegada de la cita.';
-            }
-            $stmt->close();
-
-        } elseif ($accion === 'iniciar_atencion') { //Registrar hora de inicio de atencion
-
-            $sql = "UPDATE atencion_cita 
-                    SET hora_inicio_atencion = NOW()
-                    WHERE id_cita = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $id_cita);
-            if ($stmt->execute()) {
-                $mensaje_ok = 'Hora de inicio de atención registrada correctamente.';
-            } else {
-                $mensaje_error = 'Hubo un error al registrar la hora de inicio de atención.';
-            }
-            $stmt->close();
-
-        } elseif ($accion === 'finalizar_atencion') { //Registrar hora de fin de atencion
-
-            $sql = "UPDATE atencion_cita 
-                    SET hora_fin_atencion = NOW()
-                    WHERE id_cita = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $id_cita);
-            if ($stmt->execute()) {
-                $mensaje_ok = 'Hora de fin de atención registrada correctamente.';
-            } else {
-                $mensaje_error = 'Hubo un error al registrar la hora de fin de atención.';
-            }
-            $stmt->close();
-
-        } elseif ($accion === 'cancelar_cita') { //Cancela la cita, cambiando su estado a 'cancelada'.
-
-            $sql = "UPDATE citas
-                    SET estado = 'cancelada'
-                    WHERE id_cita = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $id_cita);
-            if ($stmt->execute()) {
-                $mensaje_ok = 'La cita ha sido cancelada correctamente.';
-            } else {
-                $mensaje_error = 'Hubo un error al cancelar la cita, intente de nuevo.';
-            }
-            $stmt->close();
-
-        } elseif ($accion === 'guardar_atencion') { //Guarda el resultado de la cita y si requiere control.
-
+        if ($accion === 'guardar_atencion') {
             $observaciones    = trim($_POST['observaciones'] ?? '');
             $requiere_control = isset($_POST['requiere_control']) ? 1 : 0;
+        }
 
-            $sql = "UPDATE atencion_cita
-                    SET observaciones = ?, 
-                        requiere_control = ?
-                    WHERE id_cita = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sii", $observaciones, $requiere_control, $id_cita);
+        $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
 
-            if ($stmt->execute()) {
-                $mensaje_ok = 'La atención fue guardada correctamente.';
+        $stmtSp = $conn->prepare("
+            CALL sp_citas_admin_accion(?,?,?,?,?,?, @resultado)
+        ");
+
+        if ($stmtSp) {
+            // sisiis = string, int, string, int, int, string
+            $stmtSp->bind_param(
+                "sisiis",
+                $accion,
+                $id_cita,
+                $observaciones,
+                $requiere_control,
+                $idUsuarioSesion,
+                $ip_cliente
+            );
+
+            if ($stmtSp->execute()) {
+                $stmtSp->close();
+                $conn->next_result(); // limpiar resultados del CALL, ya que si no se realiza esto, puede fallar la siguiente consulta.
+
+                // Leer valor OUT, para que asi se pueda mostrar el mensaje correspondiente.
+                $res = $conn->query("SELECT @resultado AS res");
+                $row = $res->fetch_assoc();
+                $resultado = $row['res'] ?? null;
+
+                if ($resultado === 'OK') {
+                    switch ($accion) {
+                        case 'registrar_llegada':
+                            $mensaje_ok = 'Hora de llegada fue registrada correctamente.';
+                            break;
+                        case 'iniciar_atencion':
+                            $mensaje_ok = 'Hora de inicio de atención registrada correctamente.';
+                            break;
+                        case 'finalizar_atencion':
+                            $mensaje_ok = 'Hora de fin de atención registrada correctamente.';
+                            break;
+                        case 'cancelar_cita':
+                            $mensaje_ok = 'La cita ha sido cancelada correctamente.';
+                            break;
+                        case 'guardar_atencion':
+                            $mensaje_ok = 'La atención fue guardada correctamente.';
+                            break;
+                    }
+                } elseif ($resultado === 'SIN_CAMBIO') {
+                    $mensaje_error = 'No se realizaron cambios sobre la cita.';
+                } else {
+                    $mensaje_error = 'Hubo un error al procesar la acción sobre la cita.';
+                }
+
             } else {
-                $mensaje_error = 'Hubo un error al guardar la atención, intente de nuevo.';
+                $mensaje_error = 'Error al ejecutar el procedimiento almacenado de gestión de cita.';
             }
-            $stmt->close();
-
+        } else {
+            $mensaje_error = 'Error al preparar el procedimiento almacenado.';
+        }
             //Se marca la cita como 'atendida' en la tabla citas.
             $sqlCita = "UPDATE citas
                         SET estado = 'atendida'
@@ -138,7 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtCita->close();
         }
     }
-}
 
 //Consultas para obtener los datos necesarios para mostrar en la pagina, como el cuadro general de citas y el detalle de una cita especifica.
 $sqlCitas = "

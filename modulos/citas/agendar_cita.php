@@ -120,25 +120,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($res['total'] > 0) {
                 $mensaje_error = 'La fecha y hora seleccionadas ya están ocupadas. Por favor, elija otro horario.';
             } else {
-                //Inserta en la base de datos la nueva cita con los datos dados por el usuario.
-                $sqlInsert = "INSERT INTO citas (id_cliente, id_odontologo, fecha_cita, estado, motivo)
-                              VALUES (?, ?, ?, 'pendiente', ?)";
+                // Llamar SP que inserta la cita y registra en bitácora
+$stmt2 = $conn->prepare("
+    CALL sp_citas_crear(?,?,?,?,?,?, @resultado)
+");
 
-                $stmt2 = $conn->prepare($sqlInsert);
-                if ($stmt2) {
-                    //iiss = int, int, string, string
-                    $stmt2->bind_param("iiss", $id_cliente, $id_odontologo, $fecha_cita, $motivo);
+if ($stmt2) {
+    $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
 
-                    if ($stmt2->execute()) {
-                        $mensaje_ok = "Su cita se agendó correctamente.";
-                    } else {
-                        $mensaje_error = "Lo sentimos su cita no se pudo agendar, intente nuevamente.";
-                    }
+    // iissis = int, int, string, string, int, string
+    $stmt2->bind_param(
+        "iissis",
+        $id_cliente,       // INT
+        $id_odontologo,    // INT
+        $fecha_cita,       // DATETIME como string 'Y-m-d H:i:s'
+        $motivo,           // VARCHAR
+        $idUsuarioSesion,  // usuario que agenda (desde sesión)
+        $ip_cliente        // IP
+    );
 
-                    $stmt2->close();
-                } else {
-                    $mensaje_error = "Error, su cita no se pudo agendar, intente nuevamente.";
-                }
+    if ($stmt2->execute()) {
+        $stmt2->close();
+        $conn->next_result(); // limpiar resultados del CALL
+
+        // Leer el OUT del SP
+        $res = $conn->query("SELECT @resultado AS res");
+        $row = $res->fetch_assoc();
+        $resultado_sp = $row['res'] ?? null;
+
+        if ($resultado_sp === 'OK') {
+            $mensaje_ok = "Su cita se agendó correctamente.";
+        } else {
+            $mensaje_error = "Lo sentimos, su cita no se pudo agendar. Intente nuevamente.";
+        }
+    } else {
+        $mensaje_error = "Error al ejecutar el procedimiento para agendar la cita.";
+        $stmt2->close();
+    }
+} else {
+    $mensaje_error = "Error al preparar el procedimiento para agendar la cita.";
+}
             }
         } else {
             $mensaje_error = "Error en la verificación de disponibilidad.";

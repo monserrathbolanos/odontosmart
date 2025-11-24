@@ -153,12 +153,71 @@ foreach ($productos as $p) {
         die("Error al actualizar stock: " . $stmt_stock->error);
     }
 }
+$sql_detalle_venta = "INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario, total)
+                      VALUES (?, ?, ?, ?, ?)";
+$stmt4 = $conn->prepare($sql_detalle_venta);
+
+$sql_update_stock = "UPDATE productos SET stock_total = stock_total - ? WHERE id_producto = ?";
+$stmt_stock = $conn->prepare($sql_update_stock);
+
+foreach ($productos as $p) {
+    // Insertar detalle
+    $stmt4->bind_param(
+        "iiidd",
+        $id_venta,
+        $p['id_producto'],
+        $p['cantidad'],
+        $p['precio_unitario'],
+        $p['total']
+    );
+    if (!$stmt4->execute()) {
+        die("Error al insertar detalle de venta: " . $stmt4->error);
+    }
+
+    // Actualizar stock
+    $stmt_stock->bind_param("ii", $p['cantidad'], $p['id_producto']);
+    if (!$stmt_stock->execute()) {
+        die("Error al actualizar stock: " . $stmt_stock->error);
+    }
+}
 $stmt4->close();
 $stmt_stock->close();
 
 // Vaciar carrito
 $conn->query("DELETE FROM carrito_detalle WHERE id_carrito = $id_carrito");
 $conn->query("DELETE FROM carrito WHERE id_carrito = $id_carrito");
+
+//Registtro de la venta en bitácora con SP
+$ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+
+$stmtLog = $conn->prepare("
+    CALL sp_ventas_registrar_bitacora(?,?,?, ?, @resultado)
+");
+
+if ($stmtLog) {
+    // i i d s  -> id_usuario, id_venta, total, ip
+    $stmtLog->bind_param(
+        "iids",
+        $id_usuario,
+        $id_venta,
+        $total,
+        $ip_cliente
+    );
+
+    if ($stmtLog->execute()) {
+        $stmtLog->close();
+        $conn->next_result(); //Limpia resultados del CALL, si no se hace esto puede fallar la siguiente consulta.
+
+        //Lee el valor OUT del SP, para validar si se registro correctamente en la bitácora.
+        $res = $conn->query("SELECT @resultado AS res");
+        $row = $res->fetch_assoc();
+        $resultado_bitacora = $row['res'] ?? null;
+        //Validacion del resultado de la bitácora
+    } else {
+        //Control por si se produce un error al ejecutar el SP
+        $stmtLog->close();
+    }
+}
 
 // Redirigir a factura.php
 header("Location: factura.php?id_venta=" . $id_venta);

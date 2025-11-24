@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 24, 2025 at 03:45 PM
+-- Generation Time: Nov 24, 2025 at 08:10 PM
 -- Server version: 8.4.3
 -- PHP Version: 8.4.13
 
@@ -25,6 +25,142 @@ DELIMITER $$
 --
 -- Procedures
 --
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_citas_admin_accion` (IN `p_accion` VARCHAR(50), IN `p_id_cita` INT, IN `p_observaciones` TEXT, IN `p_requiere_control` TINYINT, IN `p_id_usuario` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
+    DECLARE v_msg VARCHAR(255);
+
+
+    IF p_accion IN ('registrar_llegada','iniciar_atencion','finalizar_atencion','guardar_atencion') THEN
+        INSERT INTO atencion_cita (id_cita)
+        SELECT p_id_cita
+        WHERE NOT EXISTS (
+            SELECT 1 FROM atencion_cita WHERE id_cita = p_id_cita
+        );
+    END IF;
+
+
+    IF p_accion = 'registrar_llegada' THEN
+        
+        UPDATE atencion_cita
+        SET hora_llegada = NOW()
+        WHERE id_cita = p_id_cita;
+        
+        SET v_msg = 'Hora de llegada registrada';
+
+    ELSEIF p_accion = 'iniciar_atencion' THEN
+        
+        UPDATE atencion_cita
+        SET hora_inicio_atencion = NOW()
+        WHERE id_cita = p_id_cita;
+        
+        SET v_msg = 'Hora de inicio registrada';
+
+    ELSEIF p_accion = 'finalizar_atencion' THEN
+        
+        UPDATE atencion_cita
+        SET hora_fin_atencion = NOW()
+        WHERE id_cita = p_id_cita;
+        
+        SET v_msg = 'Hora de fin registrada';
+
+    ELSEIF p_accion = 'cancelar_cita' THEN
+        
+        UPDATE citas
+        SET estado = 'cancelada'
+        WHERE id_cita = p_id_cita;
+        
+        SET v_msg = 'Cita cancelada';
+
+    ELSEIF p_accion = 'guardar_atencion' THEN
+        
+        UPDATE atencion_cita
+        SET observaciones    = p_observaciones,
+            requiere_control = p_requiere_control
+        WHERE id_cita = p_id_cita;
+
+        UPDATE citas
+        SET estado = 'atendida'
+        WHERE id_cita = p_id_cita;
+
+        SET v_msg = 'Atención guardada';
+
+    END IF;
+
+    IF ROW_COUNT() > 0 THEN
+        SET p_resultado = 'OK';
+    ELSE
+        SET p_resultado = 'SIN_CAMBIO';
+    END IF;
+
+
+    INSERT INTO bitacoras(id_usuario, accion, ip, detalles)
+    VALUES(
+        p_id_usuario,
+        CONCAT('Gestión cita: ', p_accion),
+        p_ip,
+        CONCAT('Cita ID ', p_id_cita, '. ', IFNULL(v_msg,''))
+    );
+
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_citas_crear` (IN `p_id_cliente` INT, IN `p_id_odontologo` INT, IN `p_fecha_cita` DATETIME, IN `p_motivo` VARCHAR(255), IN `p_id_usuario` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
+    DECLARE
+        v_id_cita INT ;
+        -- Insertar la cita
+    INSERT INTO citas(
+        id_cliente,
+        id_odontologo,
+        fecha_cita,
+        estado,
+        motivo
+    )
+VALUES(
+    p_id_cliente,
+    p_id_odontologo,
+    p_fecha_cita,
+    'pendiente',
+    p_motivo
+) ; IF ROW_COUNT() > 0 THEN
+SET
+    v_id_cita = LAST_INSERT_ID() ;
+    -- Registrar en bitácora
+INSERT INTO bitacoras(
+    id_usuario,
+    accion,
+    ip,
+    detalles
+)
+VALUES(
+    p_id_usuario,
+    'Cita agendada',
+    p_ip,
+    CONCAT(
+        'Cita ID ',
+        v_id_cita,
+        ' para fecha ',
+        p_fecha_cita
+    )
+) ;
+SET
+    p_resultado = 'OK' ; ELSE
+SET
+    p_resultado = 'ERROR' ;
+INSERT INTO bitacoras(
+    id_usuario,
+    accion,
+    ip,
+    detalles
+)
+VALUES(
+    p_id_usuario,
+    'Error al agendar cita',
+    p_ip,
+    CONCAT(
+        'No se pudo crear cita para fecha ',
+        p_fecha_cita
+    )
+) ;
+    END IF ; END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre_completo` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_password` VARCHAR(255), IN `p_id_rol` INT, IN `p_telefono` VARCHAR(50), IN `p_identificacion` VARCHAR(50), IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(255))   BEGIN
     DECLARE
         existe INT DEFAULT 0 ;
@@ -80,6 +216,150 @@ SET
     p_resultado = 'OK' ;
 END IF ; END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_productos_crear` (IN `p_id_categoria` INT, IN `p_nombre` VARCHAR(255), IN `p_descripcion` TEXT, IN `p_unidad` VARCHAR(50), IN `p_precio` DECIMAL(10,2), IN `p_costo_unidad` DECIMAL(10,2), IN `p_stock_total` INT, IN `p_stock_minimo` INT, IN `p_fecha_caducidad` DATE, IN `p_id_usuario` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
+    DECLARE
+        existe INT DEFAULT 0 ;
+    SELECT
+        COUNT(*)
+    INTO existe
+FROM
+    productos
+WHERE
+    nombre = p_nombre AND id_categoria = p_id_categoria ; IF existe > 0 THEN
+SET
+    p_resultado = 'DUPLICADO' ;
+INSERT INTO bitacoras(
+    id_usuario,
+    accion,
+    ip,
+    detalles
+)
+VALUES(
+    p_id_usuario,
+    'Intento fallido de creación de producto',
+    p_ip,
+    CONCAT('Producto duplicado: ', p_nombre)
+) ; ELSE
+INSERT INTO productos(
+    id_categoria,
+    nombre,
+    descripcion,
+    unidad,
+    precio,
+    costo_unidad,
+    stock_total,
+    stock_minimo,
+    fecha_caducidad,
+    estado
+)
+VALUES(
+    p_id_categoria,
+    p_nombre,
+    p_descripcion,
+    p_unidad,
+    p_precio,
+    p_costo_unidad,
+    p_stock_total,
+    p_stock_minimo,
+    p_fecha_caducidad,
+    'activo'
+) ;
+INSERT INTO bitacoras(
+    id_usuario,
+    accion,
+    ip,
+    detalles
+)
+VALUES(
+    p_id_usuario,
+    'Producto creado',
+    p_ip,
+    CONCAT(
+        'Producto: ',
+        p_nombre,
+        ' (cat ',
+        p_id_categoria,
+        ')'
+    )
+) ;
+SET
+    p_resultado = 'OK' ;
+END IF ; END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_usuarios_actualizar` (IN `p_id_usuario` INT, IN `p_nombre_completo` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_telefono` VARCHAR(50), IN `p_identificacion` VARCHAR(50), IN `p_id_rol` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
+    DECLARE
+        existe INT DEFAULT 0 ;
+        -- Verificar si hay OTRO usuario con el mismo correo o cédula
+    SELECT
+        COUNT(*)
+    INTO existe
+FROM
+    usuarios
+WHERE
+    (
+        email = p_email OR identificacion = p_identificacion
+    ) AND id_usuario <> p_id_usuario ; IF existe > 0 THEN
+SET
+    p_resultado = 'DUPLICADO' ;
+INSERT INTO bitacoras(
+    id_usuario,
+    accion,
+    ip,
+    detalles
+)
+VALUES(
+    p_id_usuario,
+    'Intento fallido de actualización',
+    p_ip,
+    'Correo o identificación duplicados'
+) ; ELSE
+UPDATE
+    usuarios
+SET
+    nombre_completo = p_nombre_completo,
+    email = p_email,
+    telefono = p_telefono,
+    identificacion = p_identificacion,
+    id_rol = p_id_rol
+WHERE
+    id_usuario = p_id_usuario ;
+INSERT INTO bitacoras(
+    id_usuario,
+    accion,
+    ip,
+    detalles
+)
+VALUES(
+    p_id_usuario,
+    'Usuario actualizado',
+    p_ip,
+    CONCAT('Usuario actualizado: ', p_email)
+) ;
+SET
+    p_resultado = 'OK' ;
+END IF ; END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_ventas_registrar_bitacora` (IN `p_id_usuario` INT, IN `p_id_venta` INT, IN `p_total` DECIMAL(10,2), IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(20))   BEGIN
+    INSERT INTO bitacoras(
+        id_usuario,
+        accion,
+        ip,
+        detalles
+    )
+VALUES(
+    p_id_usuario,
+    'Venta registrada',
+    p_ip,
+    CONCAT(
+        'Venta ID ',
+        p_id_venta,
+        ' por ',
+        p_total
+    )
+) ;
+SET
+    p_resultado = 'OK' ; END$$
+
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -118,7 +398,9 @@ CREATE TABLE `atencion_cita` (
 --
 
 INSERT INTO `atencion_cita` (`id_atencion`, `id_cita`, `hora_llegada`, `hora_inicio_atencion`, `hora_fin_atencion`, `observaciones`, `requiere_control`) VALUES
-(1, 4, '2025-11-23 13:40:17', NULL, NULL, 'Proxima cita, seguir con el control.', 1);
+(1, 4, '2025-11-23 13:40:17', NULL, NULL, 'Proxima cita, seguir con el control.', 1),
+(2, 11, '2025-11-24 11:09:38', NULL, NULL, NULL, 0),
+(3, 12, NULL, NULL, NULL, 'Termina el control por seis meses.', 1);
 
 -- --------------------------------------------------------
 
@@ -158,7 +440,18 @@ CREATE TABLE `bitacoras` (
 
 INSERT INTO `bitacoras` (`id_bitacora`, `id_usuario`, `accion`, `fecha`, `ip`, `detalles`) VALUES
 (1, 9, 'Usuario creado', '2025-11-23 18:59:24', '::1', 'Usuario: valeria@hotmail.com'),
-(2, 10, 'Usuario creado', '2025-11-24 09:36:53', '::1', 'Usuario: pandora@gmail.com');
+(2, 10, 'Usuario creado', '2025-11-24 09:36:53', '::1', 'Usuario: pandora@gmail.com'),
+(3, 11, 'Usuario creado', '2025-11-24 10:11:16', '::1', 'Usuario: sofia@gmail.com'),
+(4, 12, 'Usuario creado', '2025-11-24 10:12:10', '::1', 'Usuario: Hector@gmail.com'),
+(5, 13, 'Usuario creado', '2025-11-24 10:12:54', '::1', 'Usuario: ariana@gmail.com'),
+(6, 10, 'Usuario actualizado', '2025-11-24 10:37:29', '::1', 'Usuario actualizado: pandora@gmail.com'),
+(7, 9, 'Cita agendada', '2025-11-24 10:43:39', '::1', 'Cita ID 12 para fecha 2025-12-03 09:00:00'),
+(8, 7, 'Gestión cita: registrar_llegada', '2025-11-24 11:09:38', '::1', 'Cita ID 11. Hora de llegada registrada'),
+(9, 7, 'Gestión cita: guardar_atencion', '2025-11-24 11:11:07', '::1', 'Cita ID 12. Atención guardada'),
+(10, 7, 'Gestión cita: cancelar_cita', '2025-11-24 11:11:10', '::1', 'Cita ID 10. Cita cancelada'),
+(11, 7, 'Producto creado', '2025-11-24 11:21:20', '::1', 'Producto: Resina (cat 3)'),
+(12, 9, 'Venta registrada', '2025-11-24 11:37:15', '::1', 'Venta ID 2 por 20000.00'),
+(13, 9, 'Cita agendada', '2025-11-24 11:37:48', '::1', 'Cita ID 13 para fecha 2025-11-28 14:30:00');
 
 -- --------------------------------------------------------
 
@@ -247,8 +540,10 @@ INSERT INTO `citas` (`id_cita`, `id_cliente`, `id_odontologo`, `fecha_cita`, `es
 (4, 8, 2, '2025-11-26 10:30:00', 'atendida', 'Revision general.'),
 (5, 8, 2, '2025-11-24 11:00:00', 'pendiente', 'Revision general.'),
 (6, 8, 2, '2025-11-24 08:00:00', 'pendiente', ''),
-(10, 8, 2, '2025-12-01 09:00:00', 'pendiente', ''),
-(11, 11, 2, '2025-12-03 13:00:00', 'pendiente', 'Cita');
+(10, 8, 2, '2025-12-01 09:00:00', 'atendida', ''),
+(11, 11, 2, '2025-12-03 13:00:00', 'pendiente', 'Cita'),
+(12, 10, 2, '2025-12-03 09:00:00', 'atendida', ''),
+(13, 10, 5, '2025-11-28 14:30:00', 'pendiente', '');
 
 -- --------------------------------------------------------
 
@@ -297,7 +592,9 @@ CREATE TABLE `detalle_venta` (
 --
 
 INSERT INTO `detalle_venta` (`id_detalle`, `id_venta`, `id_producto`, `id_lote`, `cantidad`, `precio_unitario`, `total`) VALUES
-(1, 1, 5, NULL, 1, 20000.00, 20000.00);
+(1, 1, 5, NULL, 1, 20000.00, 20000.00),
+(2, 2, 5, NULL, 1, 20000.00, 20000.00),
+(3, 2, 5, NULL, 1, 20000.00, 20000.00);
 
 -- --------------------------------------------------------
 
@@ -365,7 +662,10 @@ CREATE TABLE `odontologos` (
 
 INSERT INTO `odontologos` (`id_odontologo`, `nombre`, `apellido`, `especialidad`, `telefono`, `correo`, `id_usuario`) VALUES
 (1, 'isaac Rodríguez Víquez', '', 'Odontología General', '85102283', 'viquezisaac373@gmail.com', 2),
-(2, 'Monserrath Bolaños Alfaro', '', 'Odontología General', '86743429', 'monserrath@gmail.com', 5);
+(2, 'Monserrath Bolaños Alfaro', '', 'Odontología General', '86743429', 'monserrath@gmail.com', 5),
+(4, 'Carey Aguilar', '', 'Odontología General', '85753421', 'carey@gmail.com', 6),
+(5, 'Pandora Aguilar', '', 'Odontología General', '817743429', 'pandora@gmail.com', 10),
+(6, 'Hector Castro', '', 'Odontología General', '87654376', 'Hector@gmail.com', 12);
 
 -- --------------------------------------------------------
 
@@ -439,9 +739,10 @@ INSERT INTO `productos` (`id_producto`, `nombre`, `descripcion`, `unidad`, `id_c
 (2, 'Anestesiate', 'Anestesia servicio', '2', 2, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:37:44', '2025-11-19 03:37:44', '2026-01-15', 'activo'),
 (3, 'Anestesiate3', 'Anestesia servicio', '2', 4, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:45:33', '2025-11-19 03:45:33', '2026-01-15', 'activo'),
 (4, 'Fluor', 'Prodicto para la prevencio de caries y el fortalecimiento de dientes.', 'Unidad', 1, 2000.00, 1500.00, 10, 1, '2025-11-21 17:57:26', '2025-11-21 23:57:26', '2025-12-21', 'activo'),
-(5, 'Revision General', 'Revision general del estado del paciente. ', 'Hora', 2, 20000.00, 20000.00, 19, 0, '2025-11-21 17:58:48', '2025-11-23 16:59:41', '2025-11-21', 'activo'),
+(5, 'Revision General', 'Revision general del estado del paciente. ', 'Hora', 2, 20000.00, 20000.00, 17, 0, '2025-11-21 17:58:48', '2025-11-24 17:37:15', '2025-11-21', 'activo'),
 (6, 'Fluor', 'Evitar caries. ', 'Litro', 1, 4000.00, 500.00, 10, 1, '2025-11-23 14:24:30', '2025-11-23 20:24:30', '2025-11-30', 'activo'),
-(7, 'Jeringa', 'Uso diario.', 'Caja', 4, 1000.00, 200.00, 20, 1, '2025-11-23 14:25:49', '2025-11-23 20:25:49', '2025-11-16', 'activo');
+(7, 'Jeringa', 'Uso diario.', 'Caja', 4, 1000.00, 200.00, 20, 1, '2025-11-23 14:25:49', '2025-11-23 20:25:49', '2025-11-16', 'activo'),
+(8, 'Resina', 'Para arreglar quebraduras.', 'Litro', 3, 15000.00, 5000.00, 50, 10, '2025-11-24 11:21:20', '2025-11-24 17:21:20', '2026-01-30', 'activo');
 
 -- --------------------------------------------------------
 
@@ -531,11 +832,14 @@ INSERT INTO `usuarios` (`id_usuario`, `nombre_completo`, `email`, `telefono`, `i
 (3, 'Admin', 'admin@gmail.com', '85102283', '1512356213', '$2y$12$7hX2eSPgIfJ4aGEHehJNze6BGBBF0IeR9vrG.XthD2DVgXOiyT8GG', 3, '2025-11-19 17:39:46'),
 (4, 'admin2', 'admin298@gmail.com', '124387365', '123456789', '$2y$12$D/iF9YxUXRsIQarahDNrb.Rw54O1XDvVSqN.AoAMULFS2uqiWRwWS', 4, '2025-11-19 17:46:20'),
 (5, 'Monserrath Bolaños Alfaro', 'monserrath@gmail.com', '86743429', '207870964', '$2y$12$S/wmxfTRiTBbjplYLM3JF.4G1Rm0CATrHVVLx/dh6HCJ/8T6uJ4OS', 2, '2025-11-19 19:11:49'),
-(6, 'Carey Aguilar', 'carey@gmail.com', '85753421', '27870961', '$2y$12$1.Lj3WgQ0pV7ms//2LiJOuDVqJyfGfZidkQTbE4EeSYqlpSJplnXe', 4, '2025-11-20 14:29:12'),
+(6, 'Carey Aguilar', 'carey@gmail.com', '85753421', '27870961', '$2y$12$1.Lj3WgQ0pV7ms//2LiJOuDVqJyfGfZidkQTbE4EeSYqlpSJplnXe', 2, '2025-11-20 14:29:12'),
 (7, 'Veronica Alfaro', 'veronica@gmail.com', '83213475', '205020970', '$2y$12$aTeFhIr4ojmUl8qBHaPBEOQiJNI2GkOLW9DRcnxrdVbdyZpEPRq3u', 1, '2025-11-20 14:51:42'),
 (8, 'Brayan Aguilar', 'brayan@gmail.com', '85743426', '207870973', '$2y$12$O5ZVhb3jZx27z.pfNjgNc.1SgtVLBZIXwMwC58PL8a4aCrGytno9S', 3, '2025-11-23 10:57:39'),
 (9, 'Valeria Bolanos', 'valeria@hotmail.com', '85743422', '207870912', '$2y$12$omXuF294aj/yYx2sglVEXubXvNzFDrOkIylBzlgw0NDX/0X7M841u', 3, '2025-11-23 18:59:24'),
-(10, 'Pandora Aguilar', 'pandora@gmail.com', '817743429', '107870964', '$2y$12$KN.6C2bPrtnMAKGs2bdm5OQuQv6o.HYODESmWeqj3CmvheShqbyQW', 3, '2025-11-24 09:36:53');
+(10, 'Pandora Aguilar', 'pandora@gmail.com', '817743429', '107870964', '$2y$12$KN.6C2bPrtnMAKGs2bdm5OQuQv6o.HYODESmWeqj3CmvheShqbyQW', 2, '2025-11-24 09:36:53'),
+(11, 'Sofia Castro', 'sofia@gmail.com', '24947678', '107870961', '$2y$12$aVstIjAcNadhgeEny37vyO06cJ1/.4icwxtHnyAGBqm6qFFoh1mRS', 1, '2025-11-24 10:11:16'),
+(12, 'Hector Castro', 'Hector@gmail.com', '87654376', '107870962', '$2y$12$ENsjdHyacbLhB8Xcs6.9lOmFGzNBodoJNIyV.onZi/74DszG7UyBe', 2, '2025-11-24 10:12:10'),
+(13, 'Ariana Garita', 'ariana@gmail.com', '83213466', '107870967', '$2y$12$6KE5I6OdQUdy0SdqoVcTveO7WGVqMaWQELeTqAGGhGLJ9yZ.0IDai', 4, '2025-11-24 10:12:54');
 
 -- --------------------------------------------------------
 
@@ -560,7 +864,8 @@ CREATE TABLE `ventas` (
 --
 
 INSERT INTO `ventas` (`id_venta`, `id_usuario`, `id_cliente`, `fecha_venta`, `subtotal`, `impuestos`, `total`, `metodo_pago`, `estado`) VALUES
-(1, 8, 8, '2025-11-23 10:59:41', 20000.00, 0.00, 20000.00, 'Tarjeta', 1);
+(1, 8, 8, '2025-11-23 10:59:41', 20000.00, 0.00, 20000.00, 'Tarjeta', 1),
+(2, 9, 9, '2025-11-24 11:37:15', 20000.00, 0.00, 20000.00, 'Tarjeta', 1);
 
 --
 -- Indexes for dumped tables
@@ -737,7 +1042,7 @@ ALTER TABLE `agendar_medico`
 -- AUTO_INCREMENT for table `atencion_cita`
 --
 ALTER TABLE `atencion_cita`
-  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `auditoria_stock`
@@ -749,19 +1054,19 @@ ALTER TABLE `auditoria_stock`
 -- AUTO_INCREMENT for table `bitacoras`
 --
 ALTER TABLE `bitacoras`
-  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `carrito`
 --
 ALTER TABLE `carrito`
-  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `carrito_detalle`
 --
 ALTER TABLE `carrito_detalle`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `categoria_productos`
@@ -773,7 +1078,7 @@ ALTER TABLE `categoria_productos`
 -- AUTO_INCREMENT for table `citas`
 --
 ALTER TABLE `citas`
-  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `clientes`
@@ -785,7 +1090,7 @@ ALTER TABLE `clientes`
 -- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `historial_clinico`
@@ -809,7 +1114,7 @@ ALTER TABLE `lote_producto`
 -- AUTO_INCREMENT for table `odontologos`
 --
 ALTER TABLE `odontologos`
-  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `pagos`
@@ -827,7 +1132,7 @@ ALTER TABLE `permisos`
 -- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -845,13 +1150,13 @@ ALTER TABLE `rol_permisos`
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables

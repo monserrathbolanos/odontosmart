@@ -17,15 +17,15 @@ while ($row = $result->fetch_assoc()) {
     $roles[] = $row;  //Guarda los roles disponibles en un arreglo
 }
  
-// --- Procesar formulario cuando se envía vía POST ---
+// Formulario para enviar datos a la base de datos cuando se crea un nuevo usuario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  
-    // Verifica el token CSRF
+    //Verificaion del token CSRF
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
         $error = "Token de seguridad inválido. Por favor, vuelve a intentarlo.";
     } else {
  
-        // Sanitiza y valida los datos del formulario
+        //Limpia y recupera los datos del formulario para que no hayan errores cuando se envie a la base de datos
         $nombre_completo = trim($_POST['nombre_completo'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $identificacion = trim($_POST['identificacion'] ?? '');
         $telefono = trim($_POST['telefono'] ?? '');
  
-        // Validaciones básicas
+        // Validaciones basicas de los datos ingresados para crear un nuevo usuario
         if ($nombre_completo === '' || $email === '' || $password === '') {
             $error = "Todos los campos son obligatorios.";
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -49,56 +49,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtRole = $conn->prepare("SELECT id_rol FROM roles WHERE id_rol = ?");
             $stmtRole->bind_param("i", $role_id);
             $stmtRole->execute();
- 
+
             if ($stmtRole->get_result()->num_rows === 0) {
                 $error = "Rol inválido.";
             } else {
- 
-                // Verifica si el usuario o correo ya existen
-                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios
-                                        WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
-                $stmt->bind_param("sss", $email, $nombre_completo, $identificacion);
-                $stmt->execute();
- 
-                if ($stmt->get_result()->num_rows > 0) {
-                    $error = "Usuario, identificacion o correo ya se encuentra en uso.";
-                } else {
- 
-                    // Inserta el nuevo usuario en la base de datos
-                    $hash = password_hash($password, PASSWORD_DEFAULT);  // Encripta la contraseña
- 
-                    $stmtInsert = $conn->prepare("
-                        INSERT INTO usuarios (nombre_completo, email, password, id_rol, telefono, identificacion)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    ");
- 
-                    $stmtInsert->bind_param(
-                        "sssiss",
-                        $nombre_completo,
-                        $email,
-                        $hash,
-                        $role_id,
-                        $telefono,
-                        $identificacion
-                    );
- 
-                    if ($stmtInsert->execute()) {
-                        $success = "✅ Usuario creado exitosamente.";
+
+                // Crear password hash
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+
+                // Llamar SP para almacenar los datos en la base de datos y se guarden en la bitácora
+                $stmtSp = $conn->prepare("
+                    CALL sp_crear_usuario(?,?,?,?,?,?,?, @resultado)
+                ");
+
+                //Se unen los parámetros para enviarlos al procedimiento almacenado
+                $stmtSp->bind_param(
+                    "sssisss",
+                    $nombre_completo,
+                    $email,
+                    $hash,
+                    $role_id,
+                    $telefono,
+                    $identificacion,
+                    $ip_cliente
+                );
+
+                if ($stmtSp->execute()) {
+
+                    $stmtSp->close();
+                    $conn->next_result(); // Importante después de CALL para que se puedan ejecutar otras consultas
+
+                    // Obtener valor OUT para asi saber si se creó correctamente o hubo duplicados
+                    $res = $conn->query("SELECT @resultado AS res");
+                    $row = $res->fetch_assoc();
+                    $resultado = $row['res'] ?? null;
+
+                    if ($resultado === "OK") {
+                        $success = "Usuario creado exitosamente.";
+                    } elseif ($resultado === "DUPLICADO") {
+                        $error = "Usuario, identificación o correo ya existe.";
                     } else {
-                        $error = "Error al crear usuario.";
+                        $error = "Error inesperado al crear el usuario.";
                     }
- 
-                    $stmtInsert->close();
+
+                } else {
+                    $error = "No se pudo ejecutar el SP.";
                 }
- 
-                $stmt->close();
             }
- 
+
             $stmtRole->close();
         }
     }
 }
- 
+
 $conn->close();
 ?>
  

@@ -4,49 +4,77 @@ session_start();
 include('../../config/conexion.php');
 $rol = $_SESSION['user']['role'] ?? 'administrador';
 
+$mensaje = "";
+
 // Formulario para agregar un producto
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $nombre = $_POST["nombre"];
-    $descripcion = $_POST["descripcion"];
-    $unidad = $_POST["unidad"];
-    $precio = $_POST["precio"];
-    $stock_minimo = $_POST["stock_minimo"];
-    $stock_total = $_POST["stock_total"];
-    $id_categoria = $_POST["id_categoria"];
-    $fecha_caducidad = $_POST["fecha_caducidad"];
-    $costo_unidad = $_POST["costo_unidad"];
+    $nombre          = $_POST["nombre"] ?? '';
+    $descripcion     = $_POST["descripcion"] ?? '';
+    $unidad          = $_POST["unidad"] ?? '';
+    $precio          = floatval($_POST["precio"] ?? 0);
+    $stock_minimo    = intval($_POST["stock_minimo"] ?? 0);
+    $stock_total     = intval($_POST["stock_total"] ?? 0);
+    $id_categoria    = intval($_POST["id_categoria"] ?? 0);
+    $fecha_caducidad = $_POST["fecha_caducidad"] ?? null;
+    $costo_unidad    = floatval($_POST["costo_unidad"] ?? 0);
 
-    // Estructura REAL de productos
-    $sql = "INSERT INTO productos 
-            (id_categoria, nombre, descripcion, unidad, precio, costo_unidad, 
-             stock_total, stock_minimo, fecha_caducidad, estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'activo')";
+    $idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
+    $ip_cliente      = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
 
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param(
-        "isssddiis", 
-        $id_categoria,
-        $nombre,
-        $descripcion,
-        $unidad,
-        $precio,
-        $costo_unidad,
-        $stock_total,
-        $stock_minimo,
-        $fecha_caducidad
-    );
+    // Llamar al SP que crea producto y registra en bitácora
+    $stmt = $conn->prepare("
+        CALL sp_productos_crear(?,?,?,?,?,?,?,?,?,?,?, @resultado)
+    ");
 
-    if ($stmt->execute()) {
-        $mensaje = " El producto fue agregado correctamente.";
+    if ($stmt) {
+        // Tipos: i s s s d d i i s i s  (11 parámetros)
+        $stmt->bind_param(
+            "isssddiisis",
+            $id_categoria,      // i
+            $nombre,            // s
+            $descripcion,       // s
+            $unidad,            // s
+            $precio,            // d
+            $costo_unidad,      // d
+            $stock_total,       // i
+            $stock_minimo,      // i
+            $fecha_caducidad,   // s (DATE en formato 'Y-m-d')
+            $idUsuarioSesion,   // i
+            $ip_cliente         // s
+        );
+
+        if ($stmt->execute()) {
+            $stmt->close();
+            $conn->next_result(); // Limpia resultados del CALL
+
+            // Leer el valor OUT del SP
+            $res = $conn->query("SELECT @resultado AS res");
+            $row = $res->fetch_assoc();
+            $resultado = $row['res'] ?? null;
+
+            if ($resultado === 'OK') {
+                $mensaje = " El producto fue agregado correctamente.";
+            } elseif ($resultado === 'DUPLICADO') {
+                $mensaje = " Error: ya existe un producto con ese nombre en la misma categoría.";
+            } else {
+                $mensaje = " Error inesperado al agregar el producto.";
+            }
+        } else {
+            $mensaje = " Error al ejecutar el procedimiento almacenado.";
+            $stmt->close();
+        }
     } else {
-        $mensaje = " Error al agregar el producto: " . $conn->error;
+        $mensaje = " Error al preparar el procedimiento almacenado.";
     }
 }
 
 // Obtener categorías
 $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos");
 ?>
+
+
+
 
 <!DOCTYPE html>
 <html lang="es">

@@ -12,24 +12,70 @@ if (isset($_POST["buscar"])) {
     $stmt->bind_param("s", $identificacion);
     $stmt->execute();
     $resultado = $stmt->get_result();
-    if ($resultado->num_rows > 0) {
+    
+    if ($resultado && $resultado->num_rows > 0) {
         $usuario = $resultado->fetch_assoc();
     } else {
         $mensaje = "No se encontró usuario con esa cédula.";
     }
+
+    //Cierra el statement y libera resultados, stantement es para consultas preparadas y next_result es para procedimientos almacenados
+    $stmt->close();
+    $conn->next_result();
+
 }
 
 // Actualizar usuario
 if (isset($_POST["actualizar"])) {
-    $stmt = $conn->prepare("UPDATE usuarios SET nombre_completo=?, email=?, telefono=?, identificacion=?, id_rol=? WHERE id_usuario=?");
-    $stmt->bind_param("ssssii", $_POST["nombre"], $_POST["email"], $_POST["telefono"], $_POST["identificacion"], $_POST["rol"], $_POST["id_usuario"]);
-    if ($stmt->execute()) { 
-        $mensaje = " Usuario actualizado correctamente."; 
-    } else { 
-        $mensaje = " Error al actualizar usuario."; 
+   
+    $id_usuario    = intval($_POST["id_usuario"]);
+    $nombre        = $_POST["nombre"];
+    $email         = $_POST["email"];
+    $telefono      = $_POST["telefono"];
+    $identificacion= $_POST["identificacion"];
+    $rol           = intval($_POST["rol"]);
+    $ip_cliente    = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+
+    // Llamar SP que actualiza y escribe en bitácora
+    $stmtUpd = $conn->prepare("
+        CALL sp_usuarios_actualizar(?,?,?,?,?,?,?, @resultado)
+    ");
+
+    // i s s s s i s  = 7 parámetros
+    $stmtUpd->bind_param(
+        "issssis",
+        $id_usuario,
+        $nombre,
+        $email,
+        $telefono,
+        $identificacion,
+        $rol,
+        $ip_cliente
+    );
+
+    if ($stmtUpd->execute()) {
+        $stmtUpd->close();
+        $conn->next_result(); // limpiar resultados del CALL
+
+        // Leer el OUT del SP
+        $res = $conn->query("SELECT @resultado AS res");
+        $row = $res->fetch_assoc();
+        $resultado = $row['res'] ?? null;
+
+        if ($resultado === 'OK') {
+            $mensaje = "Usuario actualizado correctamente.";
+        } elseif ($resultado === 'DUPLICADO') {
+            $mensaje = "Error: correo o identificación ya están en uso por otro usuario.";
+        } else {
+            $mensaje = "Error inesperado al actualizar usuario.";
+        }
+    } else {
+        $mensaje = "Error al ejecutar el procedimiento almacenado.";
     }
 }
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="es">
