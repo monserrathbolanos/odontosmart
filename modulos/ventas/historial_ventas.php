@@ -179,9 +179,9 @@ $ventas = $conn->query($sql_ventas);
                         <td><?php echo ucfirst($venta['metodo_pago']); ?></td>
                         <td>₡<?php echo number_format($venta['total'], 2); ?></td>
                         <td>
-                            <button class="btn-ver" onclick="verFactura(<?php echo $venta['id_venta']; ?>)">
-                                Ver Factura
-                            </button>
+                           <a class="btn-ver" href="factura.php?id_venta=<?php echo $venta['id_venta']; ?>" target="_blank">
+                            Ver Factura
+                          </a>
                         </td>
                     </tr>
                     <?php endwhile; ?>
@@ -190,10 +190,5 @@ $ventas = $conn->query($sql_ventas);
         </div>
     </div>
 
-    <script>
-        function verFactura(idVenta) {
-            window.open('factura.php?id_venta=' + idVenta, '_blank');
-        }
-    </script>
 </body>
 </html>

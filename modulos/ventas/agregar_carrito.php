@@ -63,7 +63,8 @@ if ($result_detalle->num_rows > 0) {
     $stmt->execute();
 }
 
-echo "<script>alert('Producto agregado correctamente'); window.location.href='servicios.php';</script>";
+header("Location: servicios.php?agregado=1");
 exit;
+
 
 ?>

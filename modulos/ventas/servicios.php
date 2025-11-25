@@ -3,9 +3,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// seguridad: verificar que el usuario tenga rol asignado
-if (!isset($_SESSION['rol'])) {
-    $_SESSION['rol'] = "administrador"; // temporal para pruebas
+if (!isset($_SESSION['user']['id_usuario'])) {
+    header("Location: ../../index.php");
+    exit;
 }
 
 // Nuevo código servicios.php (Basado en total_inventario.php), trabaja con las tablas Productos, Categoria Productos.
@@ -224,6 +224,10 @@ function mostrarCategoria($conn, $categoriaNombre) {
             <p>En esta sección se muestra el catálogo de productos y servicios disponibles en la clínica dental OdontoSmart.</p>
 
             <?php
+            if (isset($_GET['agregado'])) {
+            echo "<p style='color:green; font-weight:bold;'>Producto agregado correctamente.</p>";
+            }
+
             // Mostrar las 2 categorías disponibles
             mostrarCategoria($conn, "Servicios");
             mostrarCategoria($conn, "Productos de higiene");
