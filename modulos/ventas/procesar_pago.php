@@ -16,6 +16,8 @@ $stmt->bind_param("i", $id_usuario);
 $stmt->execute();
 $result = $stmt->get_result();
 
+
+
 if ($result->num_rows === 0) {
 
     // Obtener datos del usuario
@@ -76,9 +78,11 @@ $stmt->close();
 
 
 // Obtener productos del carrito
-$sql_detalle = "SELECT cd.id_detalle, cd.cantidad, cd.id_producto, p.precio, p.stock_total
+$sql_detalle = "SELECT cd.id_detalle, cd.cantidad, cd.id_producto, p.precio, p.stock_total,
+                       vp.id_promocion, vp.precio_con_descuento, vp.monto_descuento
                 FROM carrito_detalle cd
                 JOIN productos p ON cd.id_producto = p.id_producto
+                LEFT JOIN v_productos_con_promocion vp ON p.id_producto = vp.id_producto
                 WHERE cd.id_carrito = ?";
 
 $stmt2 = $conn->prepare($sql_detalle);
@@ -93,6 +97,8 @@ if ($result_detalle->num_rows === 0) {
 
 $productos = [];
 $subtotal = 0;
+$descuento_total = 0;
+$promociones_aplicadas = []; // Para rastrear qué promociones se aplicaron
 
 while ($row = $result_detalle->fetch_assoc()) {
 
@@ -101,22 +107,48 @@ while ($row = $result_detalle->fetch_assoc()) {
         die("No hay suficiente stock para el producto ID {$row['id_producto']}.");
     }
 
-    $total_producto = $row['precio'] * $row['cantidad'];
+    // Determinar el precio a usar (con o sin promoción)
+    $precio_unitario = $row['precio']; // Precio original
+    $tiene_promocion = !empty($row['id_promocion']);
+
+     if ($tiene_promocion) {
+        $precio_unitario = $row['precio_con_descuento']; // Precio con descuento
+        $descuento_producto = $row['monto_descuento'] * $row['cantidad'];
+        $descuento_total += $descuento_producto;
+        
+        // Registrar la promoción aplicada
+        if (!isset($promociones_aplicadas[$row['id_promocion']])) {
+            $promociones_aplicadas[$row['id_promocion']] = 0;
+        }
+        $promociones_aplicadas[$row['id_promocion']] += $descuento_producto;
+    }
+
+    $total_producto = $precio_unitario * $row['cantidad'];
     $subtotal += $total_producto;
 
-    $productos[] = [
-        "id_producto" => $row['id_producto'],
-        "cantidad" => $row['cantidad'],
-        "precio_unitario" => $row['precio'],
-        "total" => $total_producto
-    ];
+  $productos[] = [
+    "id_producto" => $row['id_producto'],
+    "cantidad" => $row['cantidad'],
+    "precio_unitario" => $precio_unitario, // ya tiene el descuento si aplica
+    "total" => $total_producto,
+    "descuento" => $tiene_promocion ? $descuento_producto : 0
+];
+
 }
 
 $stmt2->close();
 
 
-// Calcular impuestos y total
-$impuestos = 0;
+// Calcular subtotal sumando los totales de los productos (ya con descuento aplicado)
+$subtotal = 0;
+foreach ($productos as $p) {
+    $subtotal += $p['total'];
+}
+
+// Calcular impuestos (IVA 13%)
+$impuestos = $subtotal * 0.13;
+
+// Total final
 $total = $subtotal + $impuestos;
 
 
@@ -178,6 +210,18 @@ foreach ($productos as $p) {
 $stmt4->close();
 $stmt_stock->close();
 
+// Registrar las promociones aplicadas en la tabla ventas_promociones
+if (!empty($promociones_aplicadas)) {
+    $sql_promo = "INSERT INTO ventas_promociones (id_venta, id_promocion, descuento_aplicado) VALUES (?, ?, ?)";
+    $stmt_promo = $conn->prepare($sql_promo);
+    
+    foreach ($promociones_aplicadas as $id_promocion => $descuento_aplicado) {
+        $stmt_promo->bind_param("iid", $id_venta, $id_promocion, $descuento_aplicado);
+        $stmt_promo->execute();
+    }
+    
+    $stmt_promo->close();
+}
 
 // Vaciar carrito
 $conn->query("DELETE FROM carrito_detalle WHERE id_carrito = $id_carrito");

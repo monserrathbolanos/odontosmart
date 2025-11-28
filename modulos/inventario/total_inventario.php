@@ -184,6 +184,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
             mostrarCategoria($conn, "Servicios");
             mostrarCategoria($conn, "Equipo médico complejo");
             mostrarCategoria($conn, "Instrumento dental");
+            mostrarCategoria($conn, "Productos de higiene");
             ?>
         </div>
     </div>

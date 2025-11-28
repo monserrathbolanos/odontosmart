@@ -19,7 +19,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
     echo "<div class='categoria-titulo'> $categoriaNombre</div>";
         // Consulta que trae los productos junto con su categoría
     $sql = "SELECT   p.id_producto, p.nombre, p.descripcion, p.unidad,
-                     p.id_categoria, p.precio, p.costo_unidad, p.stock_total,
+                     p.id_categoria, p.precio, p.stock_total,
                      p.stock_minimo, p.fecha_creacion, p.actualizado_en, p.estado, c.nombre AS categoria
             FROM productos p
             JOIN categoria_productos c ON p.id_categoria = c.id_categoria
@@ -53,73 +53,105 @@ function mostrarCategoria($conn, $categoriaNombre) {
                         <th>Stock Actual</th>
                         <th>Categoría</th>
                       
-                        <th>Costo</th>
+                       
                         <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody>";
 
         // Recorre cada producto y lo imprime en una fila
-        while ($row = $result->fetch_assoc()) {
+while ($row = $result->fetch_assoc()) {
 
-             // Validación de stock por producto
-            if ($row['stock_total'] <= $row['stock_minimo']) {
-                $productosAgotados[] = $row['nombre'];
+    // Validación de stock por producto
+    if ($row['stock_total'] <= $row['stock_minimo']) {
+        $productosAgotados[] = $row['nombre'];
+    }
+
+    // --- LÓGICA DE PROMOCIONES ---
+    $tiene_promocion = !empty($row['id_promocion']);
+    $precio_mostrar = $tiene_promocion ? $row['precio_con_descuento'] : $row['precio'];
+
+    echo "<tr>
+            <td>{$row['id_producto']}</td>
+            <td><strong>{$row['nombre']}</strong>";
+
+            // Badge OFERTA
+            if ($tiene_promocion) {
+                echo " <span class='promo-badge'>¡OFERTA!</span>";
             }
-            echo "<tr>
-                        <td>{$row['id_producto']}</td>
-                        <td><strong>{$row['nombre']}</strong></td>
-                        <td>{$row['descripcion']}</td>
-                        <td>{$row['unidad']}</td>
-                        <td>₡" . number_format($row['precio'], 2) . "</td>
-                        <td>{$row['stock_minimo']}</td>
-                        <td>{$row['stock_total']}</td>
-                        <td>{$row['categoria']}</td>
-                        
-                        <td>₡" . number_format($row['costo_unidad'], 2) . "</td>
 
-                        <td>
-                           <form action='agregar_carrito.php' method='POST' style='display:flex; gap:8px; align-items:center;'>
+    echo "</td>
+            <td>{$row['descripcion']}</td>
+            <td>{$row['unidad']}</td>
+            <td class='precio-cell'>";
 
-                                    <!-- ID del producto -->
-                                    <input type='hidden' name='id_producto' value='" . $row['id_producto'] . "'>
+                // Si tiene promoción: mostrar precio original + rebajado
+                if ($tiene_promocion) {
 
-                                     <!-- Selector de cantidad -->
-                      
+                    // Precio original tachado
+                    echo "<span class='precio-original'>₡" . number_format($row['precio'], 2) . "</span><br>";
 
-                                    <!-- Botón -->
-        
-                                         <input type='number' name='cantidad' value='1' min='1' max='" . $row['stock_total'] . "' required
-                                            style='width:60px; padding:5px; border:1px solid #ccc; border-radius:4px;'>
+                    // Precio final con descuento
+                    echo "<span class='precio-promo'>₡" . number_format($precio_mostrar, 2) . "</span>";
 
-                                            <button 
-                                                    type='submit'
-                                                    class='agregar-btn'
-                                                    style='padding:8px 15px; background:#152fbf; color:white; border:none; border-radius:4px; cursor:pointer;'>
-                                                    Agregar
-                                            </button>
+                    // Mostrar porcentaje o monto
+                    if ($row['tipo_descuento'] == 'porcentaje') {
+                        echo " <span class='descuento-badge'>-{$row['valor_descuento']}%</span>";
+                    } else {
+                        echo " <span class='descuento-badge'>-₡" . number_format($row['valor_descuento'], 0) . "</span>";
+                    }
 
-                                            
-                           </form>
-                       </td>
-                    </tr>";
-        }
-            echo "</tbody></table>";
+                } else {
+                    // Sin promoción
+                    echo "₡" . number_format($row['precio'], 2);
+                }
+
+    echo "</td>
+            <td>{$row['stock_minimo']}</td>
+            <td>{$row['stock_total']}</td>
+            <td>{$row['categoria']}</td>
             
-             // Mostrar alerta si existen productos con bajo stock
-        if (!empty($productosAgotados)) {
-            echo "<p style='color:red; font-weight:bold;'>
-                    Productos casi agotados o sin stock:
-                  </p>";
-            echo "<ul>";
-            foreach ($productosAgotados as $p) {
-                echo "<li>$p</li>";
-            }
-            echo "</ul>";
-        }
-    } else {
-        // Si no hay productos, muestra este texto
-        echo "<p class='sin-productos'>No hay productos en esta categoría.</p>";
+            
+
+            <td>
+                <form action='agregar_carrito.php' method='POST' style='display:flex; gap:8px; align-items:center;'>
+
+                    <!-- ID del producto -->
+                    <input type='hidden' name='id_producto' value='{$row['id_producto']}'>
+
+                    <!-- Cantidad -->
+                    <input type='number' 
+                           name='cantidad' 
+                           value='1' 
+                           min='1' 
+                           max='{$row['stock_total']}' 
+                           required
+                           style='width:60px; padding:5px; border:1px solid #ccc; border-radius:4px;'>
+
+                    <!-- Botón -->
+                    <button 
+                        type='submit'
+                        class='agregar-btn'
+                        style='padding:8px 15px; background:#152fbf; color:white; border:none; border-radius:4px; cursor:pointer;'>
+                        Agregar
+                    </button>
+
+                </form>
+            </td>
+        </tr>";
+}
+
+echo "</tbody></table>";
+
+// Mostrar alerta si existen productos con bajo stock
+if (!empty($productosAgotados)) {
+    echo "<p style='color:red; font-weight:bold;'>Productos casi agotados o sin stock:</p>";
+    echo "<ul>";
+    foreach ($productosAgotados as $p) {
+        echo "<li>$p</li>";
+    }
+    echo "</ul>";
+}
     }
 }
 ?>
@@ -240,6 +272,45 @@ function mostrarCategoria($conn, $categoriaNombre) {
         .btn-pagar:hover {
             background-color: #218838;
         }
+
+          /* Estilos para promociones */
+        .promo-badge {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 8px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+        }
+
+        .precio-cell {
+            min-width: 150px;
+        }
+
+        .precio-original {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .precio-promo {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .descuento-badge {
+            background: #ffc107;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
@@ -261,7 +332,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
             echo "<p style='color:green; font-weight:bold;'>Producto agregado correctamente.</p>";
             }
 
-            // Mostrar las 2 categorías disponibles
+            // Mostrar las 3 categorías disponibles
             mostrarCategoria($conn, "Servicios");
             mostrarCategoria($conn, "Productos de higiene");
             mostrarCategoria($conn, "Medicamentos");

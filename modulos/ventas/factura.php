@@ -28,10 +28,11 @@ if (!$venta) {
 }
 
 // Consultar detalle de productos comprados
-$sql_detalle = "SELECT dv.id_producto, p.nombre, dv.cantidad, dv.precio_unitario, dv.total
+$sql_detalle = "SELECT dv.id_producto, p.nombre, dv.cantidad, dv.precio_unitario, dv.total, dv.descuento
                 FROM detalle_venta dv
                 JOIN productos p ON dv.id_producto = p.id_producto
                 WHERE dv.id_venta = ?";
+
 
 $stmt2 = $conn->prepare($sql_detalle);
 $stmt2->bind_param("i", $id_venta);
@@ -44,6 +45,26 @@ while ($row = $result_detalle->fetch_assoc()) {
     $productos[] = $row;
 }
 $stmt2->close();
+
+// Consultar promociones aplicadas a esta venta
+$sql_promociones = "SELECT vp.descuento_aplicado, p.nombre as nombre_promocion, p.tipo_descuento, p.valor_descuento
+                    FROM ventas_promociones vp
+                    JOIN promociones p ON vp.id_promocion = p.id_promocion
+                    WHERE vp.id_venta = ?";
+
+$stmt3 = $conn->prepare($sql_promociones);
+$stmt3->bind_param("i", $id_venta);
+$stmt3->execute();
+$result_promociones = $stmt3->get_result();
+
+$promociones = [];
+$descuento_total = 0;
+while ($row = $result_promociones->fetch_assoc()) {
+    $promociones[] = $row;
+    $descuento_total += $row['descuento_aplicado'];
+}
+$stmt3->close();
+
 ?>
 
 <!DOCTYPE html>
@@ -93,28 +114,51 @@ $stmt2->close();
         </thead>
 
         <tbody>
-            <?php foreach ($productos as $p): ?>
-            <tr>
-                <td><?php echo $p['nombre']; ?></td>
-                <td><?php echo $p['cantidad']; ?></td>
-                <td>₡<?php echo number_format($p['precio_unitario'], 2); ?></td>
-                <td>₡<?php echo number_format($p['total'], 2); ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
+<?php foreach ($productos as $p): ?>
+<tr>
+    <td><?php echo $p['nombre']; ?></td>
+    <td><?php echo $p['cantidad']; ?></td>
+    <td>₡<?php echo number_format($p['precio_unitario'], 2); ?></td>
+    <td>
+        ₡<?php echo number_format($p['total'], 2); ?>
+        <?php if($p['descuento'] > 0){
+            echo " (descuento: ₡".number_format($p['descuento'], 2).")";
+        } ?>
+    </td>
+</tr>
+<?php endforeach; ?>
+</tbody>
 
-        <tfoot>
+         <tfoot>
             <tr>
                 <td colspan="3" style="text-align:right;">Subtotal:</td>
                 <td>₡<?php echo number_format($venta['subtotal'], 2); ?></td>
             </tr>
+            <?php if (!empty($promociones)): ?>
+            <tr style="background:#d4edda;">
+                <td colspan="3" style="text-align:right; color:#155724;">
+                    <strong>Descuentos aplicados:</strong>
+                    <?php foreach ($promociones as $promo): ?>
+                        <br><small><?php echo $promo['nombre_promocion']; ?> 
+                        (<?php 
+                            if ($promo['tipo_descuento'] == 'porcentaje') {
+                                echo $promo['valor_descuento'] . '%';
+                            } else {
+                                echo '₡' . number_format($promo['valor_descuento'], 0);
+                            }
+                        ?>)</small>
+                    <?php endforeach; ?>
+                </td>
+                <td style="color:#28a745; font-weight:bold;">-₡<?php echo number_format($descuento_total, 2); ?></td>
+            </tr>
+            <?php endif; ?>
             <tr>
                 <td colspan="3" style="text-align:right;">Impuestos:</td>
                 <td>₡<?php echo number_format($venta['impuestos'], 2); ?></td>
             </tr>
-            <tr>
-                <td colspan="3" style="text-align:right;">Total:</td>
-                <td>₡<?php echo number_format($venta['total'], 2); ?></td>
+            <tr style="background:#eef4ff;">
+                <td colspan="3" style="text-align:right; font-size:18px;">TOTAL A PAGAR:</td>
+                <td style="font-size:18px;">₡<?php echo number_format($venta['total'], 2); ?></td>
             </tr>
         </tfoot>
     </table>

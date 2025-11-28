@@ -149,10 +149,10 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
                 </div>
 
                 <!-- Fecha igual a inventario: YYYY-MM-DD -->
-                <div class="form-group">
-                    <label class="required">Fecha de vencimiento:</label>
-                    <input type="date" name="vencimiento" required>
-                </div>
+              <div class="form-group">
+    <label class="required">Fecha de vencimiento:</label>
+    <input type="month" name="vencimiento" required>
+</div>
 
                 <!-- CVV -->
                 <div class="form-group">
