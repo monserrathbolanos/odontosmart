@@ -144,6 +144,7 @@ $sql_detalle_venta = "INSERT INTO detalle_venta (id_venta, id_producto, cantidad
 $stmt4 = $conn->prepare($sql_detalle_venta);
 
 $sql_update_stock = "UPDATE productos SET stock_total = stock_total - ? WHERE id_producto = ?";
+
 $stmt_stock = $conn->prepare($sql_update_stock);
 
 foreach ($productos as $p) {
@@ -162,6 +163,16 @@ foreach ($productos as $p) {
     // Actualizar stock
     $stmt_stock->bind_param("ii", $p['cantidad'], $p['id_producto']);
     $stmt_stock->execute();
+
+    // Actualizar cantidad en lote_producto
+        $sql_update_lote = "UPDATE lote_producto 
+                    SET cantidad = cantidad - ? 
+                    WHERE id_producto = ?";
+        $stmt_lote = $conn->prepare($sql_update_lote);
+        $stmt_lote->bind_param("ii", $p['cantidad'], $p['id_producto']);
+        $stmt_lote->execute();
+        $stmt_lote->close();
+
 }
 
 $stmt4->close();

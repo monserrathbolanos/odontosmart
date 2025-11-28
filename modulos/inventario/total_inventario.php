@@ -19,6 +19,9 @@ function mostrarCategoria($conn, $categoriaNombre) {
     $stmt->execute();
     $result = $stmt->get_result();
 
+     // Crear arreglo para alertas
+    $productosAgotados = [];
+
     if ($result->num_rows > 0) {
         echo "<table>
                 <thead>
@@ -31,12 +34,18 @@ function mostrarCategoria($conn, $categoriaNombre) {
                         <th>Stock Mínimo</th>
                         <th>Stock Actual</th>
                         <th>Categoría</th>
-                        <th>Caducidad</th>
+                        
                         <th>Costo</th>
                     </tr>
                 </thead>
                 <tbody>";
         while ($row = $result->fetch_assoc()) {
+
+            // Validación de stock por producto
+            if ($row['stock_total'] <= $row['stock_minimo']) {
+                $productosAgotados[] = $row['nombre'];
+            }
+
             echo "<tr>
                     <td>{$row['id_producto']}</td>
                     <td><strong>{$row['nombre']}</strong></td>
@@ -46,11 +55,23 @@ function mostrarCategoria($conn, $categoriaNombre) {
                     <td>{$row['stock_minimo']}</td>
                     <td>{$row['stock_total']}</td>
                     <td>{$row['categoria']}</td>
-                    <td>{$row['fecha_caducidad']}</td>
+                    
                     <td>₡" . number_format($row['costo_unidad'], 2) . "</td>
                   </tr>";
         }
         echo "</tbody></table>";
+
+         // Mostrar alerta si existen productos con bajo stock
+        if (!empty($productosAgotados)) {
+            echo "<p style='color:red; font-weight:bold;'>
+                    Productos casi agotados o sin stock:
+                  </p>";
+            echo "<ul>";
+            foreach ($productosAgotados as $p) {
+                echo "<li>$p</li>";
+            }
+            echo "</ul>";
+        }
     } else {
         echo "<p class='sin-productos'>No hay productos en esta categoría.</p>";
     }

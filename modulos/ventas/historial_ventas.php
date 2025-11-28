@@ -1,7 +1,9 @@
-<?php
-// historial_ventas.php
+<!-- historial_ventas.php -->
+<!-- Este codigo se encarga de mostrar el historial de ventas realizadas, ademas de generar un reporte visual de datos importantes relacionados a ventas -->
 
-//utiliza las tablas Ventas y Usuarios
+<?php
+//Tablas utilizadas: ventas y usuarios
+
 session_start();
 include('../../config/conexion.php');
 
@@ -19,6 +21,35 @@ $sql_ventas = "SELECT
                LIMIT 50";
 
 $ventas = $conn->query($sql_ventas);
+
+//Consultas de los productos mas y menos vendidos del mes
+// Productos más vendidos del mes
+$sql_top = "
+    SELECT p.nombre AS producto, SUM(dv.cantidad) AS total_vendido
+    FROM detalle_venta dv
+    INNER JOIN productos p ON dv.id_producto = p.id_producto
+    INNER JOIN ventas v ON dv.id_venta = v.id_venta
+    WHERE MONTH(v.fecha_venta) = MONTH(CURDATE())
+      AND YEAR(v.fecha_venta) = YEAR(CURDATE())
+    GROUP BY p.id_producto
+    ORDER BY total_vendido DESC
+    LIMIT 5
+";
+$top_vendidos = $conn->query($sql_top);
+
+// Productos menos vendidos del mes
+$sql_bottom = "
+    SELECT p.nombre AS producto, SUM(dv.cantidad) AS total_vendido
+    FROM detalle_venta dv
+    INNER JOIN productos p ON dv.id_producto = p.id_producto
+    INNER JOIN ventas v ON dv.id_venta = v.id_venta
+    WHERE MONTH(v.fecha_venta) = MONTH(CURDATE())
+      AND YEAR(v.fecha_venta) = YEAR(CURDATE())
+    GROUP BY p.id_producto
+    ORDER BY total_vendido ASC
+    LIMIT 5
+";
+$menos_vendidos = $conn->query($sql_bottom);
 
 ?>
 
@@ -119,25 +150,42 @@ $ventas = $conn->query($sql_ventas);
 </div>
 
     <div class="content">
-        <h1 style="color: #69B7BF;"> Historial de Ventas - OdontoSmart</h1>
+        <h1 style="color: #69B7BF;"> Reporte Historial de Ventas - OdontoSmart</h1>
 
-          <!-- Estadísticas Rápidas -->
-        <div class="estadisticas">
-            <div class="estadistica-card">
-                <h3>Total Ventas Hoy</h3>
+          <!-- Estadísticas para obtener los datos de las ventas -->
+        <h2>Reporte Financiero de Ventas</h2>
+          <div class="estadisticas">
+            
+          <div class="estadistica-card">
+                <h3>Total de Ventas Diarias</h3>
                 <p style="font-size: 24px; margin: 0;">
                     ₡<?php 
                     $sql_hoy = "SELECT COALESCE(SUM(total), 0) AS total_hoy 
                                 FROM ventas 
-                                WHERE fecha_venta = CURDATE()";
+                                WHERE DATE(fecha_venta) = CURDATE()";
                     $result_hoy = $conn->query($sql_hoy);
                     echo number_format($result_hoy->fetch_assoc()['total_hoy'], 2);
                     ?>
                 </p>
             </div>
 
-            <div class="estadistica-card" style="background: #28a745;">
-                <h3>Ventas del Mes</h3>
+            <div class="estadistica-card" style="background: #264CBF;">
+            <h3>Total de Ventas Semanales</h3>
+            <p style="font-size: 24px; margin: 0;">
+                ₡<?php 
+            //Consulta que obtiene el total de las ventas de la semana que incluya el dia en que se ejecuta el codigo
+            $sql_semana = "SELECT COALESCE(SUM(total), 0) AS total_semana
+                       FROM ventas 
+                       WHERE YEARWEEK(fecha_venta, 1) = YEARWEEK(CURDATE(), 1)";
+
+            $result_semana = $conn->query($sql_semana);
+            echo number_format($result_semana->fetch_assoc()['total_semana'], 2);
+            ?>
+    </p>
+</div>
+
+            <div class="estadistica-card" style="background: #92c4e4ff;">
+                <h3>Total de Ventas Mensuales</h3>
                 <p style="font-size: 24px; margin: 0;">
                     ₡<?php 
                     $sql_mes = "SELECT COALESCE(SUM(total), 0) AS total_mes 
@@ -150,12 +198,13 @@ $ventas = $conn->query($sql_ventas);
                     ?>
                 </p>
             </div>
+            
         </div>
 
-        <!-- Tabla de Ventas -->
+        <!-- Tabla de las ventas generales del mes -->
+        <h2>Total de Ventas Mensuales</h2>
         <div class="seccion">
-            <h3> Últimas Ventas</h3>
-
+            
             <table>
                 <thead>
                     <tr>
@@ -188,6 +237,51 @@ $ventas = $conn->query($sql_ventas);
                 </tbody>
             </table>
         </div>
+
+        <!-- Tabla de los productos mas y menos vendidos del mes -->
+        <h2> Reporte de Productos Vendidos</h2>
+        
+        <div class="seccion">
+        <h3>Productos Más Vendidos del Mes</h3>
+    
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Total Vendido</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php while ($row = $top_vendidos->fetch_assoc()): ?>
+                <tr>
+                    <td><?php echo $row['producto']; ?></td>
+                    <td><?php echo $row['total_vendido']; ?></td>
+                </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="seccion">
+        <h3>Productos Menos Vendidos del Mes</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Total Vendido</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php while ($row = $menos_vendidos->fetch_assoc()): ?>
+                <tr>
+                    <td><?php echo $row['producto']; ?></td>
+                    <td><?php echo $row['total_vendido']; ?></td>
+                </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+
     </div>
 
 </body>

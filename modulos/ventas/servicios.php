@@ -12,7 +12,7 @@ if (!isset($_SESSION['user']['id_usuario'])) {
 include('../../config/conexion.php');
 
 // Se definen las categorías permitidas para compras de cliente:
-$categorias_permitidas = ["Servicios", "Productos de higiene"];
+$categorias_permitidas = ["Servicios", "Productos de higiene", "Medicamentos"];
 
 // Función para mostrar tabla por categoría (usada en total_inventario.php)
 function mostrarCategoria($conn, $categoriaNombre) {
@@ -20,8 +20,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
         // Consulta que trae los productos junto con su categoría
     $sql = "SELECT   p.id_producto, p.nombre, p.descripcion, p.unidad,
                      p.id_categoria, p.precio, p.costo_unidad, p.stock_total,
-                     p.stock_minimo, p.fecha_creacion, p.actualizado_en,
-                     p.fecha_caducidad, p.estado, c.nombre AS categoria
+                     p.stock_minimo, p.fecha_creacion, p.actualizado_en, p.estado, c.nombre AS categoria
             FROM productos p
             JOIN categoria_productos c ON p.id_categoria = c.id_categoria
             WHERE c.nombre = ?";
@@ -38,6 +37,9 @@ function mostrarCategoria($conn, $categoriaNombre) {
     // Obtiene los resultados
     $result = $stmt->get_result();
 
+     // Crear arreglo para alertas
+    $productosAgotados = [];
+
     if ($result->num_rows > 0) {
         echo "<table>
                 <thead>
@@ -50,7 +52,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
                         <th>Stock Mínimo</th>
                         <th>Stock Actual</th>
                         <th>Categoría</th>
-                        <th>Caducidad</th>
+                      
                         <th>Costo</th>
                         <th>Acción</th>
                     </tr>
@@ -60,6 +62,10 @@ function mostrarCategoria($conn, $categoriaNombre) {
         // Recorre cada producto y lo imprime en una fila
         while ($row = $result->fetch_assoc()) {
 
+             // Validación de stock por producto
+            if ($row['stock_total'] <= $row['stock_minimo']) {
+                $productosAgotados[] = $row['nombre'];
+            }
             echo "<tr>
                         <td>{$row['id_producto']}</td>
                         <td><strong>{$row['nombre']}</strong></td>
@@ -69,21 +75,48 @@ function mostrarCategoria($conn, $categoriaNombre) {
                         <td>{$row['stock_minimo']}</td>
                         <td>{$row['stock_total']}</td>
                         <td>{$row['categoria']}</td>
-                        <td>{$row['fecha_caducidad']}</td>
+                        
                         <td>₡" . number_format($row['costo_unidad'], 2) . "</td>
 
                         <td>
-                         <!-- formulario para agregar el producto al carrito -->
-                         <form action='agregar_carrito.php' method='POST'>
-                            <!-- se envía el id del producto -->
-                            <input type='hidden' name='id_producto' value='" . $row['id_producto'] . "'>
-                            <!-- botón para agregar -->
-                            <button type='submit' class='agregar-btn'>Agregar al Carrito</button>
-                         </form>
-                         </td>
+                           <form action='agregar_carrito.php' method='POST' style='display:flex; gap:8px; align-items:center;'>
+
+                                    <!-- ID del producto -->
+                                    <input type='hidden' name='id_producto' value='" . $row['id_producto'] . "'>
+
+                                     <!-- Selector de cantidad -->
+                      
+
+                                    <!-- Botón -->
+        
+                                         <input type='number' name='cantidad' value='1' min='1' max='" . $row['stock_total'] . "' required
+                                            style='width:60px; padding:5px; border:1px solid #ccc; border-radius:4px;'>
+
+                                            <button 
+                                                    type='submit'
+                                                    class='agregar-btn'
+                                                    style='padding:8px 15px; background:#152fbf; color:white; border:none; border-radius:4px; cursor:pointer;'>
+                                                    Agregar
+                                            </button>
+
+                                            
+                           </form>
+                       </td>
                     </tr>";
         }
-        echo "</tbody></table>";
+            echo "</tbody></table>";
+            
+             // Mostrar alerta si existen productos con bajo stock
+        if (!empty($productosAgotados)) {
+            echo "<p style='color:red; font-weight:bold;'>
+                    Productos casi agotados o sin stock:
+                  </p>";
+            echo "<ul>";
+            foreach ($productosAgotados as $p) {
+                echo "<li>$p</li>";
+            }
+            echo "</ul>";
+        }
     } else {
         // Si no hay productos, muestra este texto
         echo "<p class='sin-productos'>No hay productos en esta categoría.</p>";
@@ -231,6 +264,8 @@ function mostrarCategoria($conn, $categoriaNombre) {
             // Mostrar las 2 categorías disponibles
             mostrarCategoria($conn, "Servicios");
             mostrarCategoria($conn, "Productos de higiene");
+            mostrarCategoria($conn, "Medicamentos");
+
             ?>
             
             <!-- Botón para ver el carrito -->

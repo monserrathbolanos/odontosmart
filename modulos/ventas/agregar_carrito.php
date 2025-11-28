@@ -44,24 +44,35 @@ $stmt->bind_param("ii", $id_carrito, $id_producto);
 $stmt->execute();
 $result_detalle = $stmt->get_result();
 
+
+
+// Cantidad enviada desde el input
+$cantidad_agregada = isset($_POST['cantidad']) ? intval($_POST['cantidad']) : 1;
+
 if ($result_detalle->num_rows > 0) {
-    // si ya existe aumentar cantidad
+    // Si ya existe, sumar la cantidad agregada
     $row_detalle = $result_detalle->fetch_assoc();
-    $cantidad_nueva = $row_detalle['cantidad'] + 1;
+    $cantidad_nueva = $row_detalle['cantidad'] + $cantidad_agregada;
 
     $sql_update = "UPDATE carrito_detalle SET cantidad = ? WHERE id_detalle = ?";
     $stmt = $conn->prepare($sql_update);
     $stmt->bind_param("ii", $cantidad_nueva, $row_detalle['id_detalle']);
     $stmt->execute();
-
 } else {
-    // insertar nuevo registro
-    $cantidad = 1;
-    $sql_insert_detalle = "INSERT INTO carrito_detalle (id_carrito, id_producto, cantidad) VALUES (?, ?, ?)";
-    $stmt = $conn->prepare($sql_insert_detalle);
-    $stmt->bind_param("iii", $id_carrito, $id_producto, $cantidad);
+    // Si no existe, insertar el producto con la cantidad enviada
+    $sql_insert = "INSERT INTO carrito_detalle (id_carrito, id_producto, cantidad) VALUES (?, ?, ?)";
+    $stmt = $conn->prepare($sql_insert);
+    $stmt->bind_param("iii", $id_carrito, $id_producto, $cantidad_agregada);
     $stmt->execute();
 }
+//  else {
+//     // insertar nuevo registro
+//     $cantidad = 1;
+//     $sql_insert_detalle = "INSERT INTO carrito_detalle (id_carrito, id_producto, cantidad) VALUES (?, ?, ?)";
+//     $stmt = $conn->prepare($sql_insert_detalle);
+//     $stmt->bind_param("iii", $id_carrito, $id_producto, $cantidad);
+//     $stmt->execute();
+// }
 
 header("Location: servicios.php?agregado=1");
 exit;

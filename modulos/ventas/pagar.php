@@ -27,7 +27,7 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
 
         .navbar { 
             width: 220px; 
-            background-color: #152fbf; 
+            background-color: #69B7BF; 
             height: 100vh; 
             padding-top: 20px; 
             position: fixed; 
@@ -40,6 +40,17 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
             text-decoration: none; 
             margin: 5px 0; 
             border-radius: 4px; 
+        }
+        .navbar a:hover { 
+            background-color: #264cbf; 
+        }
+        .logo-navbar {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            opacity: 0.9;
         }
 
         .content { 

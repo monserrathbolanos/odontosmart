@@ -3,11 +3,13 @@ session_start();
 require '../../config/conexion.php';
 
 // Verificar que viene el id_detalle
-if (!isset($_POST['id_detalle'])) {
-    die("ID inválido");
+if (!isset($_POST['id_detalle']) || !isset($_POST['id_carrito'])) {
+    die("Datos incompletos");
 }
 
 $id_detalle = $_POST['id_detalle'];
+$id_carrito = $_POST['id_carrito'];
+
 
 // Ver si la cantidad es > 1
 $sql = "SELECT cantidad FROM carrito_detalle WHERE id_detalle = ?";

@@ -87,12 +87,15 @@ function mostrarCarrito($conn, $id_usuario) {
 
                 <td>
                     <form action='restar_carrito.php' method='POST' style='display:inline;'>
-                        <input type='hidden' name='id_detalle' value='{$row['id_detalle']}'>
-                        <button type='submit' 
-                            style='background:#dc3545; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;'>
-                            -
-                        </button>
+                       <input type='hidden' name='id_detalle' value='{$row['id_detalle']}'>
+                       <input type='hidden' name='id_carrito' value='{$id_carrito}'>
+                       <button type='submit' 
+                       style='background:#dc3545; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;'>
+                         -
+                         </button>
                     </form>
+
+
                 </td>
               </tr>";
     }

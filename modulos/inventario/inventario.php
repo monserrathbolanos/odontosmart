@@ -6,7 +6,7 @@ $rol = $_SESSION['user']['role'] ?? 'administrador';
 
 $mensaje = "";
 
-// Formulario para agregar un producto
+// Formulario para agregar un producto y lote
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $nombre          = $_POST["nombre"] ?? '';
@@ -18,6 +18,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id_categoria    = intval($_POST["id_categoria"] ?? 0);
     $fecha_caducidad = $_POST["fecha_caducidad"] ?? null;
     $costo_unidad    = floatval($_POST["costo_unidad"] ?? 0);
+
+    // Para la tabla de lote_producto
+    $cantidad_lote = $_POST['stock_total'];  
+    $fecha_lote = $_POST['fecha_caducidad'];
+
 
     $idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
     $ip_cliente      = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
@@ -54,7 +59,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $resultado = $row['res'] ?? null;
 
             if ($resultado === 'OK') {
-                $mensaje = " El producto fue agregado correctamente.";
+                // Obtener el ID del último producto insertado
+                $res2 = $conn->query("SELECT MAX(id_producto) AS id FROM productos");
+                $id_producto = $res2->fetch_assoc()['id'];
+
+                // Insertar lote
+                $stmt2 = $conn->prepare("
+                    INSERT INTO lote_producto (id_producto, cantidad, numero_lote, fecha_caducidad)
+                    VALUES (?, ?, ?, ?)
+                ");
+
+    $stmt2->bind_param(
+        "iiis",
+        $id_producto,
+        $cantidad_lote,
+        $_POST['numero_lote'],
+        $fecha_lote
+    );
+
+    $stmt2->execute();
+    $stmt2->close();
+
+    $mensaje = " El producto fue agregado correctamente.";
             } elseif ($resultado === 'DUPLICADO') {
                 $mensaje = " Error: ya existe un producto con ese nombre en la misma categoría.";
             } else {
@@ -236,7 +262,7 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
                     </div>
 
                     <div class="form-group">
-                        <label class="required">Stock total:</label>
+                        <label class="required">Cantidad a ingresar:</label>
                         <input type="number" name="stock_total" placeholder="0" min="0" required>
                     </div>
 
@@ -267,6 +293,12 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
                         <label class="required">Costo por unidad:</label>
                         <input type="number" step="0.01" name="costo_unidad" placeholder="0.00" min="0" required>
                         <div class="form-hint">Costo de adquisición en colones (₡)</div>
+                    </div>
+                
+                    <div class="form-group">
+                        <label class="required">Número de lote:</label>
+                        <input type="number" step="1" name="numero_lote" placeholder="0" min="0" required>
+                        <div class="form-hint">Ingrese el número de lote del producto</div>
                     </div>
 
                     <button type="submit">Guardar Producto</button>
