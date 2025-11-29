@@ -156,11 +156,15 @@ $total = $subtotal + $impuestos;
 $metodo_pago = "Tarjeta";
 $estado = 1;
 
+
 $sql_venta = "INSERT INTO ventas (id_usuario, id_cliente, fecha_venta, subtotal, impuestos, total, metodo_pago, estado)
               VALUES (?, ?, NOW(), ?, ?, ?, ?, ?)";
 
+
 $stmt3 = $conn->prepare($sql_venta);
-$stmt3->bind_param("iisddsi", $id_usuario, $id_cliente, $subtotal, $impuestos, $total, $metodo_pago, $estado);
+$stmt3->bind_param("iidddsi", $id_usuario, $id_cliente, $subtotal, $impuestos, $total, $metodo_pago, $estado);
+
+
 
 if (!$stmt3->execute()) {
     die("Error al registrar la venta: " . $stmt3->error);

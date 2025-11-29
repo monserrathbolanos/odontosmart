@@ -123,6 +123,118 @@ $conn->close();
 </head>
  
 <style>
+/* Fondo con degradado animado */
+body {
+    background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #D5E7F2, #69B7BF);
+    background-size: 300% 300%;
+    animation: rgbFlow 150s ease infinite;
+    font-family: 'Poppins', sans-serif;
+    color: #ffffff;
+}
+
+@keyframes rgbFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Tarjeta */
+.card {
+    background: #ffffffaf; /* Fondo semi-transparente */
+    color: #000;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    margin: auto;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+}
+
+/* Títulos */
+h3 {
+    color: #69B7BF;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+/* Inputs y select */
+input, select {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    width: 100%;
+    font-size: 1em;
+    margin-bottom: 15px;
+    transition: all 0.3s ease-in-out;
+}
+
+input:focus, select:focus {
+    border-color: #152FBF;
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    outline: none;
+}
+
+/* Botones */
+.btn {
+    border-radius: 8px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-success {
+    background: #69B7BF;
+    border: none;
+    color: #fff;
+}
+
+.btn-success:hover {
+    background: #264CBF;
+    transform: scale(1.05);
+}
+
+.btn-primary {
+    background: #152FBF;
+    border: none;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #264CBF;
+    transform: scale(1.05);
+}
+
+.btn-secondary {
+    background: #182940;
+    border: none;
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background: #264CBF;
+    transform: scale(1.05);
+}
+
+/* Alertas */
+.alert {
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Media queries */
+@media (max-width: 576px) {
+    .card {
+        padding: 20px;
+    }
+    h3 {
+        font-size: 1.5em;
+    }
+}
 body {
     background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #D5E7F2, #69B7BF);
     background-size: 300% 300%;

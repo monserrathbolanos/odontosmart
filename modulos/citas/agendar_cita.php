@@ -19,12 +19,12 @@ if ($idUsuarioSesion <= 0) {
     die('No se pudo obtener el ID del usuario desde la sesión.');
 }
 
-// Buscar el cliente asociado a ese usuario
-$sqlCli = "SELECT id_cliente FROM clientes WHERE id_usuario = ?";
+// Buscar el usuario asociado a ese usuario
+$sqlCli = "SELECT id_usuario FROM usuarios WHERE id_usuario = ?";
 $stmtCli = $conn->prepare($sqlCli);
 
 if (!$stmtCli) {
-    die('Error al preparar la consulta de cliente.');
+    die('Error al preparar la consulta de usuario.');
 }
 
 //Asigna los paramentros que son los datos que se van a buscar en la base de datos.
@@ -33,16 +33,16 @@ $stmtCli->execute();
 $resCli = $stmtCli->get_result()->fetch_assoc();
 $stmtCli->close();
 
-//Verifica que el usuario tenga un cliente asociado.
+//Verifica que el usuario tenga un usuario asociado.
 if (!$resCli) {
-    die('Este usuario no está registrado como cliente. Por favor complete su registro como cliente.');
+    die('Este usuario no está registrado como usuario. Por favor complete su registro como usuario.');
 }
 
-//Obtiene el id del cliente.
-$id_cliente = intval($resCli['id_cliente']);
+//Obtiene el id del usuario.
+$id_usuario = intval($resCli['id_usuario']);
 
-if ($id_cliente <= 0) {
-    die('ID de cliente inválido.');
+if ($id_usuario <= 0) {
+    die('ID de usuario inválido.');
 }
 
 //Se utiliza para obtener la lista de los odontolodos que estan registrados en la base de datos.
@@ -126,17 +126,17 @@ $stmt2 = $conn->prepare("
 ");
 
 if ($stmt2) {
-    $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+    $ip_usuario = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
 
     // iissis = int, int, string, string, int, string
     $stmt2->bind_param(
         "iissis",
-        $id_cliente,       // INT
+        $id_usuario,       // INT
         $id_odontologo,    // INT
         $fecha_cita,       // DATETIME como string 'Y-m-d H:i:s'
         $motivo,           // VARCHAR
         $idUsuarioSesion,  // usuario que agenda (desde sesión)
-        $ip_cliente        // IP
+        $ip_usuario        // IP
     );
 
     if ($stmt2->execute()) {
@@ -180,30 +180,34 @@ if ($stmt2) {
             padding: 0; 
             background: #f5f5f5;
         }
-        .navbar { 
-            width: 220px; 
-            background-color: #69B7BF; 
-            height: 100vh; 
-            padding-top: 20px; 
-            position: fixed; 
+        .navbar {
+            width: 220px;
+            background-color: #69B7BF;
+            height: 100vh;
+            padding-top: 20px;
+            position: fixed;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transition: width 0.3s ease;
+          }
+        .navbar a {
+              display: block;
+              color: #fff;
+            padding: 14px 20px;
+            text-decoration: none;
+            margin: 10px;
+            border-radius: 8px;
+            transition: background 0.3s, transform 0.2s;
         }
-        .navbar a { 
-            display: block; 
-            color: #ecf0f1; 
-            padding: 12px; 
-            text-decoration: none; 
-            margin: 5px 0; 
-            border-radius: 4px; 
-        }
-        .navbar a:hover { 
-            background-color: #264cbf; 
+        .navbar a:hover {
+             background-color: #264cbf;
+             transform: scale(1.05);
         }
         .content { 
             margin-left: 240px; 
             padding: 20px; 
         }
         .seccion {
-            background: white;
+            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
             padding: 20px;
             margin: 15px 0;
             border-radius: 8px;

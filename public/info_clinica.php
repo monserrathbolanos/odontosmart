@@ -10,63 +10,91 @@ include('../config/conexion.php');
     <meta charset="UTF-8">
     <title>OdontoSmart - Sobre Nosotros</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
-        .navbar { 
-            width: 220px; 
-            background-color: #69B7BF; 
-            height: 100vh; 
-            padding-top: 20px; 
-            position: fixed; 
-        }
-        .navbar a { 
-            display: block; 
-            color: #ecf0f1; 
-            padding: 12px; 
-            text-decoration: none; 
-            margin: 5px 0; 
-            border-radius: 4px; 
-        }
-        .navbar a:hover { 
-            background-color: #264cbf; 
-        }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
-        }
-        .seccion {
-            background: white;
-            padding: 30px;
-            margin: 15px 0;
+        body {
+             font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom right, #f5f9fc, #e0f7fa);
+            color: #333;
+             }
+        .navbar {
+            width: 220px;
+            background-color: #69B7BF;
+            height: 100vh;
+            padding-top: 20px;
+            position: fixed;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transition: width 0.3s ease;
+          }
+        .navbar a {
+              display: block;
+              color: #fff;
+            padding: 14px 20px;
+            text-decoration: none;
+            margin: 10px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            line-height: 1.6;
+            transition: background 0.3s, transform 0.2s;
         }
-        .mision-vision {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
+        .navbar a:hover {
+             background-color: #264cbf;
+             transform: scale(1.05);
         }
-        .card {
-            background: #D5E7F2;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #69B7BF;
-        }
-        .logo-navbar {
+        .content {
+             margin-left: 240px;
+             padding: 40px;
+        }        
+        .content h1 {
+             font-size: 2.5em;
+             margin-bottom: 10px;
+         }
+
+         .content h2 {
+             color: #264CBF;
+             margin-bottom: 20px;
+         }
+
+         .content p {
+             line-height: 1.6;
+             margin-bottom: 20px;
+         }
+                    .logo-navbar {
             position: absolute;
-            bottom: 80px;       /* distancia desde abajo (ajustable) */
-            left: 50%;          
+            bottom: 40px;
+            left: 50%;
             transform: translateX(-50%);
-             width: 140px;
+            width: 140px;
             opacity: 0.9;
+            transition: transform 0.3s;
         }
 
+        .logo-navbar:hover {
+            transform: translateX(-50%) scale(1.1);        
+        }
+        .mision-vision {
+            display: flex;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+         }
+
+         .card {
+         background: #fff;
+         flex: 1 1 45%;
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          transition: transform 0.3s, box-shadow 0.3s;
+         }
+
+         .card:hover {
+             transform: translateY(-5px);
+             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+         }
+
+         .card h3 {
+             color: #69B7BF;
+             margin-bottom: 15px;
+         }
     </style>
 </head>
 <body>

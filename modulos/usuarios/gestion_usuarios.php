@@ -89,47 +89,53 @@ if (isset($_POST["actualizar"])) {
             padding: 0; 
             background: #f5f5f5;
         }
-        .navbar { 
-            width: 220px; 
-            background-color: #69B7BF; 
-            height: 100vh; 
-            padding-top: 20px; 
-            position: fixed; 
+        .navbar {
+            width: 220px;
+            background-color: #69B7BF;
+            height: 100vh;
+            padding-top: 20px;
+            position: fixed;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transition: width 0.3s ease;
+          }
+        .navbar a {
+              display: block;
+              color: #fff;
+            padding: 14px 20px;
+            text-decoration: none;
+            margin: 10px;
+            border-radius: 8px;
+            transition: background 0.3s, transform 0.2s;
         }
-        .navbar a { 
-            display: block; 
-            color: #ecf0f1; 
-            padding: 12px; 
-            text-decoration: none; 
-            margin: 5px 0; 
-            border-radius: 4px; 
-        }
-        .navbar a:hover { 
-            background-color: #264cbf; 
+        .navbar a:hover {
+             background-color: #264cbf;
+             transform: scale(1.05);
         }
         .content { 
             margin-left: 240px; 
             padding: 20px; 
         }
         .seccion {
-            background: white;
+            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
             padding: 20px;
             margin: 15px 0;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         button {
-            padding: 8px 15px;
-            background: #152fbf;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        button:hover {
-            background: #264cbf;
-        }
+    padding: 8px 15px;
+    background: #152FBF;  /* Azul principal */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px 0;
+    transition: 0.3s ease-in-out; /* transición suave */
+}
+       button:hover {
+    background: #264CBF;   /* Azul más oscuro */
+    transform: scale(1.05); /* aumenta un 5% */
+}
         input, select {
             padding: 8px;
             margin: 5px 0;
@@ -168,6 +174,23 @@ if (isset($_POST["actualizar"])) {
             width: 140px;        /* Tamaño del logo */
             opacity: 0.9;
         }
+        select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    width: 250px;
+    transition: all 0.3s ease-in-out; /* transición suave para hover */
+    font-size: 1em;
+    cursor: pointer;
+}
+
+/* Efecto al pasar el mouse */
+select:hover {
+    border-color: #152FBF;       /* cambiar color del borde */
+    transform: scale(1.03);      /* ligero aumento de tamaño */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* sombra suave */
+}
+
     </style>
 </head>
 <body>

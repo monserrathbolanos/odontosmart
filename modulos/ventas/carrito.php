@@ -190,24 +190,27 @@ $stmt2->close();
             margin: 0; 
             padding: 0; 
             background: #f5f5f5;
+        .navbar {
+            width: 220px;
+            background-color: #69B7BF;
+            height: 100vh;
+            padding-top: 20px;
+            position: fixed;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transition: width 0.3s ease;
+          }
+        .navbar a {
+              display: block;
+              color: #fff;
+            padding: 14px 20px;
+            text-decoration: none;
+            margin: 10px;
+            border-radius: 8px;
+            transition: background 0.3s, transform 0.2s;
         }
-        .navbar { 
-            width: 220px; 
-            background-color: #69B7BF; 
-            height: 100vh; 
-            padding-top: 20px; 
-            position: fixed; 
-        }
-        .navbar a { 
-            display: block; 
-            color: #ecf0f1; 
-            padding: 12px; 
-            text-decoration: none; 
-            margin: 5px 0; 
-            border-radius: 4px; 
-        }
-        .navbar a:hover { 
-            background-color: #264cbf; 
+        .navbar a:hover {
+             background-color: #264cbf;
+             transform: scale(1.05);
         }
         .logo-navbar {
             position: absolute;
@@ -222,7 +225,7 @@ $stmt2->close();
             padding: 20px; 
         }
         .seccion {
-            background: white;
+            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
             padding: 20px;
             margin: 15px 0;
             border-radius: 8px;
