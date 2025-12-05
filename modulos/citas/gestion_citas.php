@@ -22,6 +22,41 @@ if ($idUsuarioSesion <= 0) {
     die('No se pudo obtener el ID del usuario desde la sesión.');
 }
 
+//Para que solo le salgan las citas al doctor que corresponde al usuario que ha iniciado sesión, se puede agregar un filtro adicional en las consultas SQL si es necesario.
+// Rol del usuario en sesión
+$rolSesion   = $_SESSION['user']['role']   ?? '';
+$idRolSesion = intval($_SESSION['user']['id_rol'] ?? 0); // <-- MUY IMPORTANTE
+
+
+// Si es médico, obtener su id_odontologo
+$idOdontologoSesion = null;
+
+if ($idRolSesion === 2) {  // 2 = Médico
+    $sqlOd = "SELECT id_odontologo 
+              FROM odontologos 
+              WHERE id_usuario = ?
+              LIMIT 1";
+    $stmtOd = $conn->prepare($sqlOd);
+    if (!$stmtOd) {
+        die('Error al preparar la consulta de odontólogo.');
+    }
+    $stmtOd->bind_param("i", $idUsuarioSesion);
+    $stmtOd->execute();
+    $resOd = $stmtOd->get_result()->fetch_assoc();
+    $stmtOd->close();
+
+    if (!$resOd) {
+        die('Este usuario no está registrado como odontólogo.');
+    }
+
+    $idOdontologoSesion = intval($resOd['id_odontologo']);
+}
+
+
+
+
+
+
 //Inicializa variables para mensajes los mensajes.
 $mensaje_error = '';
 $mensaje_ok    = '';
@@ -121,10 +156,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $mensaje_error = 'Error al ejecutar el procedimiento almacenado de gestión de cita.';
             }
-        } else {
+                } else {
             $mensaje_error = 'Error al preparar el procedimiento almacenado.';
         }
-            //Se marca la cita como 'atendida' en la tabla citas.
+
+        // SOLO marcar como atendida si la acción fue finalizar_atencion
+        // (y opcionalmente guardar_atencion, si así lo querés)
+        if ($resultado === 'OK' && in_array($accion, ['finalizar_atencion', 'guardar_atencion'], true)) {
             $sqlCita = "UPDATE citas
                         SET estado = 'atendida'
                         WHERE id_cita = ?";
@@ -134,37 +172,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtCita->close();
         }
     }
+}
+
 
 //Consultas para obtener los datos necesarios para mostrar en la pagina, como el cuadro general de citas y el detalle de una cita especifica.
-$sqlCitas = "
-    SELECT 
-        c.id_cita,
-        c.fecha_cita,
-        c.estado,
-        c.motivo,
+if ($idRolSesion === 2 && $idOdontologoSesion !== null) {
+    // El médico solo ve sus propias citas
+    $sqlCitas = "
+        SELECT 
+            c.id_cita,
+            c.fecha_cita,
+            c.estado,
+            c.motivo,
 
-        cli.nombre   AS nombre_cliente,
-        cli.apellido AS apellido_cliente,
+            cli.nombre   AS nombre_cliente,
+            cli.apellido AS apellido_cliente,
 
-        o.nombre     AS nombre_odontologo,
-        o.apellido   AS apellido_odontologo,
+            o.nombre     AS nombre_odontologo,
+            o.apellido   AS apellido_odontologo,
 
-        ac.hora_llegada,
-        ac.hora_inicio_atencion,
-        ac.hora_fin_atencion,
-        ac.observaciones,
-        ac.requiere_control
+            ac.hora_llegada,
+            ac.hora_inicio_atencion,
+            ac.hora_fin_atencion,
+            ac.observaciones,
+            ac.requiere_control
 
-    FROM citas c
-    INNER JOIN clientes cli
-        ON cli.id_cliente = c.id_cliente
-    INNER JOIN odontologos o
-        ON o.id_odontologo = c.id_odontologo
-    LEFT JOIN atencion_cita ac
-        ON ac.id_cita = c.id_cita
-    ORDER BY c.fecha_cita DESC
-";
-$resCitas = $conn->query($sqlCitas);
+        FROM citas c
+        INNER JOIN clientes cli
+            ON cli.id_cliente = c.id_cliente
+        INNER JOIN odontologos o
+            ON o.id_odontologo = c.id_odontologo
+        LEFT JOIN atencion_cita ac
+            ON ac.id_cita = c.id_cita
+        WHERE o.id_odontologo = ?
+        ORDER BY c.fecha_cita DESC
+    ";
+
+    $stmtCitas = $conn->prepare($sqlCitas);
+    $stmtCitas->bind_param("i", $idOdontologoSesion);
+    $stmtCitas->execute();
+    $resCitas = $stmtCitas->get_result();
+    $stmtCitas->close();
+
+} else {
+    // Otros roles (Administrador, Recepcionista, etc.) ven todas las citas
+    $sqlCitas = "
+        SELECT 
+            c.id_cita,
+            c.fecha_cita,
+            c.estado,
+            c.motivo,
+
+            cli.nombre   AS nombre_cliente,
+            cli.apellido AS apellido_cliente,
+
+            o.nombre     AS nombre_odontologo,
+            o.apellido   AS apellido_odontologo,
+
+            ac.hora_llegada,
+            ac.hora_inicio_atencion,
+            ac.hora_fin_atencion,
+            ac.observaciones,
+            ac.requiere_control
+
+        FROM citas c
+        INNER JOIN clientes cli
+            ON cli.id_cliente = c.id_cliente
+        INNER JOIN odontologos o
+            ON o.id_odontologo = c.id_odontologo
+        LEFT JOIN atencion_cita ac
+            ON ac.id_cita = c.id_cita
+        ORDER BY c.fecha_cita DESC
+    ";
+    $resCitas = $conn->query($sqlCitas);
+}
+
 
 //Si se ha solicitado ver el detalle de una cita específica, obtener esos datos.
 $detalle_cita = null;
@@ -352,27 +434,55 @@ if (isset($_GET['id_cita'])) {
                     <?php while ($c = $resCitas->fetch_assoc()): ?>
                         <?php
                         // Calcular tiempo de espera
-                        $tiempoEsperaTexto = '-';
-                        $alertaEspera      = '';
+                        // Calcular tiempo de espera
+                        // Calcular tiempo de espera
+                $tiempoEsperaTexto = '-';
+                $alertaEspera      = '';
 
-                        if (!empty($c['hora_llegada']) && empty($c['hora_inicio_atencion'])) {
-                            //Indica que el paciente ya llegó pero aún no se inicia la atención, mostrar tiempo de espera actual
-                            $llegada = new DateTime($c['hora_llegada']);
-                            $ahora   = new DateTime();
-                            $diff    = $llegada->diff($ahora);
-                            $min     = $diff->h * 60 + $diff->i;
-                            $tiempoEsperaTexto = $min . ' min';
-                            if ($min > 60) {
-                                $alertaEspera = 'Tiempo máximo de espera superado. Informar al paciente que la cita previa fue más tardada.';
-                            }
-                        } elseif (!empty($c['hora_llegada']) && !empty($c['hora_inicio_atencion'])) {
-                            //Indica que la atención ya inició, mostrar cuánto tiempo esperó el paciente
-                            $llegada = new DateTime($c['hora_llegada']);
-                            $inicio  = new DateTime($c['hora_inicio_atencion']);
-                            $diff    = $llegada->diff($inicio);
-                            $min     = $diff->h * 60 + $diff->i;
-                            $tiempoEsperaTexto = $min . ' min';
+                $fechaCita = new DateTime($c['fecha_cita']); // fecha y hora programadas de la cita
+
+                if (!empty($c['hora_llegada']) && empty($c['hora_inicio_atencion'])) {
+                    // El paciente ya llegó, pero aún no se inicia la atención
+                    $llegada = new DateTime($c['hora_llegada']);
+                    $ahora   = new DateTime();
+
+                if ($ahora < $fechaCita) {
+                    // Todavía no es la hora de la cita → llegó antes
+                    $diff = $ahora->diff($fechaCita);
+                    $min  = $diff->h * 60 + $diff->i;
+                    $tiempoEsperaTexto = 'Llega ' . $min . ' min antes';
+                    // Sin alerta, porque aún no está "esperando después de la hora de la cita"
+                } else {
+                        // Ya pasó la hora de la cita entonces ahora sí cuenta como espera
+                        // La espera comienza desde la hora programada, no desde que llegó temprano
+                    $inicioEspera = ($llegada > $fechaCita) ? $llegada : $fechaCita;
+                    $diff = $inicioEspera->diff($ahora);
+                    $min  = $diff->h * 60 + $diff->i;
+                    $tiempoEsperaTexto = $min . ' min';
+
+                    if ($min > 60) {
+                         $alertaEspera = 'Tiempo máximo de espera superado. Informar al paciente que la cita previa fue más tardada.';
                         }
+                    }
+
+} elseif (!empty($c['hora_llegada']) && !empty($c['hora_inicio_atencion'])) {
+    // La atención ya inició: mostrar cuánto tiempo esperó el paciente antes de ser atendido
+    $llegada = new DateTime($c['hora_llegada']);
+    $inicio  = new DateTime($c['hora_inicio_atencion']);
+
+    if ($inicio <= $fechaCita) {
+        // Se atendió a tiempo o antes de la hora programada
+        $tiempoEsperaTexto = '0 min';
+    } else {
+        // La espera se cuenta desde la hora de cita o desde que llegó tarde, lo que ocurra después
+        $inicioEspera = ($llegada > $fechaCita) ? $llegada : $fechaCita;
+        $diff = $inicioEspera->diff($inicio);
+        $min  = $diff->h * 60 + $diff->i;
+        $tiempoEsperaTexto = $min . ' min';
+    }
+}
+
+
                         ?>
                         <tr>
                             <td><?php echo $c['id_cita']; ?></td>

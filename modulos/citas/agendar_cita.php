@@ -45,7 +45,67 @@ if ($id_usuario <= 0) {
     die('ID de usuario inválido.');
 }
 
-//Se utiliza para obtener la lista de los odontolodos que estan registrados en la base de datos.
+//Obtener el id_cliente para el usuario logueado
+$sqlCli2 = "SELECT id_cliente 
+            FROM clientes 
+            WHERE id_usuario = ?";
+
+$stmtCli2 = $conn->prepare($sqlCli2);
+
+if (!$stmtCli2) {
+    die('Error al preparar la consulta de cliente.');
+}
+
+$stmtCli2->bind_param("i", $id_usuario);
+$stmtCli2->execute();
+$resCli2 = $stmtCli2->get_result()->fetch_assoc();
+$stmtCli2->close();
+
+if (!$resCli2) {
+    die('Este usuario no está registrado como cliente. Por favor complete su registro como cliente.');
+}
+
+$id_cliente = intval($resCli2['id_cliente']);
+
+if ($id_cliente <= 0) {
+    die('ID de cliente inválido.');
+}
+
+
+//Cancelar la cita: por medio de un get permite que el usuario pueda cancelar una cita agendada.
+if (isset($_GET['accion']) && $_GET['accion'] === 'cancelar') {
+    $id_cita_cancelar = intval($_GET['id_cita'] ?? 0);
+
+    if ($id_cita_cancelar > 0) {
+        $sqlCancel = "UPDATE citas 
+                      SET estado = 'cancelada'
+                      WHERE id_cita = ? 
+                        AND id_cliente = ?";
+
+        $stmtCancel = $conn->prepare($sqlCancel);
+
+        if ($stmtCancel) {
+            $stmtCancel->bind_param("ii", $id_cita_cancelar, $id_cliente);
+            $stmtCancel->execute();
+
+            if ($stmtCancel->affected_rows > 0) {
+                $mensaje_ok = 'La cita se canceló correctamente. 
+                Puede agendar otra cita volviendo a la opción "Agendar cita".';
+            } else {
+                $mensaje_error = 'No se pudo cancelar la cita. 
+                Verifique que la cita exista y pertenezca a su usuario.';
+            }
+
+            $stmtCancel->close();
+        } else {
+            $mensaje_error = 'Error al preparar la cancelación de la cita.';
+        }
+    } else {
+        $mensaje_error = 'Cita inválida para cancelar.';
+    }
+}
+
+// Obtener la lista de odontólogos disponibles: Se utiliza para obtener la lista de los odontolodos que estan registrados en la base de datos.
 $odontologos = [];
 
 //Se realiza la consulta para obtener los odontologos.
@@ -61,7 +121,7 @@ if ($resOd = $conn->query($sqlOd)) {
     $resOd->free();
 }
 
-//Procesa el formulario cuando se envia una solicitud de agendar cita por el metodo POST.
+//Formulario para procesar la cita: Procesa el formulario cuando se envia una solicitud de agendar cita por el metodo POST.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fecha         = trim($_POST['fecha_cita'] ?? '');
     $hora          = trim($_POST['hora_cita'] ?? '');
@@ -120,7 +180,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($res['total'] > 0) {
                 $mensaje_error = 'La fecha y hora seleccionadas ya están ocupadas. Por favor, elija otro horario.';
             } else {
+
                 // Llamar SP que inserta la cita y registra en bitácora
+// Llamar SP que inserta la cita y registra en bitácora
 $stmt2 = $conn->prepare("
     CALL sp_citas_crear(?,?,?,?,?,?, @resultado)
 ");
@@ -131,19 +193,18 @@ if ($stmt2) {
     // iissis = int, int, string, string, int, string
     $stmt2->bind_param(
         "iissis",
-        $id_usuario,       // INT
-        $id_odontologo,    // INT
-        $fecha_cita,       // DATETIME como string 'Y-m-d H:i:s'
-        $motivo,           // VARCHAR
-        $idUsuarioSesion,  // usuario que agenda (desde sesión)
-        $ip_usuario        // IP
+        $id_cliente,     
+        $id_odontologo,
+        $fecha_cita,
+        $motivo,
+        $idUsuarioSesion,
+        $ip_usuario
     );
 
     if ($stmt2->execute()) {
         $stmt2->close();
-        $conn->next_result(); // limpiar resultados del CALL
+        $conn->next_result();
 
-        // Leer el OUT del SP
         $res = $conn->query("SELECT @resultado AS res");
         $row = $res->fetch_assoc();
         $resultado_sp = $row['res'] ?? null;
@@ -160,12 +221,44 @@ if ($stmt2) {
 } else {
     $mensaje_error = "Error al preparar el procedimiento para agendar la cita.";
 }
+
             }
         } else {
             $mensaje_error = "Error en la verificación de disponibilidad.";
         }
     }
 }
+
+//Tabla citas paciente: Se utiliza para mostrar las citas agendadas por el usuario.
+$citas = [];
+
+$sqlCitas = "
+    SELECT 
+        c.id_cita,
+        c.fecha_cita,
+        c.estado,
+        c.motivo,
+        uo.nombre_completo AS nombre_odontologo
+    FROM citas c
+    INNER JOIN odontologos o ON c.id_odontologo = o.id_odontologo
+    INNER JOIN usuarios uo ON o.id_usuario = uo.id_usuario
+    WHERE c.id_cliente = ?
+    ORDER BY c.fecha_cita DESC
+";
+
+$stmtCitas = $conn->prepare($sqlCitas);
+if ($stmtCitas) {
+    $stmtCitas->bind_param("i", $id_cliente);
+    $stmtCitas->execute();
+    $resCitas = $stmtCitas->get_result();
+
+    while ($row = $resCitas->fetch_assoc()) {
+        $citas[] = $row;
+    }
+
+    $stmtCitas->close();
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -188,10 +281,10 @@ if ($stmt2) {
             position: fixed;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             transition: width 0.3s ease;
-          }
+        }
         .navbar a {
-              display: block;
-              color: #fff;
+            display: block;
+            color: #fff;
             padding: 14px 20px;
             text-decoration: none;
             margin: 10px;
@@ -199,8 +292,8 @@ if ($stmt2) {
             transition: background 0.3s, transform 0.2s;
         }
         .navbar a:hover {
-             background-color: #264cbf;
-             transform: scale(1.05);
+            background-color: #264cbf;
+            transform: scale(1.05);
         }
         .content { 
             margin-left: 240px; 
@@ -224,10 +317,12 @@ if ($stmt2) {
         .mensaje-ok {
             color: #28a745;
             margin-bottom: 10px;
+            font-weight: bold;
         }
         .mensaje-error {
             color: #dc3545;
             margin-bottom: 10px;
+            font-weight: bold;
         }
         label {
             font-weight: bold;
@@ -254,6 +349,41 @@ if ($stmt2) {
         }
         button:hover {
             background: #182940;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #ffffffcc;
+        }
+        table thead {
+            background-color: #69B7BF;
+            color: #fff;
+        }
+        table th, table td {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 14px;
+        }
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .btn-eliminar {
+            background: #dc3545;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 13px;
+        }
+        .btn-eliminar:hover {
+            background: #a71d2a;
+        }
+        details summary {
+            cursor: pointer;
+            font-weight: bold;
+            color: #264CBF;
         }
     </style>
 </head>
@@ -286,19 +416,19 @@ if ($stmt2) {
 
                 <label for="hora_cita">Hora de la cita:</label>
                 <select id="hora_cita" name="hora_cita" required>
-                <option value="">-- Seleccione una hora --</option>
-                <?php
-                    // Generar horas desde 08:00 hasta 16:00 cada 30 minutos
-                $horaInicio = new DateTime('08:00');
-                $horaFin    = new DateTime('16:00');
-                $intervalo  = new DateInterval('PT30M');
+                    <option value="">-- Seleccione una hora --</option>
+                    <?php
+                        // Generar horas desde 08:00 hasta 16:00 cada 30 minutos
+                        $horaInicio = new DateTime('08:00');
+                        $horaFin    = new DateTime('16:00');
+                        $intervalo  = new DateInterval('PT30M');
 
-                for ($h = clone $horaInicio; $h <= $horaFin; $h->add($intervalo)) {
-                    $horaStr = $h->format('H:i'); // ejemplo: 08:00, 08:30
-                    echo '<option value="' . $horaStr . '">' . $horaStr . '</option>';
-                }
-                ?>
-</select>
+                        for ($h = clone $horaInicio; $h <= $horaFin; $h->add($intervalo)) {
+                            $horaStr = $h->format('H:i'); // ejemplo: 08:00, 08:30
+                            echo '<option value="' . $horaStr . '">' . $horaStr . '</option>';
+                        }
+                    ?>
+                </select>
 
                 <label for="id_odontologo">Odontólogo:</label>
                 <select id="id_odontologo" name="id_odontologo" required>
@@ -316,7 +446,76 @@ if ($stmt2) {
                 <button type="submit">Reservar cita</button>
             </form>
         </div>
+
+        <!-- TABLA: MIS CITAS AGENDADAS -->
+        <div class="seccion">
+            <h2>Mis citas agendadas</h2>
+
+            <?php if (empty($citas)): ?>
+                <p>No tiene citas agendadas por el momento.</p>
+            <?php else: ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha y hora</th>
+                            <th>Odontólogo</th>
+                            <th>Estado</th>
+                            <th>Detalles</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($citas as $cita): ?>
+                            <tr>
+                                <td>
+                                    <?php 
+                                        $fechaHora = strtotime($cita['fecha_cita']);
+                                        echo date('d/m/Y H:i', $fechaHora);
+                                    ?>
+                                </td>
+                                <td><?php echo htmlspecialchars($cita['nombre_odontologo']); ?></td>
+                                <td><?php echo htmlspecialchars($cita['estado']); ?></td>
+                                <td>
+                                    <details>
+                                        <summary>Ver detalles</summary>
+                                        <p><strong>Motivo:</strong> 
+                                            <?php echo nl2br(htmlspecialchars($cita['motivo'])); ?>
+                                        </p>
+                                        <p><strong>Odontólogo:</strong> 
+                                            <?php echo htmlspecialchars($cita['nombre_odontologo']); ?>
+                                        </p>
+                                        <p><strong>Estado:</strong> 
+                                            <?php echo htmlspecialchars($cita['estado']); ?>
+                                        </p>
+                                    </details>
+                                </td>
+                                <td>
+                                    <?php if ($cita['estado'] !== 'cancelada'): ?>
+                                        <a 
+                                            href="agendar_cita.php?accion=cancelar&id_cita=<?php echo $cita['id_cita']; ?>" 
+                                            class="btn-eliminar"
+                                            onclick="return confirmarCancelacion();"
+                                        >
+                                            Eliminar cita
+                                        </a>
+                                    <?php else: ?>
+                                        <em>Cita cancelada</em>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
     </div>
 
+    <script>
+        function confirmarCancelacion() {
+            return confirm(
+                'Si elimina esta cita, podrá reagendar otra volviendo a la opción "Agendar cita".\n\n¿Desea continuar?'
+            );
+        }
+    </script>
 </body>
 </html>
