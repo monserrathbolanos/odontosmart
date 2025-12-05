@@ -171,6 +171,94 @@ if (!$stmt3->execute()) {
 }
 
 $id_venta = $stmt3->insert_id;
+
+// Registro de pago (TARJETA)
+
+// Datos enviados desde pagar.php
+$nombre_titular = $_POST['nombre'] ?? null;
+$numero_tarjeta = $_POST['tarjeta'] ?? null;
+$vencimiento = $_POST['vencimiento'] ?? null;
+
+if (!$nombre_titular || !$numero_tarjeta || !$vencimiento) {
+    echo "<script>alert('Error: Datos de tarjeta incompletos.'); window.history.back();</script>";
+    exit;
+}
+
+
+// Normalizar formato YYYY-MM desde el input type="month"
+$vencimiento = trim($vencimiento);
+
+// Validar formato YYYY-MM real del input
+if (!preg_match("/^\d{4}-(0[1-9]|1[0-2])$/", $vencimiento)) {
+    echo "<script>
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato inválido',
+            text: 'Seleccione una fecha válida de vencimiento.',
+            confirmButtonColor: '#3085d6'
+        }).then(() => { window.history.back(); });
+    </script>";
+    exit;
+}
+
+// Separar año y mes
+list($anio, $mes) = explode("-", $vencimiento);
+
+// Crear fecha de vencimiento (último día del mes)
+$fecha_vencimiento = DateTime::createFromFormat("Y-m-d", "$anio-$mes-01");
+$fecha_vencimiento->modify("last day of this month");
+$fecha_vencimiento->setTime(23,59,59);
+
+// Fecha actual
+$hoy = new DateTime("today");
+$hoy->setTime(0,0,0);
+
+// Validación final
+if ($fecha_vencimiento < $hoy) {
+   echo "
+<!DOCTYPE html>
+<html lang='es'>
+<head>
+<meta charset='UTF-8'>
+<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+</head>
+<body>
+
+<script>
+Swal.fire({
+    icon: 'error',
+    title: 'Tarjeta vencida',
+    text: 'Por favor use una tarjeta válida.',
+    confirmButtonColor: '#d33'
+}).then(() => {
+    window.history.back();
+});
+</script>
+
+</body>
+</html>";
+
+exit;
+
+}
+
+
+
+
+// Solo guardar los últimos 4 dígitos
+$tarjeta_4 = substr($numero_tarjeta, -4);
+
+// Inserción del pago
+$sql_pago = "INSERT INTO pagos (id_venta, monto, fecha_pago, metodo, digitos_tarjeta, vencimiento)
+             VALUES (?, ?, NOW(), 'Tarjeta', ?, ?)";
+
+$stmtPago = $conn->prepare($sql_pago);
+$stmtPago->bind_param("idss", $id_venta, $total, $tarjeta_4, $vencimiento);
+
+if (!$stmtPago->execute()) {
+    die("Error al registrar el pago: " . $stmtPago->error);
+}
+
 $stmt3->close();
 
 

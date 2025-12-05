@@ -14,6 +14,8 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <meta charset="UTF-8">
     <title>OdontoSmart - Pago con Tarjeta</title>
 

@@ -5,7 +5,8 @@ require '../../config/conexion.php';
 require '../../config/csrf.php';
  
 session_start();
- 
+
+ // Genera un token CSRF para proteger el formulario
 $csrf_token = generate_csrf_token();
  
 // Obtener roles
@@ -15,7 +16,7 @@ while ($row = $result->fetch_assoc()) {
     $roles[] = $row;
 }
  
-// Procesar formulario
+// Formulario para enviar datos a la base de datos cuando se crea un nuevo usuario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
@@ -34,15 +35,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Validaciones
         if ($nombre_completo === '' || $email === '' || $password === '') {
             $error = "Todos los campos son obligatorios.";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = "Correo inválido.";
-        } elseif ($password !== $confirm_password) {
+        }
+
+        
+// Validación del documento según tipo
+$tipo_doc = $_POST['tipo_doc'] ?? '';
+
+$patrones = [
+    "cedula"   => "/^[1-9]-\d{4}-\d{4}$/",
+    "dimex"    => "/^\d{8}[A-Z]$/",
+    "pasaporte"=> "/^[a-zA-Z0-9]{6,9}$/",
+    "juridica" => "/^\d{1}-\d{3}-\d{6}$/"
+];
+
+if (!isset($patrones[$tipo_doc])) {
+    $error = "Debe seleccionar un tipo de identificación válido.";
+} elseif (!preg_match($patrones[$tipo_doc], $identificacion)) {
+    $error = "Formato inválido para el tipo de documento seleccionado.";
+}
+
+// Validación del email (IMPORTANTE: después del doc)
+elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $error = "Correo inválido.";
+} elseif ($password !== $confirm_password) {
             $error = "Las contraseñas no coinciden.";
         } elseif (strlen($password) < 6) {
             $error = "La contraseña debe tener al menos 6 caracteres.";
         } else {
  
-            // Validar rol
+            // Verifica que el rol seleccionado exista
             $stmtRole = $conn->prepare("SELECT id_rol FROM roles WHERE id_rol = ?");
             $stmtRole->bind_param("i", $role_id);
             $stmtRole->execute();
@@ -60,8 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = "Usuario, identificación o correo ya está en uso.";
                 } else {
  
-                    // Insertar usuario
+                    // Insertar IP para el call y usuario
+
                     $hash = password_hash($password, PASSWORD_DEFAULT);
+                    $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
  
                   //Aqui se realiza el ingreso del usuario usando el procedimiento almacenado sp_crear_usuario.
                 $stmtCheck = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
@@ -71,22 +94,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($stmtCheck->get_result()->num_rows > 0) {
                          $error = "Usuario, identificación o correo ya está en uso.";
                     } else {
+
                  // 2)Se encripta la contraseña y se llama al procedimiento almacenado para crear el usuario.
                 $hash = password_hash($password, PASSWORD_DEFAULT);
 
-                //Se llama al procedimiento almacenado sp_crear_usuario para insertar el nuevo usuario en la base de datos.
-                $stmtSp = $conn->prepare("CALL sp_crear_usuario(?,?,?,?,?,?,?, @resultado)");
-                $stmtSp->bind_param(
-                     "sssisss",
-                $nombre_completo,
-                $email,
-                $hash,
-                $role_id,
-                $telefono,
-                $identificacion,
-                $_SERVER['REMOTE_ADDR']
-                );
-                    $stmtSp->execute();
+// normaliza antes de llamar SP:
+switch ($tipo_doc) {
+    case "cedula": $tipo_doc = "CEDULA"; break;
+    case "dimex":  $tipo_doc = "DIMEX"; break;
+    case "pasaporte": $tipo_doc = "PASAPORTE"; break;
+    case "juridica": $tipo_doc = "RUC"; break;
+}
+
+//Se llama al procedimiento almacenado
+$stmtSp = $conn->prepare("CALL sp_crear_usuario(?,?,?,?,?,?,?,?, @resultado)");
+
+$stmtSp->bind_param(
+    "ssssssis",
+    $nombre_completo,
+    $email,
+    $telefono,
+    $tipo_doc,
+    $identificacion,
+    $hash,
+    $role_id,
+    $ip_cliente
+);
+
+$stmtSp->execute();
 
                  $res = $conn->query("SELECT @resultado AS res")->fetch_assoc();
                  $resultado = $res['res'];
@@ -249,22 +284,26 @@ body {
 <div class="container mt-5">
     <div class="card shadow-lg p-4" style="max-width: 500px; margin: auto;">
         <h3 class="text-center mb-4"><strong>Crear Nuevo Usuario</strong></h3>
- 
+        
+        <!-- Mensajes de éxito o error -->
         <?php if (isset($success)): ?>
             <div class="alert alert-success text-center"><?= htmlspecialchars($success) ?></div>
         <?php elseif (isset($error)): ?>
             <div class="alert alert-danger text-center"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
- 
+         
+        <!-- Formulario de registro -->
         <form method="POST" action="">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
- 
+            
+            <!-- Campo: Nombre completo -->
             <div class="mb-3">
                 <label for="nombre_completo" class="form-label">Nombre completo</label>
                 <input type="text" name="nombre_completo" id="nombre_completo" class="form-control"
                        value="<?= htmlspecialchars($_POST['nombre_completo'] ?? '') ?>" required>
             </div>
- 
+            
+            <!-- Campo: Correo electrónico -->
             <div class="mb-3">
                 <label for="email" class="form-label">Correo electrónico</label>
                 <input type="email" name="email" id="email" class="form-control"
@@ -272,10 +311,23 @@ body {
             </div>
  
             <div class="mb-3">
-                <label for="identificacion" class="form-label">Cédula</label>
-                <input type="text" name="identificacion" id="identificacion" class="form-control"
-                       value="<?= htmlspecialchars($_POST['identificacion'] ?? '') ?>" required>
-            </div>
+    <label for="tipo_doc" class="form-label">Tipo de Identificación</label>
+    <select name="tipo_doc" id="tipo_doc" class="form-select" required>
+        <option value="">Seleccione</option>
+        <option value="cedula" <?= (($_POST['tipo_doc'] ?? '')=='cedula')?'selected':'' ?>>Cédula CR</option>
+        <option value="dimex" <?= (($_POST['tipo_doc'] ?? '')=='dimex')?'selected':'' ?>>DIMEX</option>
+        <option value="pasaporte" <?= (($_POST['tipo_doc'] ?? '')=='pasaporte')?'selected':'' ?>>Pasaporte</option>
+        <option value="juridica" <?= (($_POST['tipo_doc'] ?? '')=='juridica')?'selected':'' ?>>Cédula Jurídica</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label for="identificacion" class="form-label">Número de Identificación</label>
+    <input type="text" name="identificacion" id="identificacion" class="form-control"
+           value="<?= htmlspecialchars($_POST['identificacion'] ?? '') ?>" required>
+
+    <small id="msgFormato" style="color: red; font-size: 12px;"></small>
+</div>
  
             <div class="mb-3">
                 <label for="telefono" class="form-label">Teléfono</label>
@@ -315,5 +367,56 @@ body {
     </div>
 </div>
  
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const selectTipo = document.getElementById("tipo_doc");
+    const inputIdent = document.getElementById("identificacion");
+    const msg = document.getElementById("msgFormato");
+
+    // Expresiones regulares y mensajes claros
+    const validaciones = {
+        cedula: {
+            regex: /^[1-9]-\d{4}-\d{4}$/,
+            msg: "Ejemplo válido: 1-2345-6789"
+        },
+        dimex: {
+            regex: /^\d{8}[A-Z]$/,
+            msg: "Debe tener 8 dígitos más 1 letra mayúscula. Ej: 12345678A"
+        },
+        pasaporte: {
+            regex: /^[a-zA-Z0-9]{6,9}$/,
+            msg: "Entre 6 y 9 caracteres alfanuméricos."
+        },
+        juridica: {
+            regex: /^\d{1}-\d{3}-\d{6}$/,
+            msg: "Ejemplo válido: 3-101-123456"
+        }
+    };
+
+    // Reset cuando cambia tipo
+    selectTipo.addEventListener("change", function () {
+        inputIdent.value = "";
+        msg.textContent = "";
+        inputIdent.style.borderColor = "";
+    });
+
+    // Validación en tiempo real
+    inputIdent.addEventListener("input", function () {
+        let tipo = selectTipo.value;
+
+        if (tipo && validaciones[tipo]) {
+            if (!validaciones[tipo].regex.test(this.value)) {
+                this.style.borderColor = "red";
+                msg.textContent = validaciones[tipo].msg;
+            } else {
+                this.style.borderColor = "green";
+                msg.textContent = "";
+            }
+        }
+    });
+});
+</script>
+
 </body>
 </html>

@@ -34,12 +34,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $identificacion = trim($_POST['identificacion'] ?? '');
         $telefono = trim($_POST['telefono'] ?? '');
  
-        // Validaciones basicas de los datos ingresados para crear un nuevo usuario
+         // Validaciones
         if ($nombre_completo === '' || $email === '' || $password === '') {
             $error = "Todos los campos son obligatorios.";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = "Correo inválido.";
-        } elseif ($password !== $confirm_password) {
+        }
+
+        // Validación del documento según tipo
+          $tipo_doc = $_POST['tipo_doc'] ?? '';
+
+          $patrones = [
+            "cedula"   => "/^[1-9]-\d{4}-\d{4}$/",
+            "dimex"    => "/^\d{8}[A-Z]$/",
+            "pasaporte"=> "/^[a-zA-Z0-9]{6,9}$/",
+            "juridica" => "/^\d{1}-\d{3}-\d{6}$/"
+        ];
+
+        if (!isset($patrones[$tipo_doc])) {
+        $error = "Debe seleccionar un tipo de identificación válido.";
+        } elseif (!preg_match($patrones[$tipo_doc], $identificacion)) {
+        $error = "Formato inválido para el tipo de documento seleccionado.";
+        }
+
+        // Validación del email (IMPORTANTE: después del doc)
+elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $error = "Correo inválido.";
+} elseif ($password !== $confirm_password) {
             $error = "Las contraseñas no coinciden.";
         } elseif (strlen($password) < 6) {
             $error = "La contraseña debe tener al menos 6 caracteres.";
@@ -53,56 +72,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmtRole->get_result()->num_rows === 0) {
                 $error = "Rol inválido.";
             } else {
-
-                // Crear password hash
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
-
-                // Llamar SP para almacenar los datos en la base de datos y se guarden en la bitácora
-                $stmtSp = $conn->prepare("
-                    CALL sp_crear_usuario(?,?,?,?,?,?,?, @resultado)
-                ");
-
-                //Se unen los parámetros para enviarlos al procedimiento almacenado
-                $stmtSp->bind_param(
-                    "sssisss",
-                    $nombre_completo,
-                    $email,
-                    $hash,
-                    $role_id,
-                    $telefono,
-                    $identificacion,
-                    $ip_cliente
-                );
-
-                if ($stmtSp->execute()) {
-
-                    $stmtSp->close();
-                    $conn->next_result(); // Importante después de CALL para que se puedan ejecutar otras consultas
-
-                    // Obtener valor OUT para asi saber si se creó correctamente o hubo duplicados
-                    $res = $conn->query("SELECT @resultado AS res");
-                    $row = $res->fetch_assoc();
-                    $resultado = $row['res'] ?? null;
-
-                    if ($resultado === "OK") {
-                        $success = "Usuario creado exitosamente.";
-                    } elseif ($resultado === "DUPLICADO") {
-                        $error = "Usuario, identificación o correo ya existe.";
-                    } else {
-                        $error = "Error inesperado al crear el usuario.";
-                    }
-
+            
+            // Validar si existe usuario/correo/identificación para que no hayan duplicados
+                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
+                $stmt->bind_param("sss", $email, $nombre_completo, $identificacion);
+                $stmt->execute();
+ 
+                if ($stmt->get_result()->num_rows > 0) {
+                    $error = "Usuario, identificación o correo ya está en uso.";
                 } else {
-                    $error = "No se pudo ejecutar el SP.";
-                }
-            }
+ 
+                    // Insertar usuario Y AGREGAR IP PARA EL CALL
+                    $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
 
+                    $hash = password_hash($password, PASSWORD_DEFAULT);
+ 
+                  //Aqui se realiza el ingreso del usuario usando el procedimiento almacenado sp_crear_usuario.
+                $stmtCheck = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
+                $stmtCheck->bind_param("sss", $email, $nombre_completo, $identificacion);
+                $stmtCheck->execute();
+
+                    if ($stmtCheck->get_result()->num_rows > 0) {
+                         $error = "Usuario, identificación o correo ya está en uso.";
+                    } else {
+
+                
+
+                // 2)Se encripta la contraseña y se llama al procedimiento almacenado para crear el usuario.
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+
+// normaliza antes de llamar SP:
+switch ($tipo_doc) {
+    case "cedula": $tipo_doc = "CEDULA"; break;
+    case "dimex":  $tipo_doc = "DIMEX"; break;
+    case "pasaporte": $tipo_doc = "PASAPORTE"; break;
+    case "juridica": $tipo_doc = "RUC"; break;
+}
+
+//Se llama al procedimiento almacenado
+$stmtSp = $conn->prepare("CALL sp_crear_usuario(?,?,?,?,?,?,?,?, @resultado)");
+
+$stmtSp->bind_param(
+    "ssssssis",
+    $nombre_completo,
+    $email,
+    $telefono,
+    $tipo_doc,
+    $identificacion,
+    $hash,
+    $role_id,
+    $ip_cliente
+);
+
+$stmtSp->execute();
+
+                                  $res = $conn->query("SELECT @resultado AS res")->fetch_assoc();
+                 $resultado = $res['res'];
+
+    if ($resultado === "OK") {
+        $success = "Usuario creado exitosamente.";
+    } elseif ($resultado === "DUPLICADO") {
+        $error = "Usuario, identificación o correo ya está en uso.";
+    } else {
+        $error = "Error inesperado.";
+    }
+
+    $stmtSp->close();
+}
+
+$stmtCheck->close();
+}
+            }
+ 
             $stmtRole->close();
         }
     }
 }
-
+ 
 $conn->close();
 ?>
  
@@ -115,14 +161,123 @@ $conn->close();
 </head>
  
 <style>
-  body {
-  background: linear-gradient(270deg, #152fbf, #264cbf, #182940, #69b7bf); /* Gradiente animado */
-   /* background-image: url(' Odonto.png');  */
-  background-size: 300% 300%;
-  animation: rgbFlow 150s ease infinite;  /* Movimiento suave del fondo */
- 
-  font-family: 'Poppins', sans-serif;
-  color: #ffffff;
+body {
+    background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #D5E7F2, #69B7BF);
+    background-size: 300% 300%;
+    animation: rgbFlow 150s ease infinite;
+    font-family: 'Poppins', sans-serif;
+    color: #ffffff;
+}
+
+@keyframes rgbFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Tarjeta */
+.card {
+    background: #ffffffaf; /* Fondo semi-transparente */
+    color: #000;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    margin: auto;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+}
+
+/* Títulos */
+h3 {
+    color: #69B7BF;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+/* Inputs y select */
+input, select {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    width: 100%;
+    font-size: 1em;
+    margin-bottom: 15px;
+    transition: all 0.3s ease-in-out;
+}
+
+input:focus, select:focus {
+    border-color: #152FBF;
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    outline: none;
+}
+
+/* Botones */
+.btn {
+    border-radius: 8px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-success {
+    background: #69B7BF;
+    border: none;
+    color: #fff;
+}
+
+.btn-success:hover {
+    background: #264CBF;
+    transform: scale(1.05);
+}
+
+.btn-primary {
+    background: #152FBF;
+    border: none;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #264CBF;
+    transform: scale(1.05);
+}
+
+.btn-secondary {
+    background: #182940;
+    border: none;
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background: #264CBF;
+    transform: scale(1.05);
+}
+
+/* Alertas */
+.alert {
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Media queries */
+@media (max-width: 576px) {
+    .card {
+        padding: 20px;
+    }
+    h3 {
+        font-size: 1.5em;
+    }
+}
+body {
+    background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #D5E7F2, #69B7BF);
+    background-size: 300% 300%;
+    animation: rgbFlow 150s ease infinite;
+    font-family: 'Poppins', sans-serif;
+    color: #ffffff;
 }
 </style>
  
@@ -158,25 +313,36 @@ $conn->close();
             </div>
  
             <!-- Campo: Cédula -->
-            <div class="mb-3">
-                <label for="identificacion" class="form-label">Cédula</label>
-                <input type="text" name="identificacion" id="identificacion" class="form-control"
-                       value="<?= htmlspecialchars($_POST['identificacion'] ?? '') ?>" required>
-            </div>
+              <div class="mb-3">
+    <label for="tipo_doc" class="form-label">Tipo de Identificación</label>
+    <select name="tipo_doc" id="tipo_doc" class="form-select" required>
+        <option value="">Seleccione</option>
+        <option value="cedula" <?= (($_POST['tipo_doc'] ?? '')=='cedula')?'selected':'' ?>>Cédula CR</option>
+        <option value="dimex" <?= (($_POST['tipo_doc'] ?? '')=='dimex')?'selected':'' ?>>DIMEX</option>
+        <option value="pasaporte" <?= (($_POST['tipo_doc'] ?? '')=='pasaporte')?'selected':'' ?>>Pasaporte</option>
+        <option value="juridica" <?= (($_POST['tipo_doc'] ?? '')=='juridica')?'selected':'' ?>>Cédula Jurídica</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label for="identificacion" class="form-label">Número de Identificación</label>
+    <input type="text" name="identificacion" id="identificacion" class="form-control"
+           value="<?= htmlspecialchars($_POST['identificacion'] ?? '') ?>" required>
+
+    <small id="msgFormato" style="color: red; font-size: 12px;"></small>
+</div>
  
-            <!-- Campo: Teléfono -->
             <div class="mb-3">
                 <label for="telefono" class="form-label">Teléfono</label>
-                <input type="text" name="telefono" id="telefono" class="form-control" required>
+                <input type="text" name="telefono" id="telefono" class="form-control"
+                       value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>" required>
             </div>
  
-            <!-- Campo: Contraseña -->
             <div class="mb-3">
                 <label for="password" class="form-label">Contraseña</label>
                 <input type="password" name="password" id="password" class="form-control" required>
             </div>
  
-            <!-- Campo: Confirmar contraseña -->
             <div class="mb-3">
                 <label for="confirm_password" class="form-label">Confirmar contraseña</label>
                 <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
@@ -205,5 +371,56 @@ $conn->close();
     </div>
 </div>
  
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const selectTipo = document.getElementById("tipo_doc");
+    const inputIdent = document.getElementById("identificacion");
+    const msg = document.getElementById("msgFormato");
+
+    // Expresiones regulares y mensajes claros
+    const validaciones = {
+        cedula: {
+            regex: /^[1-9]-\d{4}-\d{4}$/,
+            msg: "Ejemplo válido: 1-2345-6789"
+        },
+        dimex: {
+            regex: /^\d{8}[A-Z]$/,
+            msg: "Debe tener 8 dígitos más 1 letra mayúscula. Ej: 12345678A"
+        },
+        pasaporte: {
+            regex: /^[a-zA-Z0-9]{6,9}$/,
+            msg: "Entre 6 y 9 caracteres alfanuméricos."
+        },
+        juridica: {
+            regex: /^\d{1}-\d{3}-\d{6}$/,
+            msg: "Ejemplo válido: 3-101-123456"
+        }
+    };
+
+    // Reset cuando cambia tipo
+    selectTipo.addEventListener("change", function () {
+        inputIdent.value = "";
+        msg.textContent = "";
+        inputIdent.style.borderColor = "";
+    });
+
+    // Validación en tiempo real
+    inputIdent.addEventListener("input", function () {
+        let tipo = selectTipo.value;
+
+        if (tipo && validaciones[tipo]) {
+            if (!validaciones[tipo].regex.test(this.value)) {
+                this.style.borderColor = "red";
+                msg.textContent = validaciones[tipo].msg;
+            } else {
+                this.style.borderColor = "green";
+                msg.textContent = "";
+            }
+        }
+    });
+});
+</script>
+
 </body>
 </html>
