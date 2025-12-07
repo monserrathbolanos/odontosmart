@@ -12,7 +12,7 @@ require '../config/csrf.php';
 // Verifica que la solicitud sea POST y que el token CSRF sea válido
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !validate_csrf_token($_POST['csrf_token'] ?? '')) { //si existe csrf_token en el POST lo usa y si no, usa cadena vacía.
-    header('Location: login.php?error=' . urlencode('Acceso no permitido.')); //Redirige al usuario a login.php
+    header('Location: iniciar_sesion.php?error=' . urlencode('Acceso no permitido.')); //Redirige al usuario a iniciar_sesion.php
     exit;
 }
 
@@ -23,7 +23,7 @@ $password = $_POST['password'] ?? '';
 
 // Verifica que ambos campos estén completados
 if ($email === '' || $password === '') {
-    header('Location: login.php?error=' . urlencode('Correo y contraseña son obligatorios.')); //sino redirige a login
+    header('Location: iniciar_sesion.php?error=' . urlencode('Correo y contraseña son obligatorios.')); //sino redirige a ingresar
     exit;
 }
 
@@ -42,7 +42,7 @@ $result = $stmt->get_result(); //Obtiene el resultado de la consulta en forma de
 
 // Si no se encuentra el usuario, redirige con error
 if ($result->num_rows === 0) {
-    header('Location: login.php?error=' . urlencode('Correo o contraseña incorrectos.'));
+    header('Location: iniciar_sesion.php?error=' . urlencode('Correo o contraseña incorrectos.'));
     exit;
 }
 
@@ -52,7 +52,7 @@ $stmt->close();
 
 // Verifica que la contraseña ingresada coincida con el hash almacenado
 if (!password_verify($password, $user['password'])) {
-    header('Location: login.php?error=' . urlencode('Usuario o contraseña incorrectos.'));
+    header('Location: iniciar_sesion.php?error=' . urlencode('Usuario o contraseña incorrectos.'));
     exit;
 } // Regenera el ID de sesión por seguridad
 

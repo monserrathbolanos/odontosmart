@@ -4,7 +4,7 @@
 session_start();
 
 if (!isset($_SESSION['user'])) {
-    header("Location: login.php?error=Acceso no autorizado");
+    header("Location: iniciar_sesion.php?error=Acceso no autorizado");
     exit;
 }
 
@@ -18,6 +18,8 @@ $username = $_SESSION['user']['nombre_completo'];
 <head>
     <meta charset="UTF-8">
     <title>OdontoSmart - Clínica Dental | Perfil: <?php echo ucfirst($rol); ?></title>
+       <!-- FAVICON UNIFICADO -->
+    <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
 
@@ -139,8 +141,8 @@ $username = $_SESSION['user']['nombre_completo'];
             
             <p><strong>¡Gracias por preferirnos y estar aquí! Tu salud dental es nuestra prioridad.</strong></p>
 
-<!-- Ya el logout se encuentra en el Navbar -->
-<!-- <a href="http://localhost/ProyectoOdonto/auth/logout.php" style="text-align:center; display:block;">Cerrar sesión</a> -->
+<!-- Ya el cerrar_sesion se encuentra en el Navbar -->
+<!-- <a href="http://localhost/ProyectoOdonto/auth/cerrar_sesion.php" style="text-align:center; display:block;">Cerrar sesión</a> -->
     </div>
 </body>
 </html>

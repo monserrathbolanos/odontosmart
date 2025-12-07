@@ -17,7 +17,10 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <meta charset="UTF-8">
-    <title>OdontoSmart - Pago con Tarjeta</title>
+    <title>Pago con tarjeta</title>
+
+        <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
 
     <style>
         body { 
@@ -132,7 +135,7 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
     <div class="content">
 
         <div class="seccion">
-            <h1 style="color: #69B7BF;">Confirmar Pago</h1>
+            <h1 style="color: #69B7BF;">Pago con tarjeta</h1>
             <p>Ingrese los datos de su tarjeta para procesar el pago.</p>
 
             <form action="procesar_pago.php" method="POST">

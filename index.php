@@ -147,8 +147,8 @@ body {
 <!-- Navbar -->
 <nav class="navbar">
     <ul>
-        <li><a href="auth/login.php" class="<?= $currentPage == 'login.php' ? 'active' : '' ?>">Ingresar</a></li>
-        <li><a href="modulos/usuarios/create_users.php" class="<?= $currentPage == 'create_users.php' ? 'active' : '' ?>">Registrarse</a></li>
+        <li><a href="auth/iniciar_sesion.php" class="<?= $currentPage == 'iniciar_sesion.php' ? 'active' : '' ?>">Ingresar</a></li>
+        <li><a href="modulos/usuarios/crear_usuarios.php" class="<?= $currentPage == 'crear_usuarios.php' ? 'active' : '' ?>">Registrarse</a></li>
     </ul>
 </nav>
 

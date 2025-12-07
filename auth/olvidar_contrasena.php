@@ -72,14 +72,15 @@
     <h3 class="text-center mb-4 fw-bold">Recuperar contraseña</h3>
 
     <!-- Formulario para enviar el correo de recuperación -->
-    <form method="POST" action="send_reset_email.php">
-      <div class="mb-3">
+  <form method="POST" action="enviar_contrasena.php">
+    <div class="mb-3">
         <label for="email">Correo electrónico:</label>
         <input type="email" name="email" id="email" class="form-control" required>
-      </div>
-      <button type="submit" class="btn btn-custom w-100">Enviar enlace de recuperación</button>
-      <a href="login.php" class="btn btn-secondary  W-500 mt-2" style="width: 340px;">Volver</a>
-    </form>
+    </div>
+    <button type="submit" class="btn btn-custom w-100">Enviar enlace de recuperación</button>
+    <a href="iniciar_sesion.php" class="btn btn-secondary w-100 mt-2">Volver</a>
+</form>
+
   </div>
 
 </body>

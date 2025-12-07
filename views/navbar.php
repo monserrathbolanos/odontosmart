@@ -34,7 +34,7 @@ function tienePermiso(string $permiso, array $permisos): bool {
     }
 
     if (tienePermiso('ir_a_pagar', $permisos)) {
-        echo '<a href="/odontosmart/modulos/ventas/carrito.php"> Ir a pagar</a>';
+        echo '<a href="/odontosmart/modulos/ventas/carrito.php">Carrito de compras</a>';
     }
 
     if (tienePermiso('ver_inventario', $permisos)) {
@@ -66,5 +66,24 @@ function tienePermiso(string $permiso, array $permisos): bool {
     ?>
 
     <!-- Cerrar sesión -->
-    <a href="/odontosmart/auth/logout.php" style="margin-top: 50px; background: #dc3545;"> Cerrar Sesión</a>
+<a href="/odontosmart/auth/cerrar_sesion.php" class="btn-logout">Cerrar Sesión</a>
+
+<style>
+  .btn-logout {
+    margin-top: 300px;
+    margin-left: 50px;
+    background: #dc3545;
+    padding: 6px 12px;
+    font-size: 15px;
+    border-radius: 5px;
+    display: inline-block;
+    color: white;
+    text-decoration: none;
+  }
+
+  .btn-logout:hover {
+    background: #bb2d3b;
+  }
+</style>
+
 </div>

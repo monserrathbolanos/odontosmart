@@ -81,7 +81,9 @@ if (isset($_POST["actualizar"])) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>OdontoSmart - Gestión de Usuarios</title>
+    <title>Gestión de Usuarios</title>
+       <!-- FAVICON UNIFICADO -->
+    <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -215,7 +217,7 @@ select:hover {
                 </form>
             
                     
-               <button onclick="location.href='/odontosmart/modulos/usuarios/admin_create_users.php'">Crear Usuario</button>
+               <button onclick="location.href='/odontosmart/modulos/usuarios/admin_crear_usuarios.php'">Crear Usuario</button>
 
             </div>
 

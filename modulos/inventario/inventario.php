@@ -106,7 +106,9 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>OdontoSmart - Control de Inventario</title>
+    <title>Control de Inventario</title>
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -231,7 +233,8 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
 
     <div class="content">
         <div class="seccion">
-            <h1 style="color: #69B7BF;">Agregar Producto al Inventario</h1>
+            <h1 style="color: #51a1aaff;">Control de Inventario</h1>
+            <h2 style="color: #69B7BF;">Agregar Producto al Inventario</h2>
             <p>Complete el formulario para agregar un nuevo producto al sistema.</p>
 
             <?php if (!empty($mensaje)): ?>

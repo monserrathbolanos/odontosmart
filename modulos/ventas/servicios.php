@@ -161,7 +161,11 @@ if (!empty($productosAgotados)) {
 <head>
     <meta charset="UTF-8">
     <title>Servicios y Productos - OdontoSmart</title>
-<!-- Estilos de la página (solo diseño visual) -->
+
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
+
+<!-- Estilos de la página -->
    <style>
         body { 
             font-family: Arial, sans-serif; 

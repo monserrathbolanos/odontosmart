@@ -8,7 +8,10 @@ include('../config/conexion.php');
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>OdontoSmart - Sobre Nosotros</title>
+    <title>Sobre Nosotros</title>
+
+    <!-- FAVICON UNIFICADO -->
+    <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
     <style>
         body {
              font-family: 'Roboto', Arial, sans-serif;

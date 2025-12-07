@@ -5,7 +5,7 @@ $csrf_token = generate_csrf_token();   //Genera un token único de seguridad
 
 // Si el usuario ya inició sesión, lo redirige al área protegida
 if (!empty($_SESSION['user'])) {
-    header('Location: protected.php');
+    header('Location: protegido.php');
     exit;
 }
 ?>
@@ -13,10 +13,15 @@ if (!empty($_SESSION['user'])) {
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Login</title>
-    <!--  Enlace correcto a Bootstrap -->
+    <title>Iniciar Sesión</title>
+
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../assets/img/odonto1.png">
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">  
 </head>
+
 <img src="../assets/img/odonto.png" class="logo-fixed" alt="OdontoSmart">
 
 
@@ -134,7 +139,7 @@ a:hover {
     <?php endif; ?>
 
     <!-- Formulario de autenticación -->
-    <form method="POST" action="authenticate.php">
+    <form method="POST" action="autenticar.php">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
 
         <div class="mb-3">
@@ -151,8 +156,8 @@ a:hover {
     </form>
 
     <div class="text-center mt-3">
-        <a href="../modulos/usuarios/create_users.php">Crear cuenta</a>
-        <a href="forgot_password.php" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
+        <a href="../modulos/usuarios/crear_usuarios.php">Crear cuenta</a>
+        <a href="olvidar_contrasena.php" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
         
 
 </div>

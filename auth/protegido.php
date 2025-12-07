@@ -3,7 +3,7 @@ session_start();
 
 //  Verificación de sesión
 if (!isset($_SESSION['user'])) {
-    header('Location: login.php?error=' . urlencode('Debes iniciar sesión.'));
+    header('Location: iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión.'));
     exit;
 }
 
@@ -32,7 +32,7 @@ $role = htmlspecialchars($_SESSION['user']['role']);
     <p><strong>Correo:</strong> <?= $email ?></p>
     <p><strong>Rol:</strong> <?= $role ?></p>
     <hr>
-    <a href="logout.php" class="btn btn-danger w-100">Cerrar sesión</a>
+    <a href="cerrar_sesion.php" class="btn btn-danger w-100">Cerrar sesión</a>
     <a href="/Odontosmart/public/home.php" class="btn btn-secondary w-100">Continuar</a>
 </div>
 

@@ -57,7 +57,11 @@ $menos_vendidos = $conn->query($sql_bottom);
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title >Historial de Ventas - OdontoSmart</title>
+    <title >Historial de Ventas</title>
+
+     <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
+
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -154,7 +158,7 @@ $menos_vendidos = $conn->query($sql_bottom);
 </div>
 
     <div class="content">
-        <h1 style="color: #69B7BF;"> Reporte Historial de Ventas - OdontoSmart</h1>
+        <h1 style="color: #69B7BF;">Historial de Ventas</h1>
 
           <!-- Estadísticas para obtener los datos de las ventas -->
         <h2>Reporte Financiero de Ventas</h2>

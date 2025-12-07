@@ -56,13 +56,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Validación del email (IMPORTANTE: después del doc)
-elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+    elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $error = "Correo inválido.";
-} elseif ($password !== $confirm_password) {
-            $error = "Las contraseñas no coinciden.";
-        } elseif (strlen($password) < 6) {
-            $error = "La contraseña debe tener al menos 6 caracteres.";
-        } else {
+    }
+
+     // VALIDACIÓN TELÉFONO
+        elseif (!preg_match('/^\+\d{8,15}$/', $telefono)) {
+    $error = "El teléfono debe tener solo números y código de país. Ej: +50688889999";
+    }
+
+    //  VALIDACIÓN FUERTE DE CONTRASEÑA (OBLIGATORIA)
+elseif (!preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._-])[A-Za-z\d@$!%*?&#._-]{8,}$/', $password)) {
+    $error = "La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.";
+}
+
+// CONFIRMACIÓN
+elseif ($password !== $confirm_password) {
+    $error = "Las contraseñas no coinciden.";
+}
+
+        else {
  
             // Verifica que el rol seleccionado exista
             $stmtRole = $conn->prepare("SELECT id_rol FROM roles WHERE id_rol = ?");
@@ -335,17 +349,26 @@ body {
             <div class="mb-3">
                 <label for="telefono" class="form-label">Teléfono</label>
                 <input type="text" name="telefono" id="telefono" class="form-control"
-                       value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>" required>
+                 placeholder="+50688889999"
+                 inputmode="numeric"
+                 value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>" required>
+
+<small id="msgTelefono" style="color:red; font-size:12px;"></small>
+
             </div>
  
             <div class="mb-3">
-                <label for="password" class="form-label">Contraseña</label>
-                <input type="password" name="password" id="password" class="form-control" required>
+                <input type="password" name="password" id="password" class="form-control"
+                 placeholder="Ej: Odonto*2025" required>
+
+                 <small id="msgPassword" style="font-size:12px;"></small>
             </div>
  
             <div class="mb-3">
-                <label for="confirm_password" class="form-label">Confirmar contraseña</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+                <input type="password" name="confirm_password" id="confirm_password" class="form-control mt-2"
+                placeholder="Repita la contraseña" required>
+
+                <small id="msgConfirmPassword" style="font-size:12px;"></small>
             </div>
  
             <!-- Campo: Rol -->
@@ -419,6 +442,60 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     });
+
+    // VALIDACIÓN TELÉFONO SOLO NÚMEROS + CÓDIGO PAÍS
+const inputTelefono = document.getElementById("telefono");
+const msgTelefono = document.getElementById("msgTelefono");
+
+inputTelefono.addEventListener("input", function () {
+    this.value = this.value.replace(/[^0-9+]/g, "");
+
+    const regexTelefono = /^\+\d{8,15}$/;
+
+    if (!regexTelefono.test(this.value)) {
+        this.style.borderColor = "red";
+        msgTelefono.textContent = "Formato correcto: +50688889999";
+    } else {
+        this.style.borderColor = "green";
+        msgTelefono.textContent = "";
+    }
+});
+
+//  VALIDACIÓN DE CONTRASEÑA SEGURA
+const inputPassword = document.getElementById("password");
+const inputConfirm = document.getElementById("confirm_password");
+const msgPassword = document.getElementById("msgPassword");
+const msgConfirm = document.getElementById("msgConfirmPassword");
+
+inputPassword.addEventListener("input", function () {
+    const value = this.value;
+
+    const tieneMayuscula = /[A-Z]/.test(value);
+    const tieneNumero = /[0-9]/.test(value);
+    const tieneEspecial = /[@$!%*?&#._-]/.test(value);
+    const tieneLongitud = value.length >= 8;
+
+    if (!tieneLongitud || !tieneMayuscula || !tieneNumero || !tieneEspecial) {
+        msgPassword.textContent = "❌ Contraseña débil";
+        msgPassword.style.color = "red";
+    } else {
+        msgPassword.textContent = "✅ Contraseña segura";
+        msgPassword.style.color = "green";
+    }
+});
+
+// CONFIRMACIÓN DE CONTRASEÑA
+inputConfirm.addEventListener("input", function () {
+    if (this.value !== inputPassword.value) {
+        msgConfirm.textContent = "❌ Las contraseñas no coinciden";
+        msgConfirm.style.color = "red";
+    } else {
+        msgConfirm.textContent = "✅ Las contraseñas coinciden";
+        msgConfirm.style.color = "green";
+    }
+});
+
+
 });
 </script>
 

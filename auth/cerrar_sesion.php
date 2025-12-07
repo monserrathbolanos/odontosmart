@@ -1,6 +1,6 @@
 <?php
-// --- logout.php ---
-// Cierra la sesión de forma segura y redirige al login
+// --- cerrar_sesion.php ---
+// Cierra la sesión de forma segura y redirige al ingresar
 
 session_start();
 
@@ -24,7 +24,7 @@ if (ini_get("session.use_cookies")) {
 //  Destruir la sesión completamente
 session_destroy();
 
-//  Redirigir al login con mensaje de confirmación
-header('Location: login.php?info=' . urlencode('Sesión cerrada correctamente.'));
+//  Redirigir al ingresar con mensaje de confirmación
+header('Location: iniciar_sesion.php?info=' . urlencode('Sesión cerrada correctamente.'));
 exit;
 ?>

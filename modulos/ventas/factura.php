@@ -72,6 +72,8 @@ $stmt3->close();
 <head>
     <meta charset="UTF-8">
     <title>Factura #<?php echo $venta['id_venta']; ?></title>
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
 
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }

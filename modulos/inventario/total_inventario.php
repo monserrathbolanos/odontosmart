@@ -82,7 +82,10 @@ function mostrarCategoria($conn, $categoriaNombre) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>OdontoSmart - Inventario General</title>
+    <title>Inventario General</title>
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
+
     <style>
         body { 
             font-family: Arial, sans-serif; 

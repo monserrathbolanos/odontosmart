@@ -182,7 +182,9 @@ $stmt2->close();
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Carrito de compras - OdontoSmart</title>
+    <title>Carrito de compras</title>
+     <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
 
     <style>
         body { 

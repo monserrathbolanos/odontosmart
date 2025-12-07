@@ -3,7 +3,7 @@ session_start();
 
 // Funciona para asegurar que solo usuarios logueados puedan acceder a esta página.
 if (!isset($_SESSION['user'])) {
-    header('Location: /odontosmart/auth/login.php?error=Acceso no autorizado');
+    header('Location: /odontosmart/auth/iniciar_sesion.php?error=Acceso no autorizado');
     exit;
 }
 
@@ -266,6 +266,8 @@ if ($stmtCitas) {
 <head>
     <meta charset="UTF-8">
     <title>Agendar Cita - OdontoSmart</title>
+       <!-- FAVICON UNIFICADO -->
+    <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
     <style>
         body { 
             font-family: Arial, sans-serif; 

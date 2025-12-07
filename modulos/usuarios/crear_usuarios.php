@@ -1,5 +1,5 @@
 <?php
-// --- Create_users.php ---
+// --- crear_usuarios.php ---
  
 require '../../config/conexion.php';
 require '../../config/csrf.php';
@@ -54,14 +54,27 @@ if (!isset($patrones[$tipo_doc])) {
     $error = "Formato inválido para el tipo de documento seleccionado.";
 }
 
-// Validación del email (IMPORTANTE: después del doc)
+// Validación del email
 elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $error = "Correo inválido.";
-} elseif ($password !== $confirm_password) {
-            $error = "Las contraseñas no coinciden.";
-        } elseif (strlen($password) < 6) {
-            $error = "La contraseña debe tener al menos 6 caracteres.";
-        } else {
+}
+
+//  TELÉFONO CON SOLO NÚMEROS Y CÓDIGO DE PAÍS
+elseif (!preg_match('/^\+\d{8,15}$/', $telefono)) {
+    $error = "El teléfono debe tener solo números y código de país. Ej: +50688889999";
+}
+
+
+// VALIDACIÓN FUERTE DE CONTRASEÑA (OBLIGATORIA)
+elseif (!preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._-])[A-Za-z\d@$!%*?&#._-]{8,}$/', $password)) {
+    $error = "La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.";
+}
+
+// CONFIRMAR CONTRASEÑA
+elseif ($password !== $confirm_password) {
+    $error = "Las contraseñas no coinciden.";
+}
+ else {
  
             // Verifica que el rol seleccionado exista
             $stmtRole = $conn->prepare("SELECT id_rol FROM roles WHERE id_rol = ?");
@@ -154,8 +167,14 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <title>Crear Usuario</title>
+
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
  
 <style>
 /* Fondo con degradado animado */
@@ -283,7 +302,7 @@ body {
  
 <div class="container mt-5">
     <div class="card shadow-lg p-4" style="max-width: 500px; margin: auto;">
-        <h3 class="text-center mb-4"><strong>Crear Nuevo Usuario</strong></h3>
+        <h3 class="text-center mb-4"><strong>Crear Usuario</strong></h3>
         
         <!-- Mensajes de éxito o error -->
         <?php if (isset($success)): ?>
@@ -332,18 +351,30 @@ body {
             <div class="mb-3">
                 <label for="telefono" class="form-label">Teléfono</label>
                 <input type="text" name="telefono" id="telefono" class="form-control"
-                       value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>" required>
+                  placeholder="+50688889999"
+                  inputmode="numeric"
+                  value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>" required>
+
+<small id="msgTelefono" style="color:red; font-size:12px;"></small>
+
             </div>
  
             <div class="mb-3">
                 <label for="password" class="form-label">Contraseña</label>
-                <input type="password" name="password" id="password" class="form-control" required>
+                <input type="password" name="password" id="password" class="form-control"
+                 placeholder="Ej: Odonto&2025" required>
+
+                <small id="msgPassword" style="font-size:12px;"></small>
             </div>
- 
+
             <div class="mb-3">
                 <label for="confirm_password" class="form-label">Confirmar contraseña</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+                <input type="password" name="confirm_password" id="confirm_password" class="form-control mt-2"
+                 placeholder="Repita la contraseña" required>
+
+                <small id="msgConfirmPassword" style="font-size:12px;"></small>
             </div>
+
  
             <div class="mb-3">
                 <label for="role" class="form-label">Rol</label>
@@ -360,7 +391,7 @@ body {
  
             <button type="submit" class="btn btn-success w-100">Crear usuario</button>
             <a href="/odontosmart/index.php" class="btn btn-primary w-100 mt-2">Volver al inicio</a>
-            <a href="../../auth/login.php" class="btn btn-secondary w-100 mt-2">Iniciar sesión</a>
+            <a href="../../auth/iniciar_sesion.php" class="btn btn-secondary w-100 mt-2">Iniciar sesión</a>
  
         </form>
  
@@ -373,6 +404,27 @@ document.addEventListener("DOMContentLoaded", function () {
     const selectTipo = document.getElementById("tipo_doc");
     const inputIdent = document.getElementById("identificacion");
     const msg = document.getElementById("msgFormato");
+
+    const inputTelefono = document.getElementById("telefono");
+    const msgTelefono = document.getElementById("msgTelefono");
+
+ inputTelefono.addEventListener("input", function () {
+
+    // Elimina TODO lo que no sea número o +
+    this.value = this.value.replace(/[^0-9+]/g, "");
+
+    const regexTelefono = /^\+\d{8,15}$/;
+
+    if (!regexTelefono.test(this.value)) {
+        this.style.borderColor = "red";
+        msgTelefono.textContent = "Formato correcto: +50688889999";
+    } else {
+        this.style.borderColor = "green";
+        msgTelefono.textContent = "";
+    }
+
+});
+ 
 
     // Expresiones regulares y mensajes claros
     const validaciones = {
