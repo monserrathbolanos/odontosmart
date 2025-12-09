@@ -4,9 +4,16 @@ session_start();
 
 require '../../config/conexion.php';
 
-// verificar si el usuario está logueado
-if (!isset($_SESSION['user']['id_usuario'])) {
-    echo "<p>No hay usuario logueado.</p>";
+
+
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador','Cliente']; // ej.
+
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
     exit;
 }
 $id_usuario = $_SESSION['user']['id_usuario'];
@@ -192,6 +199,7 @@ $stmt2->close();
             margin: 0; 
             padding: 0; 
             background: #f5f5f5;
+        }
         .navbar {
             width: 220px;
             background-color: #69B7BF;
@@ -214,13 +222,19 @@ $stmt2->close();
              background-color: #264cbf;
              transform: scale(1.05);
         }
+         /* Logo institucional ubicado en la parte inferior del menú lateral */
         .logo-navbar {
             position: absolute;
-            bottom: 80px;
+            bottom: 40px;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translateX(-50%);       /* Centrado horizontal */
             width: 140px;
             opacity: 0.9;
+            transition: transform 0.3s;
+        }
+
+        .logo-navbar:hover {
+            transform: translateX(-50%) scale(1.1); /* Efecto de zoom al pasar el cursor */
         }
         .content { 
             margin-left: 240px; 

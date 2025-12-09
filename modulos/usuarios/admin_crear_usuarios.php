@@ -6,6 +6,27 @@ require '../../config/conexion.php'; // Conexión a la base de datos
 require '../../config/csrf.php';  // Protección contra ataques CSRF
  
 session_start();
+
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador']; // ej.
+
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
+}
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador','Cliente']; // ej.
+
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
+}
  
 // Genera un token CSRF para proteger el formulario
 $csrf_token = generate_csrf_token();

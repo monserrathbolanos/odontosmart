@@ -1,86 +1,131 @@
+<!--
+    olvidar_contrasena.php
+    
+    Vista opcional para iniciar el flujo de recuperación de contraseña.
+    Muestra un formulario donde el usuario ingresa su correo electrónico.
+    El formulario envía los datos a enviar_contrasena.php.
+-->
 
-<!-- Esto no lo vimos en clase, queda como opcional, ya que no esta 100% funcional -->
+<!-- Esto no lo vimos en clase, queda como opcional, ya que no está 100% funcional -->
 
 <!DOCTYPE html>
-<!-- Define el tipo de documento como HTML5 -->
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <!-- Establece la codificación para caracteres especiales -->
   <title>Recuperar contraseña</title>
 
-  <!-- Importa la fuente Poppins desde Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+  <!-- FAVICON -->
+  <link rel="icon" type="image/png" href="../assets/img/odonto1.png">
 
-  <!-- Importa Bootstrap 5 para estilos y componentes responsivos -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Fuente Poppins desde Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- Bootstrap 5 para estilos y componentes responsivos -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
 
   <style>
     /* Estilos generales del cuerpo de la página */
     body {
       margin: 0;
       padding: 0;
-      height: 100vh;
-      background: linear-gradient(270deg, #152fbf, #264cbf, #182940, #69b7bf); /* Fondo animado con gradiente */
-      background-size: 300% 300%;
-      animation: rgbFlow 150s ease infinite; /* Animación suave del fondo */
       font-family: 'Poppins', sans-serif;
-      color: #ffffff;
+      color: #fff;
+      background: linear-gradient(270deg, #D5E7F2, #69B7BF, #d5e7f2);
+      background-size: 300% 300%;
+      animation: rgbFlow 100s ease infinite;
+      height: 100vh;
       display: flex;
+      justify-content: center;
       align-items: center;
-      justify-content: center; /* Centra el contenido vertical y horizontalmente */
     }
 
-    /* Definición de la animación del fondo */
+    /* Animación del fondo en gradiente */
     @keyframes rgbFlow {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
 
-    /* Estilo de la tarjeta que contiene el formulario */
+    /* Tarjeta que contiene el formulario */
     .card {
-      background-color: rgba(219, 210, 210, 0.94); /* Fondo semitransparente */
-      padding: 30px;
-      border-radius: 10px;
-      max-width: 400px;
-      width: 100%;
-    }
+    position: relative;
+    background: #ffffffaf; /* fondo semitransparente */
+    color: #000;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  } 
+    
 
-    /* Estilo del texto de las etiquetas */
+    /* Estilo del texto de las etiquetas del formulario */
     label {
       color: #020202ff;
     }
 
-    /* Estilo personalizado para el botón */
+    /* Botón principal personalizado "Enviar enlace de recuperación" */
     .btn-custom {
       background-color: #ffffff;
       color: #152fbf;
       font-weight: bold;
     }
 
-    /* Efecto al pasar el mouse sobre el botón */
+    /* Efecto hover sobre el botón principal */
     .btn-custom:hover {
-      background-color: #e0e0e0;
+      background-color: #69B7BF;
     }
+
+    @media (max-width: 500px) {
+    .card {
+        padding: 20px;
+    }
+  }
   </style>
 </head>
 <body>
 
-  <!-- Tarjeta centrada con sombra que contiene el formulario -->
+  <!--
+      Tarjeta centrada con sombra que contiene el formulario
+      de solicitud de recuperación de contraseña.
+  -->
   <div class="card shadow">
     <h3 class="text-center mb-4 fw-bold">Recuperar contraseña</h3>
 
-    <!-- Formulario para enviar el correo de recuperación -->
-  <form method="POST" action="enviar_contrasena.php">
-    <div class="mb-3">
-        <label for="email">Correo electrónico:</label>
-        <input type="email" name="email" id="email" class="form-control" required>
-    </div>
-    <button type="submit" class="btn btn-custom w-100">Enviar enlace de recuperación</button>
-    <a href="iniciar_sesion.php" class="btn btn-secondary w-100 mt-2">Volver</a>
-</form>
+    <!--
+        Formulario para enviar el correo de recuperación
+        - method: POST
+        - action: enviar_contrasena.php
+        Envía el campo:
+          - email: correo electrónico del usuario que desea recuperar su contraseña.
+    -->
+    <form method="POST" action="enviar_contrasena.php">
+      <div class="mb-3">
+          <label for="email">Correo electrónico:</label>
+          <input
+            type="email"
+            name="email"
+            id="email"
+            class="form-control"
+            required
+          >
+      </div>
 
+      <button type="submit" class="btn btn-custom w-100">
+        Enviar enlace de recuperación
+      </button>
+
+      <!-- Botón secundario para volver a la pantalla de inicio de sesión -->
+      <a href="iniciar_sesion.php" class="btn btn-secondary w-100 mt-3">
+        Volver
+      </a>
+    </form>
   </div>
 
 </body>

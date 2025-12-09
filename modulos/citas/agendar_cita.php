@@ -1,6 +1,16 @@
 <?php
 session_start();
 
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Cliente']; // ej.
+ 
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
+}
+
 // Funciona para asegurar que solo usuarios logueados puedan acceder a esta página.
 if (!isset($_SESSION['user'])) {
     header('Location: /odontosmart/auth/iniciar_sesion.php?error=Acceso no autorizado');

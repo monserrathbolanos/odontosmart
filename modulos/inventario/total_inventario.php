@@ -2,7 +2,20 @@
 // total_inventario.php, trabaja con las tablas Productos, Categoria Productos
 session_start();
 include('../../config/conexion.php');
-$rol = "administrador"; // Temporal
+
+
+ 
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador', 'Médico','Recepcionista']; // ej.
+ 
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
+}
+
 
 // Función para mostrar tabla por categoría
 function mostrarCategoria($conn, $categoriaNombre) {
@@ -93,15 +106,15 @@ function mostrarCategoria($conn, $categoriaNombre) {
             padding: 0; 
             background: #f5f5f5;
         }
-         .navbar {
-            width: 220px;
-            background-color: #69B7BF;
-            height: 100vh;
+        .navbar {
+            width: 220px;                      /* Ancho fijo del menú vertical */
+            background-color: #69B7BF;         /* Color corporativo OdontoSmart */
+            height: 100vh;                     /* Altura completa de la ventana */
             padding-top: 20px;
-            position: fixed;
+            position: fixed;                   /* Se mantiene fijo al hacer scroll */
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             transition: width 0.3s ease;
-          }
+        }
         .navbar a {
               display: block;
               color: #fff;
@@ -164,7 +177,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
         }
         .logo-navbar {
             position: absolute;
-            bottom: 80px;   /* ajustá si querés subirlo o bajarlo */
+            bottom: 40px;   /* ajustar para subirlo o bajarlo */
             left: 50%;
             transform: translateX(-50%);
             width: 140px;   /* tamaño del logo */

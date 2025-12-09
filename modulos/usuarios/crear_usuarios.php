@@ -177,14 +177,21 @@ $conn->close();
 
  
 <style>
-/* Fondo con degradado animado */
-body {
-    background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #D5E7F2, #69B7BF);
-    background-size: 300% 300%;
-    animation: rgbFlow 150s ease infinite;
+
+/* Estilos generales del cuerpo de la página */
+ body {
+    margin: 0;
+    padding: 0;
     font-family: 'Poppins', sans-serif;
-    color: #ffffff;
-}
+    color: #fff;
+    background: linear-gradient(270deg , #D5E7F2, #69B7BF, #d5e7f2);
+    background-size: 300% 300%;
+    animation: rgbFlow 100s ease infinite;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
 @keyframes rgbFlow {
     0% { background-position: 0% 50%; }
@@ -198,7 +205,7 @@ body {
     color: #000;
     border-radius: 16px;
     padding: 30px;
-    max-width: 500px;
+    max-width: 200px;
     margin: auto;
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -289,13 +296,7 @@ input:focus, select:focus {
         font-size: 1.5em;
     }
 }
-body {
-    background: linear-gradient(270deg, #152FBF, #264CBF, #182940, #D5E7F2, #69B7BF);
-    background-size: 300% 300%;
-    animation: rgbFlow 150s ease infinite;
-    font-family: 'Poppins', sans-serif;
-    color: #ffffff;
-}
+
 </style>
  
 <body class="bg-light">

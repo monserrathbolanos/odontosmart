@@ -2,9 +2,14 @@
 // pagar.php - Página para que el usuario ingrese datos de tarjeta
 session_start();
 
-// Verificar si el usuario está logueado
-if (!isset($_SESSION['user']['id_usuario'])) {
-    echo "<p>No hay usuario logueado.</p>";
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador','Cliente']; // ej.
+
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
     exit;
 }
 

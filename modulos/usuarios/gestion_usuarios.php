@@ -5,6 +5,17 @@ include('../../config/conexion.php');
 $mensaje = "";
 $usuario = null;
 
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador']; 
+
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
+}
+
 // Buscar usuario por cédula
 if (isset($_POST["buscar"])) {
     $identificacion = $_POST["identificacion"];
@@ -168,12 +179,12 @@ if (isset($_POST["actualizar"])) {
             margin-bottom: 5px;
             font-weight: bold;
         }
-        .logo-navbar {
+         .logo-navbar {
             position: absolute;
-            bottom: 80px;        /* Ajustá lo alto o bajo que querás */
+            bottom: 40px;   /* ajustar para subirlo o bajarlo */
             left: 50%;
             transform: translateX(-50%);
-            width: 140px;        /* Tamaño del logo */
+            width: 140px;   /* tamaño del logo */
             opacity: 0.9;
         }
         select {

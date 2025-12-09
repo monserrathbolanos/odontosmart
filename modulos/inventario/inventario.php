@@ -2,7 +2,20 @@
 // inventario.php // Trabaja con las tablas categoria_productos y productos
 session_start();
 include('../../config/conexion.php');
-$rol = $_SESSION['user']['role'] ?? 'administrador';
+
+
+
+ 
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador', 'Médico', 'Recepcionista']; // ej.
+ 
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
+}
 
 $mensaje = "";
 
@@ -215,10 +228,10 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
         }
         .logo-navbar {
             position: absolute;
-            bottom: 80px;        /* Ajustá lo alto o bajo que querás */
+            bottom: 40px;   /* ajustar para subirlo o bajarlo */
             left: 50%;
             transform: translateX(-50%);
-            width: 140px;        /* Tamaño del logo */
+            width: 140px;   /* tamaño del logo */
             opacity: 0.9;
         }
 

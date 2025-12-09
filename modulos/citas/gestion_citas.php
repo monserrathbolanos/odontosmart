@@ -1,6 +1,16 @@
 <?php
 session_start();
 
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador', 'Médico', 'Recepcionista']; // ej.
+ 
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
+}
+
 //Da el acceso a la gestion de citas solo a los usuarios que tengan el permiso asignado.
 if (!isset($_SESSION['user'])) {
     header('Location: /odontosmart/auth/iniciar_sesion.php?error=Acceso no autorizado');
@@ -307,14 +317,23 @@ if (isset($_GET['id_cita'])) {
             background: #f5f5f5;
         }
         .navbar {
-            width: 220px;
-            background-color: #69B7BF;
-            height: 100vh;
-            padding-top: 20px;
-            position: fixed;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: width 0.3s ease;
-          }
+            width: 220px;                 /* Ancho fijo del menú (220 píxeles) */
+            background-color: #69B7BF;    /* Color de fondo del menú (celestito de OdontoSmart) */
+            height: 100vh;                /* Altura igual al 100% de la ventana (viewport height) */
+            padding-top: 20px;            /* Espacio de 20px arriba, antes de los enlaces */
+            position: fixed;              /* El menú queda “pegado” a la pantalla al hacer scroll */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1); /* Sombra suave en el borde derecho */
+            transition: width 0.3s ease;  /* Si algún día cambias el width con JS / hover,
+                                     la animación tarda 0.3s y es suave */
+        }
+         .logo-navbar {
+            position: absolute;
+            bottom: 40px;   /* ajustar para subirlo o bajarlo */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;   /* tamaño del logo */
+            opacity: 0.9;
+        }
         .navbar a {
               display: block;
               color: #fff;
@@ -365,14 +384,7 @@ if (isset($_GET['id_cita'])) {
         .btn-fin     { background: #6c757d; color: #fff; }
         .btn-cancelar{ background: #dc3545; color: #fff; }
         .btn-atender { background: #264CBF; color: #fff; text-decoration:none; display:inline-block; }
-        .logo-navbar {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 140px;
-            opacity: 0.9;
-        }
+       
         .mensaje-ok {
             color: #28a745;
             margin-bottom: 10px;

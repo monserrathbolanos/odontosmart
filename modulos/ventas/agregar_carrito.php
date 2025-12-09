@@ -1,9 +1,17 @@
 <?php 
 session_start();
 
-// verificar sesión
-if (!isset($_SESSION['user']['id_usuario'])) {
-    die("No hay usuario logueado.");
+
+
+/*Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador','Cliente']; // ej.
+
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
 }
 
 include('../../config/conexion.php');

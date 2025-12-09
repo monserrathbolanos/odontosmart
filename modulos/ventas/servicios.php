@@ -3,11 +3,18 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!isset($_SESSION['user']['id_usuario'])) {
-    header("Location: ../../index.php");
+
+
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador','Cliente']; // ej.
+
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
     exit;
 }
-
 // Nuevo código servicios.php (Basado en total_inventario.php), trabaja con las tablas Productos, Categoria Productos.
 include('../../config/conexion.php');
 
@@ -173,15 +180,16 @@ if (!empty($productosAgotados)) {
             padding: 0; 
             background: #f5f5f5;
         }
+        /* Contenedor de la barra de navegación lateral */
         .navbar {
-            width: 220px;
-            background-color: #69B7BF;
-            height: 100vh;
+            width: 220px;                      /* Ancho fijo del menú vertical */
+            background-color: #69B7BF;         /* Color corporativo OdontoSmart */
+            height: 100vh;                     /* Altura completa de la ventana */
             padding-top: 20px;
-            position: fixed;
+            position: fixed;                   /* Se mantiene fijo al hacer scroll */
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             transition: width 0.3s ease;
-          }
+        }
         .navbar a {
               display: block;
               color: #fff;
@@ -244,13 +252,19 @@ if (!empty($productosAgotados)) {
             color: #28a745;
             font-weight: bold;
         }
+         /* Logo institucional ubicado en la parte inferior del menú lateral */
         .logo-navbar {
             position: absolute;
-            bottom: 80px;        /* distancia desde abajo (ajustable) */
+            bottom: 40px;
             left: 50%;
-            transform: translateX(-50%);
-            width: 140px;        /* tamaño del logo */
+            transform: translateX(-50%);       /* Centrado horizontal */
+            width: 140px;
             opacity: 0.9;
+            transition: transform 0.3s;
+        }
+
+        .logo-navbar:hover {
+            transform: translateX(-50%) scale(1.1); /* Efecto de zoom al pasar el cursor */
         }
         .agregar-btn {
             background-color: #152fbf;

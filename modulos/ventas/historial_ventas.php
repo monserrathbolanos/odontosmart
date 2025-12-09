@@ -5,6 +5,17 @@
 //Tablas utilizadas: ventas y usuarios
 
 session_start();
+
+/* Validar rol permitido */
+$rol = $_SESSION['user']['role'] ?? null;
+$rolesPermitidos = ['Administrador','Recepcionista']; // ej.
+
+if (!in_array($rol, $rolesPermitidos)) {
+    // Aquí decides a dónde mandarlo: login, home o protegido.
+    // Si quieres mandarlo al login:
+    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    exit;
+}
 include('../../config/conexion.php');
 
 // Obtener historial de ventas
@@ -69,15 +80,15 @@ $menos_vendidos = $conn->query($sql_bottom);
             padding: 0; 
             background: #f5f5f5;
         }
-         .navbar {
-            width: 220px;
-            background-color: #69B7BF;
-            height: 100vh;
+        .navbar {
+            width: 220px;                      /* Ancho fijo del menú vertical */
+            background-color: #69B7BF;         /* Color corporativo OdontoSmart */
+            height: 100vh;                     /* Altura completa de la ventana */
             padding-top: 20px;
-            position: fixed;
+            position: fixed;                   /* Se mantiene fijo al hacer scroll */
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             transition: width 0.3s ease;
-          }
+        }
         .navbar a {
               display: block;
               color: #fff;
@@ -140,12 +151,12 @@ $menos_vendidos = $conn->query($sql_bottom);
             border-radius: 5px;
             text-align: center;
         }
-        .logo-navbar {
+         .logo-navbar {
             position: absolute;
-            bottom: 80px;        /* Ajustá lo alto o bajo que querás */
+            bottom: 40px;   /* ajustar para subirlo o bajarlo */
             left: 50%;
             transform: translateX(-50%);
-            width: 140px;        /* Tamaño del logo */
+            width: 140px;   /* tamaño del logo */
             opacity: 0.9;
         }
     </style>
