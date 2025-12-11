@@ -73,8 +73,11 @@ if (!empty($_SESSION['user'])) {
     border-radius: 16px;
     padding: 30px;
     max-width: 400px;
+    
     width: 100%;
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
 
   .card:hover {

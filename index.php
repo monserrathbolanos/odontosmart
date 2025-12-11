@@ -68,7 +68,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
         /* ----------- NAVBAR PERSONALIZADA ----------- */
         .navbar {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            background: white !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 12px 0 !important;
+            border-bottom: 2px solid var(--secondary-color);
         }
 
         .navbar-brand {
@@ -76,32 +79,80 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             font-weight: 700;
             letter-spacing: -0.5px;
             color: var(--accent-color) !important;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            margin-right: 40px;
+        }
+
+        .navbar-brand:hover {
+            transform: scale(1.05);
+        }
+
+        .navbar-logo {
+            height: 60px;
+            width: auto;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-logo:hover {
+            transform: scale(1.1);
+        }
+
+        .navbar-nav {
+            gap: 5px;
         }
 
         .nav-link {
             font-weight: 600;
             font-size: 0.95rem;
             color: #1a1a1a !important;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            margin-left: 10px;
+            padding: 8px 16px !important;
+            border-radius: 8px;
+            margin: 0 5px;
         }
 
-        .nav-link::after {
+        .nav-link::before {
             content: '';
             position: absolute;
-            bottom: -5px;
+            bottom: 0;
             left: 50%;
             width: 0;
-            height: 2px;
+            height: 3px;
             background-color: var(--accent-color);
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             transform: translateX(-50%);
+            border-radius: 3px 3px 0 0;
         }
 
-        .nav-link:hover::after,
-        .nav-link.active::after {
+        .nav-link:hover {
+            background-color: rgba(19, 155, 165, 0.08);
+            color: var(--accent-color) !important;
+        }
+
+        .nav-link:hover::before,
+        .nav-link.active::before {
             width: 100%;
+        }
+
+        .nav-link.active {
+            background-color: rgba(19, 155, 165, 0.1);
+            color: var(--accent-color) !important;
+        }
+
+        .navbar-toggler {
+            border: none;
+            padding: 5px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
         }
 
         /* ----------- HERO SECTION ----------- */
@@ -369,24 +420,26 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         - Registrarse (para nuevos usuarios).
         Usamos $currentPage para marcar el enlace activo según la URL.
     -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="assets/img/odonto.png" alt="Logo OdontoSmart" class="navbar-logo me-2">
-                <span>OdontoSmart</span>
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-fluid px-lg-4 px-3">
+            <a class="navbar-brand" href="#">
+                <img src="assets/img/odonto.png" alt="Logo OdontoSmart" class="navbar-logo">
+                <span class="d-lg-inline d-none">OdontoSmart</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
+                <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link <?= $currentPage == 'iniciar_sesion.php' ? 'active' : '' ?>" href="auth/iniciar_sesion.php">
+                            <i class="bi bi-box-arrow-in-right"></i>
                             Ingresar
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?= $currentPage == 'crear_usuarios.php' ? 'active' : '' ?>" href="modulos/usuarios/crear_usuarios.php">
+                            <i class="bi bi-person-plus"></i>
                             Registrarse
                         </a>
                     </li>

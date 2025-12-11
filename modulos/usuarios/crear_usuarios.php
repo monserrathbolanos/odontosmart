@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email             = trim($_POST['email'] ?? '');
         $password          = $_POST['password'] ?? '';
         $confirm_password  = $_POST['confirm_password'] ?? '';
-        $role_id           = intval($_POST['role'] ?? 0);
+        $role_id           = 3;
         $identificacion    = trim($_POST['identificacion'] ?? '');
         $telefono          = trim($_POST['telefono'] ?? '');
  
@@ -203,12 +203,12 @@ $conn->close();
 .card {
     background: #ffffffaf; /* Fondo semi-transparente */
     color: #000;
-    border-radius: 16px;
-    padding: 30px;
-    max-width: 200px;
+    border-radius: 12px;
+    padding: 28px; /* reduced padding for more compact layout */
+    max-width: 100%;
     margin: auto;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.15);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .card:hover {
@@ -223,6 +223,24 @@ h3 {
     text-align: center;
 }
 
+/* Formulario con layout de dos columnas */
+/* Use a class for the grid to avoid affecting other forms */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+/* Helper to make an item span full width of the grid */
+.form-full {
+    grid-column: 1 / -1;
+}
+
+.form-grid .mb-3 {
+    margin-bottom: 0;
+}
+
 /* Inputs y select */
 input, select {
     padding: 10px 12px;
@@ -230,7 +248,7 @@ input, select {
     border: 1px solid #ddd;
     width: 100%;
     font-size: 1em;
-    margin-bottom: 15px;
+    margin-bottom: 0;
     transition: all 0.3s ease-in-out;
 }
 
@@ -246,6 +264,16 @@ input:focus, select:focus {
     border-radius: 8px;
     font-weight: bold;
     transition: all 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .form-grid .form-full {
+        grid-column: 1;
+    }
 }
 
 .btn-success {
@@ -297,38 +325,85 @@ input:focus, select:focus {
     }
 }
 
+/* Horizontal card layout: aside (logo/info) + main (form) */
+.card-inner {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.card-aside {
+    flex: 0 0 36%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+}
+
+.card-aside img {
+    width: 100%;
+    height: auto;
+    max-width: 220px;
+    border-radius: 8px;
+}
+
+.card-main {
+    flex: 1 1 64%;
+}
+
+@media (max-width: 900px) {
+    .card-inner {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .card-aside {
+        flex: none;
+        width: 100%;
+        padding: 0 8px;
+    }
+    .card-aside img {
+        max-width: 160px;
+    }
+}
+
 </style>
  
 <body class="bg-light">
  
 <div class="container mt-5">
-    <div class="card shadow-lg p-4" style="max-width: 500px; margin: auto;">
-        <h3 class="text-center mb-4"><strong>Crear Usuario</strong></h3>
-        
-        <!-- Mensajes de éxito o error -->
-        <?php if (isset($success)): ?>
-            <div class="alert alert-success text-center"><?= htmlspecialchars($success) ?></div>
-        <?php elseif (isset($error)): ?>
-            <div class="alert alert-danger text-center"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-         
-        <!-- Formulario de registro -->
-        <form method="POST" action="">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-            
-            <!-- Campo: Nombre completo -->
-            <div class="mb-3">
-                <label for="nombre_completo" class="form-label">Nombre completo</label>
-                <input type="text" name="nombre_completo" id="nombre_completo" class="form-control"
-                       value="<?= htmlspecialchars($_POST['nombre_completo'] ?? '') ?>" required>
-            </div>
-            
-            <!-- Campo: Correo electrónico -->
-            <div class="mb-3">
-                <label for="email" class="form-label">Correo electrónico</label>
-                <input type="email" name="email" id="email" class="form-control"
-                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
-            </div>
+    <div class="card shadow-lg" style="max-width: 920px; margin: auto;">
+      <div class="card-inner">
+        <div class="card-aside">
+          <img src="../../assets/img/odonto.png" alt="OdontoSmart">
+        </div>
+
+        <div class="card-main">
+          <h3 class="text-center mb-4"><strong>Crear Usuario</strong></h3>
+
+          <!-- Mensajes de éxito o error -->
+          <?php if (isset($success)): ?>
+              <div class="alert alert-success text-center"><?= htmlspecialchars($success) ?></div>
+          <?php elseif (isset($error)): ?>
+              <div class="alert alert-danger text-center"><?= htmlspecialchars($error) ?></div>
+          <?php endif; ?>
+          
+          <!-- Formulario de registro -->
+          <form method="POST" action="" class="form-grid">
+              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+              
+              <!-- Campo: Nombre completo -->
+              <div class="mb-3">
+                  <label for="nombre_completo" class="form-label">Nombre completo</label>
+                  <input type="text" name="nombre_completo" id="nombre_completo" class="form-control"
+                         value="<?= htmlspecialchars($_POST['nombre_completo'] ?? '') ?>" required>
+              </div>
+              
+              <!-- Campo: Correo electrónico -->
+              <div class="mb-3">
+                  <label for="email" class="form-label">Correo electrónico</label>
+                  <input type="email" name="email" id="email" class="form-control"
+                         value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+              </div>
  
             <div class="mb-3">
     <label for="tipo_doc" class="form-label">Tipo de Identificación</label>
@@ -370,35 +445,29 @@ input:focus, select:focus {
 
             <div class="mb-3">
                 <label for="confirm_password" class="form-label">Confirmar contraseña</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="form-control mt-2"
+                <input type="password" name="confirm_password" id="confirm_password" class="form-control"
                  placeholder="Repita la contraseña" required>
 
                 <small id="msgConfirmPassword" style="font-size:12px;"></small>
             </div>
 
  
-            <div class="mb-3">
-                <label for="role" class="form-label">Rol</label>
-                <select name="role" id="role" class="form-select" required>
-                    <option value="">Seleccione un rol</option>
-                    <?php foreach ($roles as $rol): ?>
-                        <option value="<?= $rol['id_rol'] ?>"
-                            <?= (($_POST['role'] ?? '') == $rol['id_rol']) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($rol['nombre']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+           
+ 
+            <div class="form-actions form-full d-flex gap-2">
+                <button type="submit" class="btn btn-success flex-fill">Crear usuario</button>
+                <a href="/odontosmart/index.php" class="btn btn-primary flex-fill">Volver al inicio</a>
             </div>
+
+            <a href="../../auth/iniciar_sesion.php" class="btn btn-secondary form-full mt-2">Iniciar sesión</a>
  
-            <button type="submit" class="btn btn-success w-100">Crear usuario</button>
-            <a href="/odontosmart/index.php" class="btn btn-primary w-100 mt-2">Volver al inicio</a>
-            <a href="../../auth/iniciar_sesion.php" class="btn btn-secondary w-100 mt-2">Iniciar sesión</a>
- 
-        </form>
- 
-    </div>
-</div>
- 
+                        </form>
+
+                </div> <!-- /.card-main -->
+            </div> <!-- /.card-inner -->
+        </div> <!-- /.card -->
+</div> <!-- /.container -->
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
