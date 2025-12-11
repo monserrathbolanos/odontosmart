@@ -38,52 +38,63 @@ if (isset($_POST["buscar"])) {
 
 // Actualizar usuario
 if (isset($_POST["actualizar"])) {
-   
-    $id_usuario    = intval($_POST["id_usuario"]);
-    $nombre        = $_POST["nombre"];
-    $email         = $_POST["email"];
-    $telefono      = $_POST["telefono"];
-    $identificacion= $_POST["identificacion"];
-    $rol           = intval($_POST["rol"]);
-    $ip_cliente    = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+
+    $id_usuario      = intval($_POST["id_usuario"]);
+    $nombre_completo = $_POST["nombre"];           // viene del input "nombre"
+    $email           = $_POST["email"];
+    $telefono        = $_POST["telefono"];
+    $identificacion  = $_POST["identificacion"];
+    $id_rol          = intval($_POST["rol"]);
+
+    $ip       = $_SERVER['REMOTE_ADDR']      ?? 'DESCONOCIDA';
+    $modulo   = 'gestion_usuarios';
+    $ua       = $_SERVER['HTTP_USER_AGENT']  ?? '';
 
     // Llamar SP que actualiza y escribe en bitácora
-    $stmtUpd = $conn->prepare("
-        CALL sp_usuarios_actualizar(?,?,?,?,?,?,?, @resultado)
-    ");
+    // OJO: usamos @resultado para que coincida con el SELECT posterior
+    $stmt = $conn->prepare("CALL sp_actualizar_usuario(?,?,?,?,?,?,?,?,?, @resultado)");
 
-    // i s s s s i s  = 7 parámetros
-    $stmtUpd->bind_param(
-        "issssis",
-        $id_usuario,
-        $nombre,
-        $email,
-        $telefono,
-        $identificacion,
-        $rol,
-        $ip_cliente
-    );
-
-    if ($stmtUpd->execute()) {
-        $stmtUpd->close();
-        $conn->next_result(); // limpiar resultados del CALL
-
-        // Leer el OUT del SP
-        $res = $conn->query("SELECT @resultado AS res");
-        $row = $res->fetch_assoc();
-        $resultado = $row['res'] ?? null;
-
-        if ($resultado === 'OK') {
-            $mensaje = "Usuario actualizado correctamente.";
-        } elseif ($resultado === 'DUPLICADO') {
-            $mensaje = "Error: correo o identificación ya están en uso por otro usuario.";
-        } else {
-            $mensaje = "Error inesperado al actualizar usuario.";
-        }
+    if (!$stmt) {
+        $mensaje = "Error al preparar el procedimiento almacenado: " . $conn->error;
     } else {
-        $mensaje = "Error al ejecutar el procedimiento almacenado.";
+
+        // "issssisss" = int, string, string, string, string, int, string, string, string
+        $stmt->bind_param(
+            "issssisss",
+            $id_usuario,
+            $nombre_completo,
+            $email,
+            $telefono,
+            $identificacion,
+            $id_rol,
+            $ip,
+            $modulo,
+            $ua
+        );
+
+        if ($stmt->execute()) {
+            $stmt->close();
+            $conn->next_result(); // limpiar resultados del CALL
+
+            // Leer el OUT del SP
+            $res = $conn->query("SELECT @resultado AS res");
+            $row = $res->fetch_assoc();
+            $resultado = $row['res'] ?? null;
+
+            if ($resultado === 'OK') {
+                $mensaje = "Usuario actualizado correctamente.";
+            } elseif ($resultado === 'DUPLICADO') {
+                $mensaje = "Error: correo o identificación ya están en uso por otro usuario.";
+            } else {
+                $mensaje = "Error inesperado al actualizar usuario.";
+            }
+        } else {
+            $mensaje = "Error al ejecutar el procedimiento almacenado: " . $stmt->error;
+            $stmt->close();
+        }
     }
 }
+
 
 ?>
 

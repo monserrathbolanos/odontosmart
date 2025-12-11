@@ -1,5 +1,3 @@
-
-
 <?php
 /*
   autenticar.php
@@ -13,6 +11,7 @@
    - Validar la contraseña usando password_verify().
    - Cargar los permisos asociados al rol desde `permisos` y `rol_permisos`.
    - Iniciar sesión y almacenar los datos relevantes en $_SESSION['user'].
+   - Registrar en la tabla `bitacoras` los intentos de login.
    - Redirigir al panel principal (../public/home.php) tras login exitoso.
  */
 
@@ -22,12 +21,37 @@ session_start(); // Inicia la sesión para manejar variables de usuario
 include('../config/conexion.php');
 require '../config/csrf.php';
 
-// Verifica que la solicitud sea POST y que el token CSRF sea válido
-// (si existe csrf_token en el POST lo usa, si no, usa cadena vacía)
+// Datos comunes para la bitácora (los vamos a usar varias veces)
+$ip         = $_SERVER['REMOTE_ADDR']     ?? null;
+$user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+/*
+  1) Verifica que la solicitud sea POST y que el token CSRF sea válido.
+     Si no lo es, registramos el intento y devolvemos error.
+*/
 if (
     $_SERVER['REQUEST_METHOD'] !== 'POST' ||
     !validate_csrf_token($_POST['csrf_token'] ?? '')
 ) {
+    // Bitácora: intento inválido (método o CSRF)
+    $id_usuario = null;
+    $accion     = 'LOGIN_INVALID';
+    $modulo     = 'login';
+    $detalles   = 'Intento de acceso no permitido o token CSRF inválido.';
+
+    $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+    $stmtLog->bind_param(
+        "isssss",
+        $id_usuario,
+        $accion,
+        $modulo,
+        $ip,
+        $user_agent,
+        $detalles
+    );
+    $stmtLog->execute();
+    $stmtLog->close();
+
     // Redirige de vuelta al login con mensaje de error
     header('Location: iniciar_sesion.php?error=' . urlencode('Acceso no permitido.'));
     exit;
@@ -39,11 +63,30 @@ $password =       $_POST['password'] ?? '';
 
 // Verifica que ambos campos estén completados
 if ($email === '' || $password === '') {
+
+    // Bitácora: campos vacíos
+    $id_usuario = null;
+    $accion     = 'LOGIN_FAIL';
+    $modulo     = 'login';
+    $detalles   = 'Intento de inicio de sesión con campos incompletos.';
+
+    $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+    $stmtLog->bind_param(
+        "isssss",
+        $id_usuario,
+        $accion,
+        $modulo,
+        $ip,
+        $user_agent,
+        $detalles
+    );
+    $stmtLog->execute();
+    $stmtLog->close();
+
     // Si faltan datos, redirige al formulario de inicio de sesión con mensaje
     header('Location: iniciar_sesion.php?error=' . urlencode('Correo y contraseña son obligatorios.'));
     exit;
 }
-
 
 /*
   Consulta de la tabla usuarios para obtener:
@@ -54,8 +97,9 @@ if ($email === '' || $password === '') {
    - id_rol
    - nombre del rol (alias: rol)
  
-  Se hace JOIN con la tabla roles para obtener el nombre del rol.*/
-  $sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.password, u.id_rol, r.nombre AS rol
+  Se hace JOIN con la tabla roles para obtener el nombre del rol.
+*/
+$sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.password, u.id_rol, r.nombre AS rol
         FROM usuarios u
         JOIN roles r ON u.id_rol = r.id_rol
         WHERE u.email = ?";
@@ -68,6 +112,26 @@ $result = $stmt->get_result();       // Obtiene el resultado en un objeto mysqli
 
 // Si no se encuentra el usuario, redirige con error genérico
 if ($result->num_rows === 0) {
+
+    // Bitácora: usuario no existe
+    $id_usuario = null;
+    $accion     = 'LOGIN_FAIL';
+    $modulo     = 'login';
+    $detalles   = 'Intento de inicio de sesión con correo no registrado: ' . $email;
+
+    $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+    $stmtLog->bind_param(
+        "isssss",
+        $id_usuario,
+        $accion,
+        $modulo,
+        $ip,
+        $user_agent,
+        $detalles
+    );
+    $stmtLog->execute();
+    $stmtLog->close();
+
     header('Location: iniciar_sesion.php?error=' . urlencode('Correo o contraseña incorrectos.'));
     exit;
 }
@@ -78,6 +142,26 @@ $stmt->close();
 
 // Verifica que la contraseña ingresada coincida con el hash almacenado en BD
 if (!password_verify($password, $user['password'])) {
+
+    // Bitácora: contraseña incorrecta
+    $id_usuario = $user['id_usuario']; // aquí sí sabemos quién es el usuario
+    $accion     = 'LOGIN_FAIL';
+    $modulo     = 'login';
+    $detalles   = 'Intento de inicio de sesión con contraseña incorrecta.';
+
+    $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+    $stmtLog->bind_param(
+        "isssss",
+        $id_usuario,
+        $accion,
+        $modulo,
+        $ip,
+        $user_agent,
+        $detalles
+    );
+    $stmtLog->execute();
+    $stmtLog->close();
+
     header('Location: iniciar_sesion.php?error=' . urlencode('Usuario o contraseña incorrectos.'));
     exit;
 }
@@ -118,16 +202,7 @@ session_regenerate_id(true); // true = borra la sesión anterior en el servidor
 
 /*
   Guardar datos del usuario en la sesión
-  
-  Se almacena un array asociativo en $_SESSION['user'] con:
-   - id_usuario
-   - nombre_completo
-   - email
-   - role (nombre del rol: Cliente, Administrador, Médico, etc.)
-   - id_rol (clave numérica del rol)
-   - permisos (array con nombres de permisos)
  */
-
 $_SESSION['user'] = [
     'id_usuario'      => $user['id_usuario'],
     'nombre_completo' => $user['nombre_completo'],
@@ -137,11 +212,30 @@ $_SESSION['user'] = [
     'permisos'        => $permisos 
 ];
 
+/*
+  Bitácora: LOGIN exitoso
+*/
+$id_usuario = $user['id_usuario'];
+$accion     = 'LOGIN';
+$modulo     = 'login';
+$detalles   = 'Inicio de sesión correcto.';
+
+$stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+$stmtLog->bind_param(
+    "isssss",
+    $id_usuario,
+    $accion,
+    $modulo,
+    $ip,
+    $user_agent,
+    $detalles
+);
+$stmtLog->execute();
+$stmtLog->close();
+
 // Cierra la conexión a la base de datos antes de redirigir
 $conn->close();
 
 // Redirige al home principal tras inicio de sesión exitoso
 header('Location: ../public/home.php');
 exit;
-
-

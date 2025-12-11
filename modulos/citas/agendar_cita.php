@@ -101,6 +101,11 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'cancelar') {
             if ($stmtCancel->affected_rows > 0) {
                 $mensaje_ok = 'La cita se canceló correctamente. 
                 Puede agendar otra cita volviendo a la opción "Agendar cita".';
+                
+
+             // Redirigir para limpiar la URL y evitar que siga con ?accion=cancelar
+             header('Location: agendar_cita.php?info=' . urlencode($mensaje_ok));
+              exit;
             } else {
                 $mensaje_error = 'No se pudo cancelar la cita. 
                 Verifique que la cita exista y pertenezca a su usuario.';
@@ -118,10 +123,12 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'cancelar') {
 // Obtener la lista de odontólogos disponibles: Se utiliza para obtener la lista de los odontolodos que estan registrados en la base de datos.
 $odontologos = [];
 
-//Se realiza la consulta para obtener los odontologos.
+//Se realiza la consulta para obtener solo los odontólogos ACTIVOS.
 $sqlOd = "SELECT o.id_odontologo, u.nombre_completo
           FROM odontologos o
-          INNER JOIN usuarios u ON o.id_usuario = u.id_usuario";
+          INNER JOIN usuarios u ON o.id_usuario = u.id_usuario
+          WHERE o.estado = 'ACTIVO'";
+
 
 //Se ejecuta la consulta para obtener los odontologos.
 if ($resOd = $conn->query($sqlOd)) {

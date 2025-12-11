@@ -196,10 +196,10 @@ if ($idRolSesion === 2 && $idOdontologoSesion !== null) {
             c.motivo,
 
             cli.nombre   AS nombre_cliente,
-            cli.apellido AS apellido_cliente,
+            
 
             o.nombre     AS nombre_odontologo,
-            o.apellido   AS apellido_odontologo,
+            
 
             ac.hora_llegada,
             ac.hora_inicio_atencion,
@@ -234,10 +234,10 @@ if ($idRolSesion === 2 && $idOdontologoSesion !== null) {
             c.motivo,
 
             cli.nombre   AS nombre_cliente,
-            cli.apellido AS apellido_cliente,
+       
 
             o.nombre     AS nombre_odontologo,
-            o.apellido   AS apellido_odontologo,
+           
 
             ac.hora_llegada,
             ac.hora_inicio_atencion,
@@ -271,10 +271,10 @@ if (isset($_GET['id_cita'])) {
                 c.motivo,
 
                 cli.nombre   AS nombre_cliente,
-                cli.apellido AS apellido_cliente,
+                
 
                 o.nombre     AS nombre_odontologo,
-                o.apellido   AS apellido_odontologo,
+                
 
                 ac.hora_llegada,
                 ac.hora_inicio_atencion,
@@ -501,8 +501,8 @@ if (isset($_GET['id_cita'])) {
                         <tr>
                             <td><?php echo $c['id_cita']; ?></td>
                             <td><?php echo $c['fecha_cita']; ?></td>
-                            <td><?php echo htmlspecialchars($c['nombre_cliente'] . ' ' . $c['apellido_cliente']); ?></td>
-                            <td><?php echo htmlspecialchars($c['nombre_odontologo'] . ' ' . $c['apellido_odontologo']); ?></td>
+                            <td><?php echo htmlspecialchars($c['nombre_cliente']); ?></td>
+                            <td><?php echo htmlspecialchars($c['nombre_odontologo']); ?></td>
                             <td><?php echo ucfirst($c['estado']); ?></td>
                             <td>
                                 <?php echo $tiempoEsperaTexto; ?>
@@ -575,10 +575,10 @@ if (isset($_GET['id_cita'])) {
         <div class="seccion">
             <h3>Atención de la cita #<?php echo $detalle_cita['id_cita']; ?></h3>
             <p><strong>Cliente:</strong>
-                <?php echo htmlspecialchars($detalle_cita['nombre_cliente'] . ' ' . $detalle_cita['apellido_cliente']); ?>
+                <?php echo htmlspecialchars($detalle_cita['nombre_cliente']); ?>
             </p>
             <p><strong>Odontólogo:</strong>
-                <?php echo htmlspecialchars($detalle_cita['nombre_odontologo'] . ' ' . $detalle_cita['apellido_odontologo']); ?>
+                <?php echo htmlspecialchars($detalle_cita['nombre_odontologo']); ?>
             </p>
             <p><strong>Fecha/Hora cita:</strong> <?php echo $detalle_cita['fecha_cita']; ?></p>
 

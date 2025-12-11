@@ -27,7 +27,7 @@ $permisosPorRol = [
         'ver_servicios',
         'agendar_cita',   // gestión de sus citas
         'ir_a_pagar',
-        'gestion_citas',  // si usas esta vista para que vea sus citas
+    
     ],
     'Administrador' => [
         'ver_info_clinica',
@@ -40,7 +40,7 @@ $permisosPorRol = [
         'ver_historial_ventas',
         'gestion_citas',
     ],
-    'Medico' => [
+    'Médico' => [
         'ver_info_clinica',
         'ver_inventario',
         'gestion_citas',

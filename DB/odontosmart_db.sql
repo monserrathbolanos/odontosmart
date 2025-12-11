@@ -299,7 +299,7 @@ SET
     p_resultado = 'OK' ;
 END IF ; END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_usuarios_actualizar` (IN `p_id_usuario` INT, IN `p_nombre_completo` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_telefono` VARCHAR(50), IN `p_identificacion` VARCHAR(50), IN `p_id_rol` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_usuario` (IN `p_id_usuario` INT, IN `p_nombre_completo` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_telefono` VARCHAR(50), IN `p_identificacion` VARCHAR(50), IN `p_id_rol` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
     DECLARE
         existe INT DEFAULT 0 ;
         -- Verificar si hay OTRO usuario con el mismo correo o cédula

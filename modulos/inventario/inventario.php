@@ -5,8 +5,6 @@ include('../../config/conexion.php');
 
 
 
- 
-/* Validar rol permitido */
 $rol = $_SESSION['user']['role'] ?? null;
 $rolesPermitidos = ['Administrador', 'Médico', 'Recepcionista']; // ej.
  
@@ -30,8 +28,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stock_total     = intval($_POST["stock_total"] ?? 0);
     $id_categoria    = intval($_POST["id_categoria"] ?? 0);
     $fecha_caducidad = $_POST["fecha_caducidad"] ?? null;
-    $costo_unidad    = floatval($_POST["costo_unidad"] ?? 0);
 
+    // Validar que la fecha de caducidad no sea en el pasado
+if ($fecha_caducidad) {
+    // Crear objetos DateTime
+    $hoy = new DateTime('today'); // solo fecha, sin hora
+    $fechaCad = DateTime::createFromFormat('Y-m-d', $fecha_caducidad);
+
+    if (!$fechaCad) {
+        // Formato inválido
+        $mensaje = " Error: la fecha de caducidad no tiene un formato válido.";
+    } elseif ($fechaCad < $hoy) {
+        // Fecha en el pasado
+        $mensaje = " Error: la fecha de caducidad no puede estar en el pasado.";
+    }
+}
+
+// Solo continuar si no hay errores de fecha
+if (empty($mensaje)) {
+    $costo_unidad    = floatval($_POST["costo_unidad"] ?? 0);
+}
     // Para la tabla de lote_producto
     $cantidad_lote = $_POST['stock_total'];  
     $fecha_lote = $_POST['fecha_caducidad'];
@@ -39,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
     $ip_cliente      = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
-
+ 
     // Llamar al SP que crea producto y registra en bitácora
     $stmt = $conn->prepare("
         CALL sp_productos_crear(?,?,?,?,?,?,?,?,?,?,?, @resultado)
@@ -306,7 +322,11 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
 
                     <div class="form-group">
                         <label class="required">Fecha de caducidad:</label>
-                        <input type="date" name="fecha_caducidad" required>
+                        <input 
+                            type="date" 
+                            name="fecha_caducidad" 
+                            required 
+                            min="<?php echo date('Y-m-d'); ?>">
                     </div>
 
                     <div class="form-group">

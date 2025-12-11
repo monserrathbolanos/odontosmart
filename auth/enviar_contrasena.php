@@ -56,6 +56,28 @@ $stmt->bind_param("isss", $id_usuario, $email, $token, $expira);
 $stmt->execute();
 $stmt->close();
 
+// 4.1 Registrar en bitácora la solicitud de recuperación
+$ip         = $_SERVER['REMOTE_ADDR']     ?? null;
+$user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+$accion   = 'RECOVERY_REQUEST';
+$modulo   = 'login';
+$detalles = 'Usuario solicitó enlace de recuperación de contraseña.';
+
+$stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+$stmtLog->bind_param(
+    "isssss",
+    $id_usuario,   // viene del SELECT anterior
+    $accion,
+    $modulo,
+    $ip,
+    $user_agent,
+    $detalles
+);
+$stmtLog->execute();
+$stmtLog->close();
+
+
 // 5️ Generar link local para restablecer la contraseña
 //    Este enlace será consumido por restablecer_contrasena.php, que
 //    mostrará el formulario para definir la nueva contraseña.
