@@ -156,21 +156,67 @@ if ($result->num_rows === 0) {
               value="<?= htmlspecialchars($token) ?>"
           >
 
-          <div class="mb-3">
-              <label class="form-label">Nueva contraseña</label>
+            <div class="mb-3">
+              <label class="form-label" for="new_password">Nueva contraseña</label>
               <input
-                  type="password"
-                  name="new_password"
-                  class="form-control"
-                  required
+                type="password"
+                name="new_password"
+                id="new_password"
+                class="form-control"
+                required
+                aria-describedby="msgPassword"
               >
-          </div>
+              <small id="msgPassword" class="form-text" style="font-size:12px;color:#6c757d;" role="status" aria-live="polite">Mínimo 8 caracteres, una mayúscula, un número y un carácter especial.</small>
+            </div>
 
           <button type="submit" class="btn btn-success w-100">
               Actualizar contraseña
           </button>
 
+            <a href="iniciar_sesion.php" class="btn btn-secondary w-100 mt-2">Volver</a>
+
       </form>
+      <script>
+        (function(){
+          const form = document.querySelector('form[action="actualizar_contrasena.php"]');
+          const pwd = document.getElementById('new_password');
+          const msg = document.getElementById('msgPassword');
+
+          // Regex: min 8 chars, at least one uppercase, one digit, one special char
+          const strongRe = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._\-])[A-Za-z\d@$!%*?&#._\-]{8,}$/;
+
+          function validate(){
+            const v = pwd.value || '';
+            const instruction = 'Mínimo 8 caracteres, una mayúscula, un número y un carácter especial.';
+            if (!v) {
+              pwd.style.borderColor = '';
+              msg.style.color = '#6c757d';
+              msg.textContent = instruction;
+              return false;
+            }
+
+            if (!strongRe.test(v)) {
+              pwd.style.borderColor = 'red';
+              msg.style.color = '#b02a37';
+              msg.textContent = 'La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.';
+              return false;
+            }
+
+            pwd.style.borderColor = 'green';
+            msg.textContent = '';
+            return true;
+          }
+
+          pwd.addEventListener('input', validate);
+
+          form.addEventListener('submit', function(e){
+            if (!validate()){
+              e.preventDefault();
+              pwd.focus();
+            }
+          });
+        })();
+      </script>
   </div>
 
 </body>

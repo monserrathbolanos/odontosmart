@@ -53,16 +53,24 @@
     }
 
     /* Tarjeta que contiene el formulario */
-    .card {
+     .card {
     position: relative;
     background: #ffffffaf; /* fondo semitransparente */
     color: #000;
     border-radius: 16px;
     padding: 30px;
     max-width: 400px;
+    
     width: 100%;
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-  } 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+  }
     
 
     /* Estilo del texto de las etiquetas del formulario */

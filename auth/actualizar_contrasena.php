@@ -27,6 +27,13 @@ if (!isset($_POST['token'], $_POST['new_password'])) {
 $token        = $_POST['token'];
 $new_password = $_POST['new_password'];
 
+// Validación del formato de la nueva contraseña (min 8, 1 mayúscula, 1 número, 1 carácter especial)
+$pwd_ok = preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._\-])[A-Za-z\d@$!%*?&#._\-]{8,}$/', $new_password);
+if (!$pwd_ok) {
+    echo "<script>alert('La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.'); window.location.href='restablecer_contrasena.php?token=".urlencode($token)."';</script>";
+    exit;
+}
+
 // 1) Buscar token válido y obtener id_usuario + email
 $stmt = $conn->prepare("
     SELECT id_usuario, email 
@@ -91,9 +98,6 @@ $stmtLog->execute();
 $stmtLog->close();
 
 // 6) Mensaje final y redirección al formulario de inicio de sesión
-echo "
-<script>
-alert('Contraseña actualizada correctamente');
-window.location.href='iniciar_sesion.php';
-</script>
-";
+// Redirigimos al login con un flag para mostrar un alert elegante con Bootstrap
+header('Location: iniciar_sesion.php?reset=1');
+exit;

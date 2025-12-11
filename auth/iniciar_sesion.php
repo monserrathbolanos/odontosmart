@@ -157,15 +157,22 @@ if (!empty($_SESSION['user'])) {
       <h2 class="text-center mb-4"><strong>Iniciar sesión</strong></h2>
 
       <!-- Mensajes de error o información (enviados por GET) -->
-      <?php if (!empty($_GET['error'])): ?>
-          <div class="alert alert-danger text-center">
+          <?php if (!empty($_GET['error'])): ?>
+            <div class="alert alert-danger text-center" role="alert" aria-live="polite">
               <?= htmlspecialchars($_GET['error']) ?>
-          </div>
-      <?php elseif (!empty($_GET['info'])): ?>
-          <div class="alert alert-success text-center">
+            </div>
+          <?php elseif (!empty($_GET['info'])): ?>
+            <div class="alert alert-success text-center" role="alert" aria-live="polite">
               <?= htmlspecialchars($_GET['info']) ?>
-          </div>
-      <?php endif; ?>
+            </div>
+          <?php endif; ?>
+
+          <?php if (!empty($_GET['reset']) && $_GET['reset'] == '1'): ?>
+            <div class="alert alert-success alert-dismissible fade show text-center" role="alert" aria-live="polite">
+              <strong>Contraseña actualizada correctamente.</strong> Ya puedes iniciar sesión con tu nueva contraseña.
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+          <?php endif; ?>
 
       <!-- Formulario de autenticación -->
       <form method="POST" action="autenticar.php">
@@ -219,3 +226,4 @@ if (!empty($_SESSION['user'])) {
 
 </body>
 </html>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
