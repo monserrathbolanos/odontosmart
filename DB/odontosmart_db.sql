@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 05, 2025 at 04:22 AM
+-- Generation Time: Dec 12, 2025 at 05:16 AM
 -- Server version: 8.4.3
 -- PHP Version: 8.4.13
 
@@ -25,6 +25,94 @@ DELIMITER $$
 --
 -- Procedures
 --
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_usuario` (IN `p_id_usuario` INT, IN `p_nombre` VARCHAR(100), IN `p_apellido1` VARCHAR(100), IN `p_apellido2` VARCHAR(100), IN `p_email` VARCHAR(150), IN `p_telefono` VARCHAR(30), IN `p_identificacion` VARCHAR(50), IN `p_id_rol` INT, IN `p_ip` VARCHAR(45), IN `p_modulo` VARCHAR(100), IN `p_user_agent` VARCHAR(255), OUT `p_resultado` VARCHAR(20))   BEGIN
+    DECLARE v_existente INT DEFAULT 0;
+    DECLARE v_tiene_odo INT DEFAULT 0;
+
+    -- 1) Verificar si hay OTRO usuario con el mismo correo o identificación
+    SELECT COUNT(*)
+      INTO v_existente
+      FROM usuarios
+     WHERE (email = p_email OR identificacion = p_identificacion)
+       AND id_usuario <> p_id_usuario;
+
+    IF v_existente > 0 THEN
+        -- Hay duplicado, no se actualiza
+        SET p_resultado = 'DUPLICADO';
+
+        -- Bitácora intento fallido (mismo orden que tu tabla)
+        INSERT INTO bitacoras (
+            id_usuario,
+            accion,
+            modulo,
+            ip,
+            user_agent,
+            detalles
+        ) VALUES (
+            p_id_usuario,
+            'Intento fallido de actualización',
+            p_modulo,
+            p_ip,
+            p_user_agent,
+            'Correo o identificación duplicados'
+        );
+
+    ELSE
+        -- 2) Actualizar datos del usuario
+        UPDATE usuarios
+           SET nombre         = p_nombre,
+               apellido1      = p_apellido1,
+               apellido2      = p_apellido2,
+               email          = p_email,
+               telefono       = p_telefono,
+               identificacion = p_identificacion,
+               id_rol         = p_id_rol
+         WHERE id_usuario     = p_id_usuario;
+
+        -- 3) Manejo especial según rol (relación con ODONTOLOGOS)
+        IF p_id_rol = 2 THEN
+            -- Si es MÉDICO: asegurar odontólogo ACTIVO
+            SELECT COUNT(*)
+              INTO v_tiene_odo
+              FROM odontologos
+             WHERE id_usuario = p_id_usuario;
+
+            IF v_tiene_odo = 0 THEN
+                INSERT INTO odontologos (id_usuario, estado)
+                VALUES (p_id_usuario, 'ACTIVO');
+            ELSE
+                UPDATE odontologos
+                   SET estado = 'ACTIVO'
+                 WHERE id_usuario = p_id_usuario;
+            END IF;
+        ELSE
+            -- Si el rol ya NO es médico: marcar INACTIVO en odontologos
+            UPDATE odontologos
+               SET estado = 'INACTIVO'
+             WHERE id_usuario = p_id_usuario;
+        END IF;
+
+        -- 4) Bitácora de actualización correcta
+        INSERT INTO bitacoras (
+            id_usuario,
+            accion,
+            modulo,
+            ip,
+            user_agent,
+            detalles
+        ) VALUES (
+            p_id_usuario,
+            'Usuario actualizado',
+            p_modulo,
+            p_ip,
+            p_user_agent,
+            CONCAT('Usuario actualizado: ', p_email)
+        );
+
+        SET p_resultado = 'OK';
+    END IF;
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_citas_admin_accion` (IN `p_accion` VARCHAR(50), IN `p_id_cita` INT, IN `p_observaciones` TEXT, IN `p_requiere_control` TINYINT, IN `p_id_usuario` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
     DECLARE v_msg VARCHAR(255);
 
@@ -102,10 +190,10 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_citas_admin_accion` (IN `p_accio
 
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_citas_crear` (IN `p_id_cliente` INT, IN `p_id_odontologo` INT, IN `p_fecha_cita` DATETIME, IN `p_motivo` VARCHAR(255), IN `p_id_usuario` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
-    DECLARE
-        v_id_cita INT ;
-        -- Insertar la cita
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_citas_crear` (IN `p_id_cliente` INT, IN `p_id_odontologo` INT, IN `p_fecha_cita` DATETIME, IN `p_motivo` TEXT, IN `p_id_usuario` INT, IN `p_ip` VARCHAR(50), IN `p_modulo` VARCHAR(100), IN `p_user_agent` TEXT, OUT `p_resultado` VARCHAR(20))   BEGIN
+    DECLARE v_id_cita INT;
+
+    -- Insertar la cita
     INSERT INTO citas(
         id_cliente,
         id_odontologo,
@@ -113,63 +201,77 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_citas_crear` (IN `p_id_cliente` 
         estado,
         motivo
     )
-VALUES(
-    p_id_cliente,
-    p_id_odontologo,
-    p_fecha_cita,
-    'pendiente',
-    p_motivo
-) ; IF ROW_COUNT() > 0 THEN
-SET
-    v_id_cita = LAST_INSERT_ID() ;
-    -- Registrar en bitácora
-INSERT INTO bitacoras(
-    id_usuario,
-    accion,
-    ip,
-    detalles
-)
-VALUES(
-    p_id_usuario,
-    'Cita agendada',
-    p_ip,
-    CONCAT(
-        'Cita ID ',
-        v_id_cita,
-        ' para fecha ',
-        p_fecha_cita
-    )
-) ;
-SET
-    p_resultado = 'OK' ; ELSE
-SET
-    p_resultado = 'ERROR' ;
-INSERT INTO bitacoras(
-    id_usuario,
-    accion,
-    ip,
-    detalles
-)
-VALUES(
-    p_id_usuario,
-    'Error al agendar cita',
-    p_ip,
-    CONCAT(
-        'No se pudo crear cita para fecha ',
-        p_fecha_cita
-    )
-) ;
-    END IF ; END$$
+    VALUES(
+        p_id_cliente,
+        p_id_odontologo,
+        p_fecha_cita,
+        'pendiente',
+        p_motivo
+    );
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre_completo` VARCHAR(100), IN `p_email` VARCHAR(120), IN `p_telefono` VARCHAR(20), IN `p_tipo_doc` VARCHAR(20), IN `p_identificacion` VARCHAR(50), IN `p_password` VARCHAR(255), IN `p_id_rol` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(20))   BEGIN
-    DECLARE v_existente INT DEFAULT 0;
+    IF ROW_COUNT() > 0 THEN
+        SET v_id_cita = LAST_INSERT_ID();
 
-    -- Validar duplicados por email o identificación
+        -- Registrar en bitácora éxito
+        INSERT INTO bitacoras(
+            id_usuario,
+            accion,
+            modulo,
+            ip,
+            user_agent,
+            detalles
+        )
+        VALUES(
+            p_id_usuario,
+            'Cita agendada',
+            p_modulo,
+            p_ip,
+            p_user_agent,
+            CONCAT(
+                'Cita ID ',
+                v_id_cita,
+                ' para fecha ',
+                p_fecha_cita
+            )
+        );
+
+        SET p_resultado = 'OK';
+    ELSE
+        SET p_resultado = 'ERROR';
+
+        -- Registrar error en bitácora
+        INSERT INTO bitacoras(
+            id_usuario,
+            accion,
+            modulo,
+            ip,
+            user_agent,
+            detalles
+        )
+        VALUES(
+            p_id_usuario,
+            'Error al agendar cita',
+            p_modulo,
+            p_ip,
+            p_user_agent,
+            CONCAT(
+                'No se pudo crear cita para fecha ',
+                p_fecha_cita
+            )
+        );
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre` VARCHAR(100), IN `p_apellido1` VARCHAR(100), IN `p_apellido2` VARCHAR(100), IN `p_email` VARCHAR(120), IN `p_telefono` VARCHAR(20), IN `p_tipo_doc` VARCHAR(20), IN `p_identificacion` VARCHAR(50), IN `p_password` VARCHAR(255), IN `p_id_rol` INT, IN `p_ip` VARCHAR(45), IN `p_modulo` VARCHAR(100), IN `p_user_agent` VARCHAR(255), OUT `p_resultado` VARCHAR(20))   BEGIN
+    DECLARE v_existente        INT DEFAULT 0;
+    DECLARE v_nuevo_id_usuario INT DEFAULT 0;
+
+    -- 1) Validar duplicados por email o identificación
     SELECT COUNT(*)
-    INTO v_existente
-    FROM usuarios
-    WHERE email = p_email
-       OR identificacion = p_identificacion;
+      INTO v_existente
+      FROM usuarios
+     WHERE email = p_email
+        OR identificacion = p_identificacion;
 
     IF v_existente > 0 THEN
         
@@ -180,19 +282,25 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre_com
             id_usuario,
             accion,
             ip,
+            modulo,
+            user_agent,
             detalles
         ) VALUES (
             NULL,
-            'Intento fallido de creación',
+            'Intento fallido de creación de usuario',
             p_ip,
-            'Datos duplicados'
+            p_modulo,
+            p_user_agent,
+            'Datos duplicados (email o identificación)'
         );
 
     ELSE
         
-        -- Crear usuario
+        -- 2) Crear usuario (ya normalizado)
         INSERT INTO usuarios (
-            nombre_completo,
+            nombre,
+            apellido1,
+            apellido2,
             email,
             telefono,
             tipo_doc,
@@ -201,7 +309,9 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre_com
             id_rol
         )
         VALUES (
-            p_nombre_completo,
+            p_nombre,
+            p_apellido1,
+            p_apellido2,
             p_email,
             p_telefono,
             p_tipo_doc,
@@ -210,147 +320,176 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre_com
             p_id_rol
         );
 
-        SET p_resultado = 'OK';
+        -- Guardamos el id del usuario recién creado
+        SET v_nuevo_id_usuario = LAST_INSERT_ID();
+        SET p_resultado        = 'OK';
 
-        -- Registrar en bitácora creación exitosa
+        -- 3) Si el rol es MÉDICO (id_rol = 2), crear registro en ODONTOLOGOS
+        IF p_id_rol = 2 THEN
+            INSERT INTO odontologos (
+                id_usuario,
+                estado
+            ) VALUES (
+                v_nuevo_id_usuario,
+                'ACTIVO'
+            );
+        END IF;
+
+        -- 4) Registrar en bitácora creación exitosa
         INSERT INTO bitacoras(
             id_usuario,
             accion,
             ip,
+            modulo,
+            user_agent,
             detalles
         ) VALUES (
-            LAST_INSERT_ID(),
+            v_nuevo_id_usuario,
             'Usuario creado',
             p_ip,
-            CONCAT('Usuario: ', p_email)
+            p_modulo,
+            p_user_agent,
+            CONCAT('Usuario creado: ', p_email, ' (rol ', p_id_rol, ')')
         );
 
     END IF;
 
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_productos_crear` (IN `p_id_categoria` INT, IN `p_nombre` VARCHAR(255), IN `p_descripcion` TEXT, IN `p_unidad` VARCHAR(50), IN `p_precio` DECIMAL(10,2), IN `p_costo_unidad` DECIMAL(10,2), IN `p_stock_total` INT, IN `p_stock_minimo` INT, IN `p_fecha_caducidad` DATE, IN `p_id_usuario` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
-    DECLARE
-        existe INT DEFAULT 0 ;
-    SELECT
-        COUNT(*)
-    INTO existe
-FROM
-    productos
-WHERE
-    nombre = p_nombre AND id_categoria = p_id_categoria ; IF existe > 0 THEN
-SET
-    p_resultado = 'DUPLICADO' ;
-INSERT INTO bitacoras(
-    id_usuario,
-    accion,
-    ip,
-    detalles
-)
-VALUES(
-    p_id_usuario,
-    'Intento fallido de creación de producto',
-    p_ip,
-    CONCAT('Producto duplicado: ', p_nombre)
-) ; ELSE
-INSERT INTO productos(
-    id_categoria,
-    nombre,
-    descripcion,
-    unidad,
-    precio,
-    costo_unidad,
-    stock_total,
-    stock_minimo,
-    fecha_caducidad,
-    estado
-)
-VALUES(
-    p_id_categoria,
-    p_nombre,
-    p_descripcion,
-    p_unidad,
-    p_precio,
-    p_costo_unidad,
-    p_stock_total,
-    p_stock_minimo,
-    p_fecha_caducidad,
-    'activo'
-) ;
-INSERT INTO bitacoras(
-    id_usuario,
-    accion,
-    ip,
-    detalles
-)
-VALUES(
-    p_id_usuario,
-    'Producto creado',
-    p_ip,
-    CONCAT(
-        'Producto: ',
-        p_nombre,
-        ' (cat ',
-        p_id_categoria,
-        ')'
-    )
-) ;
-SET
-    p_resultado = 'OK' ;
-END IF ; END$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_productos_crear` (IN `p_id_categoria` INT, IN `p_nombre` VARCHAR(255), IN `p_descripcion` TEXT, IN `p_unidad` VARCHAR(50), IN `p_precio` DECIMAL(10,2), IN `p_costo_unidad` DECIMAL(10,2), IN `p_stock_total` INT, IN `p_stock_minimo` INT, IN `p_fecha_caducidad` DATE, IN `p_id_usuario` INT, IN `p_ip` VARCHAR(50), IN `p_modulo` VARCHAR(100), IN `p_user_agent` VARCHAR(255), OUT `p_resultado` VARCHAR(50))   BEGIN
+    DECLARE existe INT DEFAULT 0;
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_usuario` (IN `p_id_usuario` INT, IN `p_nombre_completo` VARCHAR(255), IN `p_email` VARCHAR(255), IN `p_telefono` VARCHAR(50), IN `p_identificacion` VARCHAR(50), IN `p_id_rol` INT, IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(50))   BEGIN
-    DECLARE
-        existe INT DEFAULT 0 ;
-        -- Verificar si hay OTRO usuario con el mismo correo o cédula
-    SELECT
-        COUNT(*)
-    INTO existe
-FROM
-    usuarios
-WHERE
-    (
-        email = p_email OR identificacion = p_identificacion
-    ) AND id_usuario <> p_id_usuario ; IF existe > 0 THEN
-SET
-    p_resultado = 'DUPLICADO' ;
-INSERT INTO bitacoras(
-    id_usuario,
-    accion,
-    ip,
-    detalles
-)
-VALUES(
-    p_id_usuario,
-    'Intento fallido de actualización',
-    p_ip,
-    'Correo o identificación duplicados'
-) ; ELSE
-UPDATE
-    usuarios
-SET
-    nombre_completo = p_nombre_completo,
-    email = p_email,
-    telefono = p_telefono,
-    identificacion = p_identificacion,
-    id_rol = p_id_rol
-WHERE
-    id_usuario = p_id_usuario ;
-INSERT INTO bitacoras(
-    id_usuario,
-    accion,
-    ip,
-    detalles
-)
-VALUES(
-    p_id_usuario,
-    'Usuario actualizado',
-    p_ip,
-    CONCAT('Usuario actualizado: ', p_email)
-) ;
-SET
-    p_resultado = 'OK' ;
-END IF ; END$$
+    -- 1) Validar fecha de caducidad (no se permiten fechas en el pasado)
+    IF p_fecha_caducidad IS NOT NULL 
+       AND p_fecha_caducidad < CURDATE() THEN
+        
+        SET p_resultado = 'CADUCADO';
+
+        INSERT INTO bitacoras(
+            id_usuario,
+            accion,
+            modulo,
+            ip,
+            user_agent,
+            detalles
+        )
+        VALUES (
+            p_id_usuario,
+            'Intento fallido de creación de producto',
+            p_modulo,
+            p_ip,
+            p_user_agent,
+            CONCAT(
+                'Fecha de caducidad en el pasado para producto: ',
+                p_nombre,
+                ' (',
+                p_fecha_caducidad,
+                ')'
+            )
+        );
+
+    ELSE
+        -- 2) Validar si ya existe un producto con el mismo nombre en la misma categoría
+        SELECT COUNT(*)
+          INTO existe
+          FROM productos
+         WHERE nombre = p_nombre
+           AND id_categoria = p_id_categoria;
+
+        IF existe > 0 THEN
+            SET p_resultado = 'DUPLICADO';
+
+            INSERT INTO bitacoras(
+                id_usuario,
+                accion,
+                modulo,
+                ip,
+                user_agent,
+                detalles
+            )
+            VALUES(
+                p_id_usuario,
+                'Intento fallido de creación de producto',
+                p_modulo,
+                p_ip,
+                p_user_agent,
+                CONCAT('Producto duplicado: ', p_nombre)
+            );
+        ELSE
+            -- 3) Crear el producto
+            INSERT INTO productos(
+                id_categoria,
+                nombre,
+                descripcion,
+                unidad,
+                precio,
+                costo_unidad,
+                stock_total,
+                stock_minimo,
+                fecha_caducidad,
+                estado
+            )
+            VALUES(
+                p_id_categoria,
+                p_nombre,
+                p_descripcion,
+                p_unidad,
+                p_precio,
+                p_costo_unidad,
+                p_stock_total,
+                p_stock_minimo,
+                p_fecha_caducidad,
+                'activo'
+            );
+
+            INSERT INTO bitacoras(
+                id_usuario,
+                accion,
+                modulo,
+                ip,
+                user_agent,
+                detalles
+            )
+            VALUES(
+                p_id_usuario,
+                'Producto creado',
+                p_modulo,
+                p_ip,
+                p_user_agent,
+                CONCAT(
+                    'Producto: ',
+                    p_nombre,
+                    ' (cat ',
+                    p_id_categoria,
+                    ')'
+                )
+            );
+
+            SET p_resultado = 'OK';
+        END IF;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `SP_USUARIO_BITACORA` (IN `p_id_usuario` INT, IN `p_accion` VARCHAR(100), IN `p_modulo` VARCHAR(100), IN `p_ip` VARCHAR(45), IN `p_user_agent` VARCHAR(255), IN `p_detalles` TEXT)   BEGIN
+    INSERT INTO bitacoras (
+        id_usuario,
+        accion,
+        modulo,
+        fecha,
+        ip,
+        user_agent,
+        detalles
+    )
+    VALUES (
+        p_id_usuario,
+        p_accion,
+        p_modulo,
+        NOW(),
+        p_ip,
+        p_user_agent,
+        p_detalles
+    );
+END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_ventas_registrar_bitacora` (IN `p_id_usuario` INT, IN `p_id_venta` INT, IN `p_total` DECIMAL(10,2), IN `p_ip` VARCHAR(50), OUT `p_resultado` VARCHAR(20))   BEGIN
     INSERT INTO bitacoras(
@@ -411,12 +550,8 @@ CREATE TABLE `atencion_cita` (
 --
 
 INSERT INTO `atencion_cita` (`id_atencion`, `id_cita`, `hora_llegada`, `hora_inicio_atencion`, `hora_fin_atencion`, `observaciones`, `requiere_control`) VALUES
-(1, 4, '2025-11-23 13:40:17', NULL, NULL, 'Proxima cita, seguir con el control.', 1),
-(2, 11, '2025-11-24 11:09:38', '2025-11-28 17:24:11', NULL, NULL, 0),
-(3, 12, NULL, NULL, NULL, 'Termina el control por seis meses.', 1),
-(4, 13, NULL, NULL, NULL, 'No pudo asister, se procede a re-agendar.', 1),
-(5, 6, '2025-11-28 17:28:10', NULL, NULL, NULL, 0),
-(6, 14, '2025-11-28 19:40:36', NULL, NULL, NULL, 0);
+(7, 24, '2025-12-11 22:02:11', '2025-12-11 22:02:31', '2025-12-11 22:02:38', NULL, 0),
+(8, 22, NULL, NULL, NULL, 'Se realiza extraccion satisfactoriamente.', 1);
 
 -- --------------------------------------------------------
 
@@ -444,9 +579,11 @@ CREATE TABLE `auditoria_stock` (
 CREATE TABLE `bitacoras` (
   `id_bitacora` bigint NOT NULL,
   `id_usuario` int DEFAULT NULL,
-  `accion` varchar(255) DEFAULT NULL,
+  `accion` varchar(100) NOT NULL,
+  `modulo` varchar(100) DEFAULT NULL,
   `fecha` datetime DEFAULT CURRENT_TIMESTAMP,
-  `ip` varchar(50) DEFAULT NULL,
+  `ip` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
   `detalles` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -454,78 +591,84 @@ CREATE TABLE `bitacoras` (
 -- Dumping data for table `bitacoras`
 --
 
-INSERT INTO `bitacoras` (`id_bitacora`, `id_usuario`, `accion`, `fecha`, `ip`, `detalles`) VALUES
-(1, 9, 'Usuario creado', '2025-11-23 18:59:24', '::1', 'Usuario: valeria@hotmail.com'),
-(2, 10, 'Usuario creado', '2025-11-24 09:36:53', '::1', 'Usuario: pandora@gmail.com'),
-(3, 11, 'Usuario creado', '2025-11-24 10:11:16', '::1', 'Usuario: sofia@gmail.com'),
-(4, 12, 'Usuario creado', '2025-11-24 10:12:10', '::1', 'Usuario: Hector@gmail.com'),
-(5, 13, 'Usuario creado', '2025-11-24 10:12:54', '::1', 'Usuario: ariana@gmail.com'),
-(6, 10, 'Usuario actualizado', '2025-11-24 10:37:29', '::1', 'Usuario actualizado: pandora@gmail.com'),
-(7, 9, 'Cita agendada', '2025-11-24 10:43:39', '::1', 'Cita ID 12 para fecha 2025-12-03 09:00:00'),
-(8, 7, 'Gestión cita: registrar_llegada', '2025-11-24 11:09:38', '::1', 'Cita ID 11. Hora de llegada registrada'),
-(9, 7, 'Gestión cita: guardar_atencion', '2025-11-24 11:11:07', '::1', 'Cita ID 12. Atención guardada'),
-(10, 7, 'Gestión cita: cancelar_cita', '2025-11-24 11:11:10', '::1', 'Cita ID 10. Cita cancelada'),
-(11, 7, 'Producto creado', '2025-11-24 11:21:20', '::1', 'Producto: Resina (cat 3)'),
-(12, 9, 'Venta registrada', '2025-11-24 11:37:15', '::1', 'Venta ID 2 por 20000.00'),
-(13, 9, 'Cita agendada', '2025-11-24 11:37:48', '::1', 'Cita ID 13 para fecha 2025-11-28 14:30:00'),
-(14, 3, 'Producto creado', '2025-11-27 19:39:11', '::1', 'Producto: Mariguanol (cat 1)'),
-(15, 3, 'Venta registrada', '2025-11-27 19:57:00', '::1', 'Venta ID 3 por 1000.00'),
-(16, 3, 'Venta registrada', '2025-11-27 20:39:32', '::1', 'Venta ID 4 por 18000.00'),
-(17, 3, 'Venta registrada', '2025-11-27 20:41:16', '::1', 'Venta ID 5 por 20000.00'),
-(18, 3, 'Producto creado', '2025-11-27 20:54:44', '::1', 'Producto: Vicodin (cat 1)'),
-(19, 3, 'Venta registrada', '2025-11-27 21:21:25', '::1', 'Venta ID 6 por 200000.00'),
-(20, 3, 'Venta registrada', '2025-11-27 21:32:36', '::1', 'Venta ID 8 por 6000.00'),
-(21, 3, 'Venta registrada', '2025-11-27 21:39:15', '::1', 'Venta ID 9 por 4000.00'),
-(22, 3, 'Venta registrada', '2025-11-28 12:09:25', '::1', 'Venta ID 10 por 20000.00'),
-(23, 3, 'Venta registrada', '2025-11-28 12:31:25', '::1', 'Venta ID 11 por 2000.00'),
-(24, 3, 'Venta registrada', '2025-11-28 12:39:00', '::1', 'Venta ID 12 por 7000.00'),
-(25, 3, 'Venta registrada', '2025-11-28 12:43:15', '::1', 'Venta ID 13 por 10500.00'),
-(26, 3, 'Venta registrada', '2025-11-28 12:48:54', '::1', 'Venta ID 14 por 2000.00'),
-(27, 3, 'Venta registrada', '2025-11-28 12:59:51', '::1', 'Venta ID 15 por 3390.00'),
-(28, 3, 'Venta registrada', '2025-11-28 13:08:09', '::1', 'Venta ID 16 por 3390.00'),
-(29, 3, 'Venta registrada', '2025-11-28 13:13:03', '::1', 'Venta ID 17 por 6780.00'),
-(30, 14, 'Usuario creado', '2025-11-28 13:14:26', '::1', 'Usuario: josueacunaflores@gmail.com'),
-(31, 14, 'Venta registrada', '2025-11-28 13:46:27', '::1', 'Venta ID 18 por 28815.00'),
-(32, 14, 'Venta registrada', '2025-11-28 13:49:20', '::1', 'Venta ID 19 por 1130.00'),
-(33, 14, 'Venta registrada', '2025-11-28 13:54:48', '::1', 'Venta ID 20 por 22600.00'),
-(34, 14, 'Venta registrada', '2025-11-28 14:13:02', '::1', 'Venta ID 21 por 2260.00'),
-(35, 14, 'Venta registrada', '2025-11-28 14:27:41', '::1', 'Venta ID 22 por 2260.00'),
-(36, 14, 'Venta registrada', '2025-11-28 14:42:28', '::1', 'Venta ID 23 por 2260.00'),
-(37, 14, 'Venta registrada', '2025-11-28 14:59:33', '::1', 'Venta ID 24 por 3390.00'),
-(38, 14, 'Venta registrada', '2025-11-28 15:00:44', '::1', 'Venta ID 25 por 4520.00'),
-(39, 14, 'Venta registrada', '2025-11-28 15:06:39', '::1', 'Venta ID 26 por 2260.00'),
-(40, 14, 'Venta registrada', '2025-11-28 15:10:01', '::1', 'Venta ID 27 por 2260.00'),
-(41, 14, 'Venta registrada', '2025-11-28 15:12:26', '::1', 'Venta ID 28 por 2260.00'),
-(42, 14, 'Venta registrada', '2025-11-28 15:12:45', '::1', 'Venta ID 29 por 2825.00'),
-(43, 14, 'Venta registrada', '2025-11-28 16:31:40', '::1', 'Venta ID 30 por 4068.00'),
-(44, 14, 'Venta registrada', '2025-11-28 16:35:12', '::1', 'Venta ID 31 por 3729.00'),
-(45, 14, 'Venta registrada', '2025-11-28 16:36:27', '::1', 'Venta ID 32 por 1695.00'),
-(46, 3, 'Gestión cita: iniciar_atencion', '2025-11-28 17:24:11', '::1', 'Cita ID 11. Hora de inicio registrada'),
-(47, 14, 'Cita agendada', '2025-11-28 17:25:11', '::1', 'Cita ID 14 para fecha 2025-11-29 10:00:00'),
-(48, 3, 'Gestión cita: guardar_atencion', '2025-11-28 17:27:34', '::1', 'Cita ID 13. Atención guardada'),
-(49, 3, 'Gestión cita: registrar_llegada', '2025-11-28 17:28:10', '::1', 'Cita ID 6. Hora de llegada registrada'),
-(50, 14, 'Usuario actualizado', '2025-11-28 17:34:22', '::1', 'Usuario actualizado: josueacunaflores@gmail.com'),
-(51, 15, 'Usuario creado', '2025-11-28 18:02:16', '::1', 'Usuario: isaac@gmail.com'),
-(52, 15, 'Venta registrada', '2025-11-28 18:04:15', '::1', 'Venta ID 33 por 1695.00'),
-(53, 15, 'Venta registrada', '2025-11-28 18:11:25', '::1', 'Venta ID 34 por 1695.00'),
-(54, 15, 'Venta registrada', '2025-11-28 18:14:11', '::1', 'Venta ID 35 por 16950.00'),
-(55, 14, 'Venta registrada', '2025-11-28 18:16:34', '::1', 'Venta ID 36 por 1695.00'),
-(56, 14, 'Venta registrada', '2025-11-28 18:23:00', '::1', 'Venta ID 37 por 1695.00'),
-(57, 14, 'Venta registrada', '2025-11-28 18:26:01', '::1', 'Venta ID 38 por 1695.00'),
-(58, 14, 'Venta registrada', '2025-11-28 18:32:15', '::1', 'Venta ID 39 por 2034.00'),
-(59, 14, 'Venta registrada', '2025-11-28 18:39:04', '::1', 'Venta ID 40 por 1695.00'),
-(60, 3, 'Venta registrada', '2025-11-28 19:00:54', '::1', 'Venta ID 41 por 3390.00'),
-(61, 16, 'Usuario creado', '2025-11-28 19:21:25', '::1', 'Usuario: Oscar@gmail.com'),
-(62, 17, 'Usuario creado', '2025-11-28 19:23:41', '::1', 'Usuario: Oscar2@gmail.com'),
-(63, 16, 'Venta registrada', '2025-11-28 19:32:35', '::1', 'Venta ID 42 por 1695.00'),
-(64, 16, 'Venta registrada', '2025-11-28 19:35:41', '::1', 'Venta ID 43 por 4520.00'),
-(65, 14, 'Usuario actualizado', '2025-11-28 19:40:01', '::1', 'Usuario actualizado: josueacunaflores@gmail.com'),
-(66, 3, 'Gestión cita: registrar_llegada', '2025-11-28 19:40:36', '::1', 'Cita ID 14. Hora de llegada registrada'),
-(67, 20, 'Usuario creado', '2025-12-04 21:26:12', '::1', 'Usuario: Luis@utc.ac.cr'),
-(68, 3, 'Venta registrada', '2025-12-04 21:35:13', '::1', 'Venta ID 44 por 12204.00'),
-(69, 3, 'Venta registrada', '2025-12-04 21:35:47', '::1', 'Venta ID 45 por 1695.00'),
-(70, 21, 'Usuario creado', '2025-12-04 21:41:00', '::1', 'Usuario: Luissana@utc.ac.cr'),
-(71, 21, 'Venta registrada', '2025-12-04 21:55:14', '::1', 'Venta ID 58 por 6780.00');
+INSERT INTO `bitacoras` (`id_bitacora`, `id_usuario`, `accion`, `modulo`, `fecha`, `ip`, `user_agent`, `detalles`) VALUES
+(1, NULL, 'LOGIN_FAIL', 'login', '2025-12-11 19:28:47', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con correo no registrado: admin@gmail.com'),
+(2, 32, 'LOGIN_FAIL', 'login', '2025-12-11 19:31:42', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(3, 32, 'LOGIN_FAIL', 'login', '2025-12-11 19:31:47', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(4, 32, 'LOGIN_FAIL', 'login', '2025-12-11 19:32:16', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(5, 32, 'LOGIN_FAIL', 'login', '2025-12-11 19:32:30', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(6, 33, 'LOGIN', 'login', '2025-12-11 19:33:43', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(7, 33, 'LOGOUT', 'login', '2025-12-11 19:35:20', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(8, NULL, 'LOGIN_FAIL', 'login', '2025-12-11 19:35:28', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con correo no registrado: administrador@gmail.com'),
+(9, 34, 'LOGIN', 'login', '2025-12-11 19:37:28', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(10, 34, 'LOGOUT', 'login', '2025-12-11 19:37:56', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(11, 34, 'LOGIN', 'login', '2025-12-11 19:38:49', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(12, 34, 'Venta registrada', NULL, '2025-12-11 19:59:09', '::1', NULL, 'Venta ID 68 por 2712.00'),
+(13, 34, 'Venta registrada', NULL, '2025-12-11 20:06:41', '::1', NULL, 'Venta ID 70 por 10170.00'),
+(14, 34, 'Venta registrada', NULL, '2025-12-11 20:09:59', '::1', NULL, 'Venta ID 72 por 1356.00'),
+(15, 34, 'Venta registrada', NULL, '2025-12-11 20:15:16', '::1', NULL, 'Venta ID 73 por 10170.00'),
+(16, 34, 'Intento fallido de creación de producto', NULL, '2025-12-11 20:20:19', '::1', NULL, 'Producto duplicado: Ibuprofeno 600 mg'),
+(17, 34, 'Producto creado', NULL, '2025-12-11 20:21:07', '::1', NULL, 'Producto: Ibuprofeno 200 mg (cat 1)'),
+(18, 34, 'LOGOUT', 'login', '2025-12-11 20:22:38', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(19, 34, 'LOGIN', 'login', '2025-12-11 20:22:41', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(20, 34, 'Producto creado', NULL, '2025-12-11 20:24:11', '::1', NULL, 'Producto: Paracetamol 200 mg (cat 1)'),
+(21, 34, 'Intento fallido de creación de producto', 'Inventario - Crear producto', '2025-12-11 20:30:33', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto duplicado: Paracetamol 200 mg'),
+(22, 34, 'Intento fallido de creación de producto', 'Inventario - Crear producto', '2025-12-11 20:31:05', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto duplicado: Paracetamol 200 mg'),
+(23, 34, 'Intento fallido de creación de producto', 'Inventario - Crear producto', '2025-12-11 20:35:34', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto duplicado: Paracetamol 200 mg'),
+(24, 34, 'Producto creado', 'Inventario - Crear producto', '2025-12-11 20:55:34', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto: Anestesia Lidocaína 2% (cat 1)'),
+(25, NULL, 'Intento fallido de creación de usuario', NULL, '2025-12-11 21:07:54', '::1', NULL, 'Datos duplicados (email o identificación)'),
+(26, 36, 'Usuario creado', NULL, '2025-12-11 21:08:43', '::1', NULL, 'Usuario creado: Marianaflores@gmail.com (rol 2)'),
+(27, NULL, 'Intento fallido de creación de usuario', 'Gestión de usuarios - Crear usuario', '2025-12-11 21:13:42', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(28, 37, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-11 21:14:18', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: Zoraidaflores@gmail.com (rol 2)'),
+(29, 34, 'Cita agendada', NULL, '2025-12-11 21:49:05', '::1', NULL, 'Cita ID 22 para fecha 2025-12-27 09:00:00'),
+(30, 34, 'Cita agendada', NULL, '2025-12-11 21:50:47', '::1', NULL, 'Cita ID 23 para fecha 2025-12-31 12:30:00'),
+(31, 34, 'Cita agendada', 'agendar_cita', '2025-12-11 22:00:57', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cita ID 24 para fecha 2025-12-29 11:30:00'),
+(32, 34, 'Gestión cita: registrar_llegada', NULL, '2025-12-11 22:02:11', '::1', NULL, 'Cita ID 24. Hora de llegada registrada'),
+(33, 34, 'Gestión cita: iniciar_atencion', NULL, '2025-12-11 22:02:31', '::1', NULL, 'Cita ID 24. Hora de inicio registrada'),
+(34, 34, 'Gestión cita: finalizar_atencion', NULL, '2025-12-11 22:02:38', '::1', NULL, 'Cita ID 24. Hora de fin registrada'),
+(35, 34, 'Gestión cita: guardar_atencion', NULL, '2025-12-11 22:05:24', '::1', NULL, 'Cita ID 22. Atención guardada'),
+(36, 34, 'LOGOUT', 'login', '2025-12-11 22:05:54', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(37, 34, 'LOGIN', 'login', '2025-12-11 22:06:04', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(38, 34, 'LOGOUT', 'login', '2025-12-11 22:06:59', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(39, NULL, 'Intento fallido de creación de usuario', 'Registro público - Crear usuario', '2025-12-11 22:14:33', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(40, 39, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-11 22:16:26', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: recepcionista@gmail.com (rol 3)'),
+(41, NULL, 'Intento fallido de creación de usuario', 'Registro público - Crear usuario', '2025-12-11 22:16:35', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(42, 40, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-11 22:18:12', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: recepcionista2@gmail.com (rol 3)'),
+(43, NULL, 'Intento fallido de creación de usuario', 'Registro público - Crear usuario', '2025-12-11 22:23:54', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(44, 41, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-11 22:25:07', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: recepcionista3@gmail.com (rol 3)'),
+(45, 33, 'RECOVERY_REQUEST', 'login', '2025-12-11 22:31:44', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(46, 33, 'RECOVERY_REQUEST', 'login', '2025-12-11 22:34:02', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(47, 33, 'PASSWORD_RESET', 'login', '2025-12-11 22:35:52', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(48, 33, 'RECOVERY_REQUEST', 'login', '2025-12-11 22:35:58', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(49, 33, 'PASSWORD_RESET', 'login', '2025-12-11 22:36:04', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(50, 34, 'LOGIN', 'login', '2025-12-11 22:36:31', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(51, 34, 'LOGOUT', 'login', '2025-12-11 22:36:34', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(52, 33, 'LOGIN', 'login', '2025-12-11 22:36:52', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(53, 33, 'LOGOUT', 'login', '2025-12-11 22:37:13', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(54, 42, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-11 22:37:51', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: cliente@gmail.com (rol 3)'),
+(55, 42, 'LOGIN', 'login', '2025-12-11 22:38:07', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(56, 42, 'LOGOUT', 'login', '2025-12-11 22:39:07', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(57, 32, 'LOGIN_FAIL', 'login', '2025-12-11 22:39:10', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(58, 32, 'LOGIN_FAIL', 'login', '2025-12-11 22:39:27', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(59, 32, 'RECOVERY_REQUEST', 'login', '2025-12-11 22:39:34', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(60, 32, 'PASSWORD_RESET', 'login', '2025-12-11 22:39:45', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(61, 32, 'LOGIN', 'login', '2025-12-11 22:39:49', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(62, 32, 'LOGOUT', 'login', '2025-12-11 22:41:03', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(63, 34, 'LOGIN', 'login', '2025-12-11 22:41:23', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(64, 43, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-11 22:42:58', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: cliente4@cr.com (rol 3)'),
+(65, NULL, 'Intento fallido de creación de usuario', 'Gestión de usuarios - Crear usuario', '2025-12-11 22:43:12', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(66, 34, 'LOGOUT', 'login', '2025-12-11 22:44:08', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(67, 44, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-11 22:45:02', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: cliente5@gmail.com (rol 3)'),
+(68, 44, 'LOGIN', 'login', '2025-12-11 22:45:39', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(69, 44, 'LOGOUT', 'login', '2025-12-11 22:45:51', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(70, 34, 'LOGIN', 'login', '2025-12-11 22:46:32', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(71, 45, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-11 22:47:12', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: cliente6@cr.com (rol 3)'),
+(72, NULL, 'Intento fallido de creación de usuario', 'Gestión de usuarios - Crear usuario', '2025-12-11 22:52:44', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(73, 46, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-11 22:53:10', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: cliente7@cr.com (rol 3)'),
+(74, 47, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-11 23:07:11', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: cliente8@cr.com (rol 3)'),
+(75, 47, 'Usuario actualizado', 'gestion_usuarios', '2025-12-11 23:08:59', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario actualizado: cliente8@cr.com'),
+(76, 47, 'Usuario actualizado', 'gestion_usuarios', '2025-12-11 23:09:04', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario actualizado: cliente8@cr.com'),
+(77, 34, 'LOGOUT', 'login', '2025-12-11 23:09:20', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.');
 
 -- --------------------------------------------------------
 
@@ -539,14 +682,6 @@ CREATE TABLE `carrito` (
   `fecha_creacion` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Dumping data for table `carrito`
---
-
-INSERT INTO `carrito` (`id_carrito`, `id_usuario`, `fecha_creacion`) VALUES
-(1, 7, '2025-11-22 03:22:54'),
-(47, 21, '2025-12-05 03:57:07');
-
 -- --------------------------------------------------------
 
 --
@@ -559,14 +694,6 @@ CREATE TABLE `carrito_detalle` (
   `id_producto` int NOT NULL,
   `cantidad` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `carrito_detalle`
---
-
-INSERT INTO `carrito_detalle` (`id_detalle`, `id_carrito`, `id_producto`, `cantidad`) VALUES
-(1, 1, 2, 2),
-(63, 47, 10, 2);
 
 -- --------------------------------------------------------
 
@@ -611,16 +738,9 @@ CREATE TABLE `citas` (
 --
 
 INSERT INTO `citas` (`id_cita`, `id_cliente`, `id_odontologo`, `fecha_cita`, `estado`, `motivo`) VALUES
-(2, 8, 1, '2025-11-25 10:30:00', 'cancelada', 'Extraccion de muelas.'),
-(3, 8, 2, '2025-11-24 09:30:00', 'cancelada', 'Caries en varios dientes.'),
-(4, 8, 2, '2025-11-26 10:30:00', 'atendida', 'Revision general.'),
-(5, 8, 2, '2025-11-24 11:00:00', 'pendiente', 'Revision general.'),
-(6, 8, 2, '2025-11-24 08:00:00', 'atendida', ''),
-(10, 8, 2, '2025-12-01 09:00:00', 'atendida', ''),
-(11, 11, 2, '2025-12-03 13:00:00', 'atendida', 'Cita'),
-(12, 10, 2, '2025-12-03 09:00:00', 'atendida', ''),
-(13, 10, 5, '2025-11-28 14:30:00', 'atendida', ''),
-(14, 12, 6, '2025-11-29 10:00:00', 'atendida', 'Revision anual');
+(22, 16, 9, '2025-12-27 09:00:00', 'atendida', 'Revision General'),
+(23, 16, 9, '2025-12-31 12:30:00', 'cancelada', 'REvision'),
+(24, 16, 10, '2025-12-29 11:30:00', 'atendida', 'Extracción');
 
 -- --------------------------------------------------------
 
@@ -631,10 +751,6 @@ INSERT INTO `citas` (`id_cita`, `id_cliente`, `id_odontologo`, `fecha_cita`, `es
 CREATE TABLE `clientes` (
   `id_cliente` int NOT NULL,
   `id_usuario` int NOT NULL,
-  `nombre` varchar(100) NOT NULL,
-  `apellido` varchar(100) DEFAULT NULL,
-  `telefono` varchar(20) DEFAULT NULL,
-  `correo` varchar(120) DEFAULT NULL,
   `fecha_registro` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -642,15 +758,15 @@ CREATE TABLE `clientes` (
 -- Dumping data for table `clientes`
 --
 
-INSERT INTO `clientes` (`id_cliente`, `id_usuario`, `nombre`, `apellido`, `telefono`, `correo`, `fecha_registro`) VALUES
-(8, 8, 'Brayan Aguilar', '', '85743426', 'brayan@gmail.com', '2025-11-23 10:59:41'),
-(9, 3, 'Admin', 'Admin', '85102283', 'admin@gmail.com', '2025-11-24 09:43:25'),
-(10, 9, 'Valeria', 'Bolanos', '85743422', 'valeria@hotmail.com', '2025-11-24 09:43:25'),
-(11, 10, 'Pandora', 'Aguilar', '817743429', 'pandora@gmail.com', '2025-11-24 09:43:25'),
-(12, 14, 'Josue Acuna Flores', '', '62043116', 'josueacunaflores@gmail.com', '2025-11-28 13:46:27'),
-(13, 15, 'Isaac Rodriguez', '', '85102283', 'isaac@gmail.com', '2025-11-28 18:04:15'),
-(14, 16, 'Oscar Marin Oconor', '', '87898789', 'Oscar@gmail.com', '2025-11-28 19:32:34'),
-(15, 21, 'Luis Barquero Sanabria', '', '+50662658945', 'Luissana@utc.ac.cr', '2025-12-04 21:44:15');
+INSERT INTO `clientes` (`id_cliente`, `id_usuario`, `fecha_registro`) VALUES
+(16, 34, '2025-12-11 19:59:01'),
+(17, 37, '2025-12-11 21:25:27'),
+(18, 36, '2025-12-11 21:54:10'),
+(19, 41, '2025-12-11 22:25:08'),
+(20, 42, '2025-12-11 22:37:51'),
+(21, 44, '2025-12-11 22:45:02'),
+(22, 46, '2025-12-11 22:53:10'),
+(23, 47, '2025-12-11 23:07:11');
 
 -- --------------------------------------------------------
 
@@ -674,54 +790,10 @@ CREATE TABLE `detalle_venta` (
 --
 
 INSERT INTO `detalle_venta` (`id_detalle`, `id_venta`, `id_producto`, `id_lote`, `cantidad`, `precio_unitario`, `total`, `descuento`) VALUES
-(1, 1, 5, NULL, 1, 20000.00, 20000.00, 0.00),
-(2, 2, 5, NULL, 1, 20000.00, 20000.00, 0.00),
-(3, 2, 5, NULL, 1, 20000.00, 20000.00, 0.00),
-(4, 3, 9, NULL, 1, 1000.00, 1000.00, 0.00),
-(5, 4, 4, NULL, 9, 2000.00, 18000.00, 0.00),
-(6, 5, 6, NULL, 5, 4000.00, 20000.00, 0.00),
-(7, 6, 5, NULL, 10, 20000.00, 200000.00, 0.00),
-(8, 8, 10, NULL, 3, 2000.00, 6000.00, 0.00),
-(9, 9, 10, NULL, 2, 2000.00, 4000.00, 0.00),
-(10, 10, 5, NULL, 1, 20000.00, 20000.00, 0.00),
-(11, 11, 10, NULL, 1, 2000.00, 2000.00, 0.00),
-(12, 12, 11, NULL, 2, 2625.00, 7000.00, 0.00),
-(13, 13, 11, NULL, 3, 2625.00, 10500.00, 0.00),
-(14, 14, 10, NULL, 1, 1500.00, 2000.00, 0.00),
-(15, 15, 10, NULL, 3, 1500.00, 4500.00, 0.00),
-(16, 16, 10, NULL, 3, 1500.00, 4500.00, 0.00),
-(17, 17, 10, NULL, 3, 2000.00, 6000.00, 0.00),
-(18, 18, 10, NULL, 4, 2000.00, 8000.00, 0.00),
-(19, 18, 11, NULL, 5, 3500.00, 17500.00, 0.00),
-(20, 19, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(21, 20, 5, NULL, 2, 15000.00, 30000.00, 0.00),
-(22, 21, 10, NULL, 2, 2000.00, 2000.00, 0.00),
-(23, 22, 10, NULL, 2, 2000.00, 2000.00, 0.00),
-(24, 23, 10, NULL, 2, 2000.00, 2000.00, 0.00),
-(25, 24, 10, NULL, 2, 1500.00, 3000.00, 0.00),
-(26, 25, 10, NULL, 2, 2000.00, 4000.00, 0.00),
-(27, 26, 10, NULL, 1, 2000.00, 2000.00, 0.00),
-(28, 27, 10, NULL, 1, 2000.00, 2000.00, 0.00),
-(29, 28, 10, NULL, 1, 2000.00, 2000.00, 0.00),
-(30, 29, 17, NULL, 1, 2500.00, 2500.00, 0.00),
-(31, 30, 18, NULL, 2, 1800.00, 3600.00, 0.00),
-(32, 31, 18, NULL, 1, 1800.00, 1800.00, 0.00),
-(33, 31, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(34, 32, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(35, 33, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(36, 34, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(37, 35, 5, NULL, 1, 15000.00, 15000.00, 0.00),
-(38, 36, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(39, 37, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(40, 38, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(41, 39, 18, NULL, 1, 1800.00, 1800.00, 0.00),
-(42, 40, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(43, 41, 10, NULL, 2, 1500.00, 3000.00, 0.00),
-(44, 42, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(45, 43, 6, NULL, 1, 4000.00, 4000.00, 0.00),
-(46, 44, 18, NULL, 6, 1800.00, 10800.00, 0.00),
-(47, 45, 10, NULL, 1, 1500.00, 1500.00, 0.00),
-(48, 58, 10, NULL, 4, 1500.00, 6000.00, 0.00);
+(52, 68, 41, NULL, 2, 1200.00, 2400.00, 0.00),
+(53, 70, 33, NULL, 1, 9000.00, 9000.00, 0.00),
+(54, 72, 41, NULL, 1, 1200.00, 1200.00, 0.00),
+(55, 73, 33, NULL, 1, 9000.00, 9000.00, 0.00);
 
 -- --------------------------------------------------------
 
@@ -731,7 +803,6 @@ INSERT INTO `detalle_venta` (`id_detalle`, `id_venta`, `id_producto`, `id_lote`,
 
 CREATE TABLE `historial_clinico` (
   `id_historial` int NOT NULL,
-  `id_cliente` int NOT NULL,
   `id_cita` int NOT NULL,
   `descripcion` text,
   `fecha` datetime DEFAULT CURRENT_TIMESTAMP
@@ -772,8 +843,9 @@ CREATE TABLE `lote_producto` (
 --
 
 INSERT INTO `lote_producto` (`id_lote`, `id_producto`, `numero_lote`, `fecha_caducidad`, `cantidad`) VALUES
-(1, 9, '20506', '2025-11-27', 1),
-(2, 10, '2006', '2025-11-28', 50);
+(4, 42, '123456', '2026-06-30', 100),
+(5, 43, '123455', '2026-01-30', 500),
+(6, 44, '32131564', '2026-01-30', 500);
 
 -- --------------------------------------------------------
 
@@ -783,24 +855,19 @@ INSERT INTO `lote_producto` (`id_lote`, `id_producto`, `numero_lote`, `fecha_cad
 
 CREATE TABLE `odontologos` (
   `id_odontologo` int NOT NULL,
-  `nombre` varchar(100) NOT NULL,
-  `apellido` varchar(100) DEFAULT NULL,
-  `especialidad` varchar(100) DEFAULT NULL,
-  `telefono` varchar(20) DEFAULT NULL,
-  `correo` varchar(120) DEFAULT NULL,
-  `id_usuario` int DEFAULT NULL
+  `id_usuario` int NOT NULL,
+  `estado` enum('ACTIVO','INACTIVO') NOT NULL DEFAULT 'ACTIVO'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `odontologos`
 --
 
-INSERT INTO `odontologos` (`id_odontologo`, `nombre`, `apellido`, `especialidad`, `telefono`, `correo`, `id_usuario`) VALUES
-(1, 'isaac Rodríguez Víquez', '', 'Odontología General', '85102283', 'viquezisaac373@gmail.com', 2),
-(2, 'Monserrath Bolaños Alfaro', '', 'Odontología General', '86743429', 'monserrath@gmail.com', 5),
-(4, 'Carey Aguilar', '', 'Odontología General', '85753421', 'carey@gmail.com', 6),
-(5, 'Pandora Aguilar', '', 'Odontología General', '817743429', 'pandora@gmail.com', 10),
-(6, 'Hector Castro', '', 'Odontología General', '87654376', 'Hector@gmail.com', 12);
+INSERT INTO `odontologos` (`id_odontologo`, `id_usuario`, `estado`) VALUES
+(9, 36, 'INACTIVO'),
+(10, 37, 'ACTIVO'),
+(11, 46, 'INACTIVO'),
+(12, 47, 'INACTIVO');
 
 -- --------------------------------------------------------
 
@@ -823,9 +890,10 @@ CREATE TABLE `pagos` (
 --
 
 INSERT INTO `pagos` (`id_pago`, `id_venta`, `monto`, `fecha_pago`, `metodo`, `digitos_tarjeta`, `vencimiento`) VALUES
-(1, 44, 12204.00, '2025-12-04 21:35:13', 'Tarjeta', '1234', '2025-12'),
-(2, 45, 1695.00, '2025-12-04 21:35:47', 'Tarjeta', '3216', '2025-12'),
-(3, 58, 6780.00, '2025-12-04 21:55:14', 'Tarjeta', '6513', '2026-11');
+(7, 68, 2712.00, '2025-12-11 19:59:09', 'Tarjeta', '5498', '2025-12'),
+(8, 70, 10170.00, '2025-12-11 20:06:41', 'Tarjeta', '1351', '2025-12'),
+(9, 72, 1356.00, '2025-12-11 20:09:59', 'Tarjeta', '9879', '2025-12'),
+(10, 73, 10170.00, '2025-12-11 20:15:16', 'Tarjeta', '4684', '2025-12');
 
 -- --------------------------------------------------------
 
@@ -882,21 +950,19 @@ CREATE TABLE `productos` (
 --
 
 INSERT INTO `productos` (`id_producto`, `nombre`, `descripcion`, `unidad`, `id_categoria`, `precio`, `costo_unidad`, `stock_total`, `stock_minimo`, `fecha_creacion`, `actualizado_en`, `fecha_caducidad`, `estado`, `descuento`) VALUES
-(1, 'Anestesia', 'Anestesia general', 'PC', 1, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:36:51', '2025-11-28 02:49:43', '2026-01-15', 'activo', 0.00),
-(2, 'Anestesiate', 'Anestesia servicio', 'PC', 2, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:37:44', '2025-11-28 02:49:48', '2026-01-15', 'activo', 0.00),
-(3, 'Anestesiate3', 'Anestesia servicio', 'PC', 4, 10000.00, 1000000.00, 2, 1, '2025-11-18 21:45:33', '2025-11-28 02:49:52', '2026-01-15', 'activo', 0.00),
-(4, 'Fluor', 'Producto para la prevención de caries y el fortalecimiento de dientes.', 'PC', 1, 2000.00, 1500.00, 1, 1, '2025-11-21 17:57:26', '2025-11-28 02:49:17', '2025-12-21', 'activo', 0.00),
-(5, 'Revision General', 'Revision general del estado del paciente. ', 'Hora', 2, 20000.00, 20000.00, 14, 0, '2025-11-21 17:58:48', '2025-11-29 00:14:11', '2025-11-21', 'activo', 0.00),
-(6, 'Fluor', 'Evitar caries. ', 'Litro', 1, 4000.00, 500.00, 4, 1, '2025-11-23 14:24:30', '2025-11-29 01:35:41', '2025-11-30', 'activo', 0.00),
-(7, 'Jeringa', 'Uso diario.', 'Caja', 4, 1000.00, 200.00, 20, 1, '2025-11-23 14:25:49', '2025-11-23 20:25:49', '2025-11-16', 'activo', 0.00),
-(8, 'Resina', 'Para arreglar quebraduras.', 'Litro', 3, 15000.00, 5000.00, 50, 10, '2025-11-24 11:21:20', '2025-11-24 17:21:20', '2026-01-30', 'activo', 0.00),
-(9, 'Mariguanol', 'unguento', 'Frasco', 1, 1000.00, 500.00, 0, 40, '2025-11-27 19:39:11', '2025-11-28 01:57:00', '2025-11-27', 'activo', 0.00),
-(10, 'Vicodin', 'Anestésico', 'Frasco', 1, 2000.00, 1500.00, 50, 50, '2025-11-27 20:54:44', '2025-12-05 03:55:14', '2025-11-28', 'activo', 0.00),
-(11, 'Pasta Dental Colgate', 'Pasta dental con flúor para protección completa', 'Unidad', 5, 3500.00, 2000.00, 40, 10, '2025-11-28 12:23:28', '2025-11-28 19:46:27', '2026-12-31', 'activo', 0.00),
-(14, 'Enjuague Bucal Listerine', 'Enjuague bucal antiséptico 500ml', 'Botella', 5, 4500.00, 2500.00, 30, 8, '2025-11-28 12:23:28', '2025-11-28 18:23:28', '2026-09-30', 'activo', 0.00),
-(15, 'Blanqueador Dental', 'Kit de blanqueamiento dental profesional', 'Kit', 5, 12000.00, 7000.00, 15, 5, '2025-11-28 12:23:28', '2025-11-28 18:23:28', '2026-03-31', 'activo', 0.00),
-(17, 'Cepillo Dental Oral-B', 'Cepillo dental de cerdas suaves', 'Unidad', 5, 2500.00, 1500.00, 39, 10, '2025-11-28 14:47:41', '2025-11-28 21:12:45', '2027-01-31', 'activo', 0.00),
-(18, 'Hilo Dental', 'Hilo dental encerado 50m', 'Unidad', 5, 1800.00, 1000.00, 50, 15, '2025-11-28 14:47:41', '2025-12-05 03:35:13', '2026-06-30', 'activo', 0.00);
+(32, 'Articaína 4% con epinefrina', 'Anestésico local en carpules de 1.7 ml para procedimientos odontológicos.', 'caja (50 carpules)', 1, 55000.00, 35000.00, 5, 2, '2025-12-11 19:48:36', '2025-12-12 01:48:36', '2026-12-31', 'activo', 0.00),
+(33, 'Ibuprofeno 600 mg', 'Tabletas de ibuprofeno 600 mg para manejo del dolor postoperatorio.', 'caja (30 tabletas)', 1, 9000.00, 5500.00, 10, 4, '2025-12-11 19:48:36', '2025-12-12 02:15:16', '2026-06-30', 'activo', 0.00),
+(34, 'Consulta odontológica general', 'Consulta de valoración odontológica con historia clínica básica.', 'servicio', 2, 15000.00, 0.00, 0, 0, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
+(35, 'Limpieza dental profesional', 'Profilaxis completa con ultrasonido y pulido dental.', 'servicio', 2, 25000.00, 0.00, 0, 0, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
+(36, 'Unidad dental completa', 'Unidad dental con lámpara, bandeja y sistema de succión integrado.', 'unidad', 3, 1500000.00, 1100000.00, 1, 0, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
+(37, 'Compresor odontológico silencioso', 'Compresor de aire silencioso para consultorio odontológico.', 'unidad', 3, 600000.00, 420000.00, 1, 0, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
+(38, 'Espejo bucal #4', 'Espejo bucal metálico #4, reutilizable y esterilizable.', 'unidad', 4, 2500.00, 1200.00, 30, 10, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
+(39, 'Fórceps 151 para inferiores', 'Fórceps dental 151 para extracciones de piezas inferiores.', 'unidad', 4, 38000.00, 22000.00, 4, 1, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
+(40, 'Cepillo dental adulto suave', 'Cepillo dental de cerdas suaves para uso domiciliario.', 'unidad', 5, 1500.00, 700.00, 60, 15, '2025-12-11 19:48:36', '2025-12-12 01:48:36', '2027-12-31', 'activo', 0.00),
+(41, 'Hilo dental con cera', 'Hilo dental con cera, presentación individual.', 'unidad', 5, 1200.00, 600.00, 77, 20, '2025-12-11 19:48:36', '2025-12-12 02:09:59', '2027-12-31', 'activo', 0.00),
+(42, 'Ibuprofeno 200 mg', 'Tabletas de ibuprofeno 600 mg para manejo del dolor postoperatorio.', 'caja (30 tabletas)', 1, 9000.00, 5500.00, 100, 4, '2025-12-11 20:21:07', '2025-12-12 02:21:07', '2026-06-30', 'activo', 0.00),
+(43, 'Paracetamol 200 mg', 'Tabletas de paracetamol 200mg para manejo del dolor postoperatorio.', 'caja (30 tabletas)', 1, 800.00, 500.00, 500, 100, '2025-12-11 20:24:11', '2025-12-12 02:24:11', '2026-01-30', 'activo', 0.00),
+(44, 'Anestesia Lidocaína 2%', 'Carpules de lidocaína al 2% con epinefrina 1:100,000', 'caja', 1, 8500.00, 6000.00, 500, 10, '2025-12-11 20:55:34', '2025-12-12 02:55:34', '2026-01-30', 'activo', 0.00);
 
 -- --------------------------------------------------------
 
@@ -917,15 +983,6 @@ CREATE TABLE `promociones` (
   `creado_por` int NOT NULL COMMENT 'Usuario que creó la promoción'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Campañas promocionales estacionales';
 
---
--- Dumping data for table `promociones`
---
-
-INSERT INTO `promociones` (`id_promocion`, `nombre`, `descripcion`, `tipo_descuento`, `valor_descuento`, `fecha_inicio`, `fecha_fin`, `activo`, `fecha_creacion`, `creado_por`) VALUES
-(1, 'Black Friday 2025', 'Descuento especial del 25% en productos seleccionados', 'porcentaje', 25.00, '2025-11-30 00:00:00', '2025-12-05 14:48:55', 1, '2025-11-28 14:48:06', 7),
-(2, 'Navidad 2025', 'Descuento de ₡3000 en productos de higiene', 'monto_fijo', 3000.00, '2025-12-15 00:00:00', '2025-12-25 23:59:59', 1, '2025-11-28 14:48:06', 7),
-(3, 'Año Nuevo 2026', 'Comienza el año con una sonrisa - 15% de descuento', 'porcentaje', 15.00, '2026-01-01 00:00:00', '2026-01-07 23:59:59', 1, '2025-11-28 14:48:06', 7);
-
 -- --------------------------------------------------------
 
 --
@@ -939,17 +996,18 @@ CREATE TABLE `promocion_productos` (
   `fecha_asignacion` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Productos incluidos en promociones';
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `promocion_productos`
+-- Table structure for table `restablecer_contrasenas`
 --
 
-INSERT INTO `promocion_productos` (`id_promocion_producto`, `id_promocion`, `id_producto`, `fecha_asignacion`) VALUES
-(1, 1, 5, '2025-11-28 14:48:24'),
-(2, 1, 9, '2025-11-28 14:48:24'),
-(3, 1, 10, '2025-11-28 14:48:24'),
-(4, 1, 11, '2025-11-28 14:48:24'),
-(7, 3, 5, '2025-11-28 14:48:24'),
-(8, 3, 9, '2025-11-28 14:48:24');
+CREATE TABLE `restablecer_contrasenas` (
+  `id` int NOT NULL,
+  `id_usuario` int NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `expira` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -985,34 +1043,6 @@ CREATE TABLE `rol_permisos` (
   `id_permiso` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Dumping data for table `rol_permisos`
---
-
-INSERT INTO `rol_permisos` (`id_rol_permiso`, `id_rol`, `id_permiso`) VALUES
-(1, 3, 1),
-(2, 3, 2),
-(3, 3, 3),
-(4, 1, 1),
-(5, 1, 2),
-(6, 1, 3),
-(7, 1, 4),
-(8, 1, 5),
-(9, 1, 6),
-(10, 1, 7),
-(11, 2, 1),
-(12, 2, 2),
-(13, 2, 8),
-(14, 4, 1),
-(15, 4, 2),
-(16, 4, 3),
-(17, 4, 8),
-(18, 3, 9),
-(19, 2, 9),
-(20, 4, 9),
-(21, 1, 8),
-(22, 4, 8);
-
 -- --------------------------------------------------------
 
 --
@@ -1021,7 +1051,9 @@ INSERT INTO `rol_permisos` (`id_rol_permiso`, `id_rol`, `id_permiso`) VALUES
 
 CREATE TABLE `usuarios` (
   `id_usuario` int NOT NULL,
-  `nombre_completo` varchar(100) NOT NULL,
+  `nombre` varchar(100) DEFAULT NULL,
+  `apellido1` varchar(100) DEFAULT NULL,
+  `apellido2` varchar(100) DEFAULT NULL,
   `email` varchar(120) NOT NULL,
   `telefono` varchar(20) DEFAULT NULL,
   `identificacion` varchar(50) NOT NULL,
@@ -1035,27 +1067,21 @@ CREATE TABLE `usuarios` (
 -- Dumping data for table `usuarios`
 --
 
-INSERT INTO `usuarios` (`id_usuario`, `nombre_completo`, `email`, `telefono`, `identificacion`, `tipo_doc`, `password`, `id_rol`, `fecha_creacion`) VALUES
-(2, 'isaac Rodríguez Víquez', 'viquezisaac373@gmail.com', '85102283', '208630471', '', '$2y$12$Z5fUbAyvOplt6tMfRzZU0u9W0fFiY1eYq7tl0oSOE5E2vSm3Jo0L2', 2, '2025-11-19 17:20:08'),
-(3, 'Admin', 'admin@gmail.com', '85102283', '1512356213', '', '$2y$12$7hX2eSPgIfJ4aGEHehJNze6BGBBF0IeR9vrG.XthD2DVgXOiyT8GG', 1, '2025-11-19 17:39:46'),
-(4, 'admin2', 'admin298@gmail.com', '124387365', '123456789', '', '$2y$12$D/iF9YxUXRsIQarahDNrb.Rw54O1XDvVSqN.AoAMULFS2uqiWRwWS', 4, '2025-11-19 17:46:20'),
-(5, 'Monserrath Bolaños Alfaro', 'monserrath@gmail.com', '86743429', '207870964', '', '$2y$12$S/wmxfTRiTBbjplYLM3JF.4G1Rm0CATrHVVLx/dh6HCJ/8T6uJ4OS', 2, '2025-11-19 19:11:49'),
-(6, 'Carey Aguilar', 'carey@gmail.com', '85753421', '27870961', '', '$2y$12$1.Lj3WgQ0pV7ms//2LiJOuDVqJyfGfZidkQTbE4EeSYqlpSJplnXe', 2, '2025-11-20 14:29:12'),
-(7, 'Veronica Alfaro', 'veronica@gmail.com', '83213475', '205020970', '', '$2y$12$aTeFhIr4ojmUl8qBHaPBEOQiJNI2GkOLW9DRcnxrdVbdyZpEPRq3u', 1, '2025-11-20 14:51:42'),
-(8, 'Brayan Aguilar', 'brayan@gmail.com', '85743426', '207870973', '', '$2y$12$O5ZVhb3jZx27z.pfNjgNc.1SgtVLBZIXwMwC58PL8a4aCrGytno9S', 3, '2025-11-23 10:57:39'),
-(9, 'Valeria Bolanos', 'valeria@hotmail.com', '85743422', '207870912', '', '$2y$12$omXuF294aj/yYx2sglVEXubXvNzFDrOkIylBzlgw0NDX/0X7M841u', 3, '2025-11-23 18:59:24'),
-(10, 'Pandora Aguilar', 'pandora@gmail.com', '817743429', '107870964', '', '$2y$12$KN.6C2bPrtnMAKGs2bdm5OQuQv6o.HYODESmWeqj3CmvheShqbyQW', 2, '2025-11-24 09:36:53'),
-(11, 'Sofia Castro', 'sofia@gmail.com', '24947678', '107870961', '', '$2y$12$aVstIjAcNadhgeEny37vyO06cJ1/.4icwxtHnyAGBqm6qFFoh1mRS', 1, '2025-11-24 10:11:16'),
-(12, 'Hector Castro', 'Hector@gmail.com', '87654376', '107870962', '', '$2y$12$ENsjdHyacbLhB8Xcs6.9lOmFGzNBodoJNIyV.onZi/74DszG7UyBe', 2, '2025-11-24 10:12:10'),
-(13, 'Ariana Garita', 'ariana@gmail.com', '83213466', '107870967', '', '$2y$12$6KE5I6OdQUdy0SdqoVcTveO7WGVqMaWQELeTqAGGhGLJ9yZ.0IDai', 4, '2025-11-24 10:12:54'),
-(14, 'Josue Acuna Flores', 'josueacunaflores@gmail.com', '62043116', '2-0782-0616', 'Cedula', '$2y$12$rI4lgPKTFpnbtiOVfENNB.kkHkCGZsFi/f4rqNFcR2tnUzwkrvZuq', 1, '2025-11-28 13:14:26'),
-(15, 'Isaac Rodriguez', 'isaac@gmail.com', '85102283', '208637471', '', '$2y$12$yLYIeQR9S9VYx3wlJ2sFKOdpUdfdcR3vVlPwN6ciSMcjv7hcr665y', 3, '2025-11-28 18:02:16'),
-(16, 'Oscar Marin Oconor', 'Oscar@gmail.com', '87898789', '207207207a', '', '$2y$12$dMBWnHkmzH/ym3Pb4fR2HuNvTn29DEmdf/6BJcQPuXeDO9LbkNHUi', 3, '2025-11-28 19:21:25'),
-(17, 'Oscar', 'Oscar2@gmail.com', '87898789a', '207207207', '', '$2y$12$pEqgODBR6OMzoFGKPR6A.enmgZNYME3eQk0KwsLUoa2YCIuPCmU5y', 3, '2025-11-28 19:23:41'),
-(18, 'Juan Pérez', 'juan@email.com', '8888-8888', '1-2345-6789', 'Cedula', '123456', 1, '2025-12-04 20:05:26'),
-(19, 'Carlos Villagran', 'carlos@villa.com', '62626262', '12345678A', 'DIMEX', '$2y$12$H4i.qkelVqPITsX6XXfJ6.vKdKh79UZEAl.d/3CAenYJwt/Deiou2', 3, '2025-12-04 20:42:57'),
-(20, 'Luis Barquero Villalobos', 'Luis@utc.ac.cr', '65986598', '7896543', 'PASAPORTE', '$2y$12$Xiq0PPoYI7Fkgc8daPFBLubviYYfIwyMfRi9a0llpgCXN4K9ZOl6G', 4, '2025-12-04 21:26:12'),
-(21, 'Luis Barquero Sanabria', 'Luissana@utc.ac.cr', '+50662658945', '98765432A', 'DIMEX', '$2y$12$ASXdf5RQOvv/9l4eBp5ws.MynnYL0qzYbE87qrllfOSWHNqYLvM/q', 3, '2025-12-04 21:41:00');
+INSERT INTO `usuarios` (`id_usuario`, `nombre`, `apellido1`, `apellido2`, `email`, `telefono`, `identificacion`, `tipo_doc`, `password`, `id_rol`, `fecha_creacion`) VALUES
+(32, 'Admin', 'test', 'test', 'admin@gmail.com', '+50688888888', '1-1111-1111', 'CEDULA', '$2y$12$0Zqkrl1EY35XuvG0ff96Ae/dG65io6/dIIdhVI27AAkLTX4oHQ2pO', 3, '2025-12-11 19:31:05'),
+(33, 'Josue', 'Acuna', 'Flores', 'josueacunaflores@gmail.com', '+50662043116', '2-0782-0616', 'CEDULA', '$2y$12$nw6VWZpk/tJln6ZRDfATuuxI/O34QJpVn7P2qMmWYbybfY/CYSkhe', 3, '2025-12-11 19:33:34'),
+(34, 'Administrador', 'admin', 'admin', 'administrador@gmail.com', '+50688899999', '1-2345-6789', 'CEDULA', '$2y$12$xOjruwCFYZAbspE8kclipuH541ugXJqRQ6MVUdbEYkn8hnbXKWB0q', 1, '2025-12-11 19:36:54'),
+(36, 'Mariana', 'Flores', 'Lara', 'Marianaflores@gmail.com', '+506656565651', '1-0253-7986', 'CEDULA', '$2y$12$KzlkRZSL6fDFobeASkdKxeIWkFzgvOp8NyBD6lvJXjI0JSPexxEwC', 3, '2025-12-11 21:08:43'),
+(37, 'Zoraida', 'Flores', 'Mena', 'Zoraidaflores@gmail.com', '+506656565653', '1-0253-7987', 'CEDULA', '$2y$12$9Aazxb856f/T/EvLLB2LtehoJipFR058LYyczxKJHTL7ioxn6Vgjm', 2, '2025-12-11 21:14:18'),
+(39, 'Recepcionista', 'test', 'test', 'recepcionista@gmail.com', '+50689568956', '6-1234-6456', 'CEDULA', '$2y$12$D/TnZQiVCrN4TRFJsHicn./dUP8M8zhQvViONZse8GeO7poRLnpA.', 3, '2025-12-11 22:16:26'),
+(40, 'Recepcionista2', 'test', 'test', 'recepcionista2@gmail.com', '+5068956832', '6-1234-6458', 'CEDULA', '$2y$12$o588BQrvfch0xT4onp3pO.FLqhRxqynPGv6bv/6P87koWsi1tpQV6', 3, '2025-12-11 22:18:12'),
+(41, 'Recepcionista3', 'test', 'test', 'recepcionista3@gmail.com', '+5068956830', '6-1234-6454', 'CEDULA', '$2y$12$P1e9f42RzGTVd5Ny.1D1puLttqTQcaTOn4hWiiGLeJcO662ZyI3dO', 3, '2025-12-11 22:25:07'),
+(42, 'Cliente', 'test', 'test', 'cliente@gmail.com', '+50602020323', '1231321', 'PASAPORTE', '$2y$12$6nOR.EVFxfyF2JKvE9w4AummVvmbNpnNNHB4tmYAe1T9UVgDz625u', 3, '2025-12-11 22:37:51'),
+(43, 'Cliente4', 'test', 'test', 'cliente4@cr.com', '+5061223535', '1-2078-0613', 'CEDULA', '$2y$12$spotHUiBkP1YThzzueiyye9j70bqWV6xyla5iGrHb1zwsF0ht68za', 3, '2025-12-11 22:42:58'),
+(44, 'Cliente5', 'test', 'test', 'cliente5@gmail.com', '+50602020365', '13213513A', 'DIMEX', '$2y$12$SgYOFiGEgivuM.wVSPFLkuvdNpV7WLaxNUw4aykj6ozCYvE1IF9zC', 3, '2025-12-11 22:45:02'),
+(45, 'cliente6', 'test', 'test', 'cliente6@cr.com', '+5061223545', '6543135', 'PASAPORTE', '$2y$12$Spf/89nWyHZT5q88F7Ns3e.SuyxbE0.h36iy9f0AZKDhe02dDz32u', 3, '2025-12-11 22:47:12'),
+(46, 'cliente7', 'test', 'test', 'cliente7@cr.com', '+5061223543', '6543134', 'PASAPORTE', '$2y$12$JhBzSD0TKswbvAYhPJxwWO/9DnUqIazeUwAXrrONrFrCDy4AFG28u', 4, '2025-12-11 22:53:10'),
+(47, 'cliente8', 'test', 'test', 'cliente8@cr.com', '+5061223543', 'a3213513', 'PASAPORTE', '$2y$12$YFRzrFfAwFpFen.SreDrfez2YYUc9Qlp.Kccg9F0Ysf626HrnWl9i', 3, '2025-12-11 23:07:11');
 
 -- --------------------------------------------------------
 
@@ -1080,66 +1106,13 @@ CREATE TABLE `ventas` (
 --
 
 INSERT INTO `ventas` (`id_venta`, `id_usuario`, `id_cliente`, `fecha_venta`, `subtotal`, `impuestos`, `total`, `metodo_pago`, `estado`) VALUES
-(1, 8, 8, '2025-11-23 10:59:41', 20000.00, 0.00, 20000.00, 'Tarjeta', 1),
-(2, 9, 9, '2025-11-24 11:37:15', 20000.00, 0.00, 20000.00, 'Tarjeta', 1),
-(3, 3, 9, '2025-11-27 19:57:00', 1000.00, 0.00, 1000.00, 'Tarjeta', 1),
-(4, 3, 9, '2025-11-27 20:39:32', 18000.00, 0.00, 18000.00, 'Tarjeta', 1),
-(5, 3, 9, '2025-11-27 20:41:16', 20000.00, 0.00, 20000.00, 'Tarjeta', 1),
-(6, 3, 9, '2025-11-27 21:21:25', 200000.00, 0.00, 200000.00, 'Tarjeta', 1),
-(7, 3, 9, '2025-11-27 21:30:47', 4000.00, 0.00, 4000.00, 'Tarjeta', 1),
-(8, 3, 9, '2025-11-27 21:32:36', 6000.00, 0.00, 6000.00, 'Tarjeta', 1),
-(9, 3, 9, '2025-11-27 21:39:15', 4000.00, 0.00, 4000.00, 'Tarjeta', 1),
-(10, 3, 9, '2025-11-28 12:09:25', 20000.00, 0.00, 20000.00, 'Tarjeta', 1),
-(11, 3, 9, '2025-11-28 12:31:25', 2000.00, 0.00, 2000.00, 'Tarjeta', 1),
-(12, 3, 9, '2025-11-28 12:39:00', 7000.00, 0.00, 7000.00, 'Tarjeta', 1),
-(13, 3, 9, '2025-11-28 12:43:15', 10500.00, 0.00, 10500.00, 'Tarjeta', 1),
-(14, 3, 9, '2025-11-28 12:48:54', 2000.00, 0.00, 2000.00, 'Tarjeta', 1),
-(15, 3, 9, '2025-11-28 12:59:51', 4500.00, 390.00, 3390.00, 'Tarjeta', 1),
-(16, 3, 9, '2025-11-28 13:08:09', 4500.00, 390.00, 3390.00, 'Tarjeta', 1),
-(17, 3, 9, '2025-11-28 13:13:03', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(18, 14, 12, '2025-11-28 13:46:27', 25500.00, 3315.00, 28815.00, 'Tarjeta', 1),
-(19, 14, 12, '2025-11-28 13:49:20', 1500.00, 130.00, 1130.00, 'Tarjeta', 1),
-(20, 14, 12, '2025-11-28 13:54:47', 30000.00, 2600.00, 22600.00, 'Tarjeta', 1),
-(21, 14, 12, '2025-11-28 14:13:02', 3000.00, 260.00, 2260.00, 'Tarjeta', 1),
-(22, 14, 12, '2025-11-28 14:27:41', 3000.00, 260.00, 2260.00, 'Tarjeta', 1),
-(23, 14, 12, '2025-11-28 14:42:28', 3000.00, 260.00, 2260.00, 'Tarjeta', 1),
-(24, 14, 12, '2025-11-28 14:59:33', 3000.00, 390.00, 3390.00, 'Tarjeta', 1),
-(25, 14, 12, '2025-11-28 15:00:44', 4000.00, 520.00, 4520.00, 'Tarjeta', 1),
-(26, 14, 12, '2025-11-28 15:06:39', 2000.00, 260.00, 2260.00, 'Tarjeta', 1),
-(27, 14, 12, '2025-11-28 15:10:01', 2000.00, 260.00, 2260.00, 'Tarjeta', 1),
-(28, 14, 12, '2025-11-28 15:12:26', 2000.00, 260.00, 2260.00, 'Tarjeta', 1),
-(29, 14, 12, '2025-11-28 15:12:45', 2500.00, 325.00, 2825.00, 'Tarjeta', 1),
-(30, 14, 12, '2025-11-28 16:31:40', 3600.00, 468.00, 4068.00, 'Tarjeta', 1),
-(31, 14, 12, '2025-11-28 16:35:12', 3300.00, 429.00, 3729.00, 'Tarjeta', 1),
-(32, 14, 12, '2025-11-28 16:36:27', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(33, 15, 13, '2025-11-28 18:04:15', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(34, 15, 13, '2025-11-28 18:11:25', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(35, 15, 13, '2025-11-28 18:14:11', 15000.00, 1950.00, 16950.00, 'Tarjeta', 1),
-(36, 14, 12, '2025-11-28 18:16:34', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(37, 14, 12, '2025-11-28 18:23:00', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(38, 14, 12, '2025-11-28 18:26:01', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(39, 14, 12, '2025-11-28 18:32:15', 1800.00, 234.00, 2034.00, 'Tarjeta', 1),
-(40, 14, 12, '2025-11-28 18:39:04', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(41, 3, 9, '2025-11-28 19:00:54', 3000.00, 390.00, 3390.00, 'Tarjeta', 1),
-(42, 16, 14, '2025-11-28 19:32:34', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(43, 16, 14, '2025-11-28 19:35:41', 4000.00, 520.00, 4520.00, 'Tarjeta', 1),
-(44, 3, 9, '2025-12-04 21:35:13', 10800.00, 1404.00, 12204.00, 'Tarjeta', 1),
-(45, 3, 9, '2025-12-04 21:35:47', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
-(46, 21, 15, '2025-12-04 21:44:15', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(47, 21, 15, '2025-12-04 21:46:35', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(48, 21, 15, '2025-12-04 21:47:33', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(49, 21, 15, '2025-12-04 21:48:05', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(50, 21, 15, '2025-12-04 21:48:17', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(51, 21, 15, '2025-12-04 21:48:26', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(52, 21, 15, '2025-12-04 21:48:32', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(53, 21, 15, '2025-12-04 21:49:43', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(54, 21, 15, '2025-12-04 21:49:53', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(55, 21, 15, '2025-12-04 21:51:15', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(56, 21, 15, '2025-12-04 21:52:21', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(57, 21, 15, '2025-12-04 21:54:58', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(58, 21, 15, '2025-12-04 21:55:14', 6000.00, 780.00, 6780.00, 'Tarjeta', 1),
-(59, 21, 15, '2025-12-04 21:57:26', 3000.00, 390.00, 3390.00, 'Tarjeta', 1),
-(60, 21, 15, '2025-12-04 22:05:11', 3000.00, 390.00, 3390.00, 'Tarjeta', 1);
+(67, 34, 16, '2025-12-11 19:59:01', 2400.00, 312.00, 2712.00, 'Tarjeta', 1),
+(68, 34, 16, '2025-12-11 19:59:09', 2400.00, 312.00, 2712.00, 'Tarjeta', 1),
+(69, 34, 16, '2025-12-11 20:06:35', 9000.00, 1170.00, 10170.00, 'Tarjeta', 1),
+(70, 34, 16, '2025-12-11 20:06:41', 9000.00, 1170.00, 10170.00, 'Tarjeta', 1),
+(71, 34, 16, '2025-12-11 20:09:54', 1200.00, 156.00, 1356.00, 'Tarjeta', 1),
+(72, 34, 16, '2025-12-11 20:09:59', 1200.00, 156.00, 1356.00, 'Tarjeta', 1),
+(73, 34, 16, '2025-12-11 20:15:16', 9000.00, 1170.00, 10170.00, 'Tarjeta', 1);
 
 -- --------------------------------------------------------
 
@@ -1154,26 +1127,6 @@ CREATE TABLE `ventas_promociones` (
   `descuento_aplicado` decimal(10,2) NOT NULL COMMENT 'Monto total de descuento aplicado',
   `fecha_aplicacion` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Promociones aplicadas a ventas';
-
---
--- Dumping data for table `ventas_promociones`
---
-
-INSERT INTO `ventas_promociones` (`id_venta_promocion`, `id_venta`, `id_promocion`, `descuento_aplicado`, `fecha_aplicacion`) VALUES
-(1, 24, 1, 1000.00, '2025-11-28 14:59:33'),
-(2, 31, 1, 500.00, '2025-11-28 16:35:12'),
-(3, 32, 1, 500.00, '2025-11-28 16:36:27'),
-(4, 33, 1, 500.00, '2025-11-28 18:04:15'),
-(5, 34, 1, 500.00, '2025-11-28 18:11:25'),
-(6, 35, 1, 5000.00, '2025-11-28 18:14:11'),
-(7, 36, 1, 500.00, '2025-11-28 18:16:34'),
-(8, 37, 1, 500.00, '2025-11-28 18:23:00'),
-(9, 38, 1, 500.00, '2025-11-28 18:26:01'),
-(10, 40, 1, 500.00, '2025-11-28 18:39:04'),
-(11, 41, 1, 1000.00, '2025-11-28 19:00:54'),
-(12, 42, 1, 500.00, '2025-11-28 19:32:34'),
-(13, 45, 1, 500.00, '2025-12-04 21:35:47'),
-(14, 58, 1, 2000.00, '2025-12-04 21:55:14');
 
 -- --------------------------------------------------------
 
@@ -1208,7 +1161,7 @@ CREATE TABLE `v_promociones_activas` (
 ,`fecha_inicio` datetime
 ,`fecha_fin` datetime
 ,`total_productos` bigint
-,`creado_por_nombre` varchar(100)
+,`creado_por_nombre` varchar(302)
 );
 
 --
@@ -1295,8 +1248,7 @@ ALTER TABLE `detalle_venta`
 --
 ALTER TABLE `historial_clinico`
   ADD PRIMARY KEY (`id_historial`),
-  ADD KEY `id_cliente` (`id_cliente`),
-  ADD KEY `id_cita` (`id_cita`);
+  ADD KEY `idx_historial_cita` (`id_cita`);
 
 --
 -- Indexes for table `inventario_ingresos`
@@ -1319,6 +1271,7 @@ ALTER TABLE `lote_producto`
 --
 ALTER TABLE `odontologos`
   ADD PRIMARY KEY (`id_odontologo`),
+  ADD UNIQUE KEY `uq_odontologos_usuario` (`id_usuario`),
   ADD KEY `id_usuario` (`id_usuario`);
 
 --
@@ -1358,6 +1311,13 @@ ALTER TABLE `promocion_productos`
   ADD UNIQUE KEY `unique_promo_producto` (`id_promocion`,`id_producto`),
   ADD KEY `id_promocion` (`id_promocion`),
   ADD KEY `id_producto` (`id_producto`);
+
+--
+-- Indexes for table `restablecer_contrasenas`
+--
+ALTER TABLE `restablecer_contrasenas`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_usuario` (`id_usuario`);
 
 --
 -- Indexes for table `roles`
@@ -1412,7 +1372,7 @@ ALTER TABLE `agendar_medico`
 -- AUTO_INCREMENT for table `atencion_cita`
 --
 ALTER TABLE `atencion_cita`
-  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `auditoria_stock`
@@ -1424,19 +1384,19 @@ ALTER TABLE `auditoria_stock`
 -- AUTO_INCREMENT for table `bitacoras`
 --
 ALTER TABLE `bitacoras`
-  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
+  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
 
 --
 -- AUTO_INCREMENT for table `carrito`
 --
 ALTER TABLE `carrito`
-  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT for table `carrito_detalle`
 --
 ALTER TABLE `carrito_detalle`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=77;
 
 --
 -- AUTO_INCREMENT for table `categoria_productos`
@@ -1448,19 +1408,19 @@ ALTER TABLE `categoria_productos`
 -- AUTO_INCREMENT for table `citas`
 --
 ALTER TABLE `citas`
-  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT for table `historial_clinico`
@@ -1478,19 +1438,19 @@ ALTER TABLE `inventario_ingresos`
 -- AUTO_INCREMENT for table `lote_producto`
 --
 ALTER TABLE `lote_producto`
-  MODIFY `id_lote` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_lote` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `odontologos`
 --
 ALTER TABLE `odontologos`
-  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `id_pago` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_pago` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `permisos`
@@ -1502,7 +1462,7 @@ ALTER TABLE `permisos`
 -- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
 
 --
 -- AUTO_INCREMENT for table `promociones`
@@ -1515,6 +1475,12 @@ ALTER TABLE `promociones`
 --
 ALTER TABLE `promocion_productos`
   MODIFY `id_promocion_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT for table `restablecer_contrasenas`
+--
+ALTER TABLE `restablecer_contrasenas`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -1532,13 +1498,13 @@ ALTER TABLE `rol_permisos`
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
 
 --
 -- AUTO_INCREMENT for table `ventas_promociones`
@@ -1562,7 +1528,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `v_promociones_activas`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_promociones_activas`  AS SELECT `p`.`id_promocion` AS `id_promocion`, `p`.`nombre` AS `nombre`, `p`.`descripcion` AS `descripcion`, `p`.`tipo_descuento` AS `tipo_descuento`, `p`.`valor_descuento` AS `valor_descuento`, `p`.`fecha_inicio` AS `fecha_inicio`, `p`.`fecha_fin` AS `fecha_fin`, count(`pp`.`id_producto`) AS `total_productos`, `u`.`nombre_completo` AS `creado_por_nombre` FROM ((`promociones` `p` left join `promocion_productos` `pp` on((`p`.`id_promocion` = `pp`.`id_promocion`))) left join `usuarios` `u` on((`p`.`creado_por` = `u`.`id_usuario`))) WHERE ((`p`.`activo` = 1) AND (now() between `p`.`fecha_inicio` and `p`.`fecha_fin`)) GROUP BY `p`.`id_promocion` ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_promociones_activas`  AS SELECT `p`.`id_promocion` AS `id_promocion`, `p`.`nombre` AS `nombre`, `p`.`descripcion` AS `descripcion`, `p`.`tipo_descuento` AS `tipo_descuento`, `p`.`valor_descuento` AS `valor_descuento`, `p`.`fecha_inicio` AS `fecha_inicio`, `p`.`fecha_fin` AS `fecha_fin`, count(`pp`.`id_producto`) AS `total_productos`, concat(`u`.`nombre`,' ',`u`.`apellido1`,(case when ((`u`.`apellido2` is not null) and (`u`.`apellido2` <> '')) then concat(' ',`u`.`apellido2`) else '' end)) AS `creado_por_nombre` FROM ((`promociones` `p` left join `promocion_productos` `pp` on((`p`.`id_promocion` = `pp`.`id_promocion`))) left join `usuarios` `u` on((`p`.`creado_por` = `u`.`id_usuario`))) WHERE ((`p`.`activo` = 1) AND (now() between `p`.`fecha_inicio` and `p`.`fecha_fin`)) GROUP BY `p`.`id_promocion` ;
 
 --
 -- Constraints for dumped tables
@@ -1592,7 +1558,8 @@ ALTER TABLE `auditoria_stock`
 -- Constraints for table `bitacoras`
 --
 ALTER TABLE `bitacoras`
-  ADD CONSTRAINT `bitacoras_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`);
+  ADD CONSTRAINT `bitacoras_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`),
+  ADD CONSTRAINT `fk_bitacoras_usuarios` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `carrito`
@@ -1632,8 +1599,7 @@ ALTER TABLE `detalle_venta`
 -- Constraints for table `historial_clinico`
 --
 ALTER TABLE `historial_clinico`
-  ADD CONSTRAINT `historial_clinico_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`),
-  ADD CONSTRAINT `historial_clinico_ibfk_2` FOREIGN KEY (`id_cita`) REFERENCES `citas` (`id_cita`);
+  ADD CONSTRAINT `fk_historial_cita` FOREIGN KEY (`id_cita`) REFERENCES `citas` (`id_cita`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `inventario_ingresos`
@@ -1679,6 +1645,12 @@ ALTER TABLE `promociones`
 ALTER TABLE `promocion_productos`
   ADD CONSTRAINT `fk_promo_prod_producto` FOREIGN KEY (`id_producto`) REFERENCES `productos` (`id_producto`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_promo_prod_promocion` FOREIGN KEY (`id_promocion`) REFERENCES `promociones` (`id_promocion`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `restablecer_contrasenas`
+--
+ALTER TABLE `restablecer_contrasenas`
+  ADD CONSTRAINT `restablecer_contrasenas_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`);
 
 --
 -- Constraints for table `rol_permisos`
