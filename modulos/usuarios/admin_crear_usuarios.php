@@ -47,7 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
  
         //Limpia y recupera los datos del formulario para que no hayan errores cuando se envie a la base de datos
-        $nombre_completo = trim($_POST['nombre_completo'] ?? '');
+        $nombre = trim($_POST['nombre'] ?? '');
+        $apellido1 = trim($_POST['apellido1'] ?? '');
+        $apellido2 = trim($_POST['apellido2'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
@@ -56,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $telefono = trim($_POST['telefono'] ?? '');
  
          // Validaciones
-        if ($nombre_completo === '' || $email === '' || $password === '') {
+        if ($nombre === '' || $apellido1 === '' || $email === '' || $password === '') {
             $error = "Todos los campos son obligatorios.";
         }
 
@@ -109,8 +111,8 @@ elseif ($password !== $confirm_password) {
             } else {
             
             // Validar si existe usuario/correo/identificación para que no hayan duplicados
-                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
-                $stmt->bind_param("sss", $email, $nombre_completo, $identificacion);
+                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR identificacion = ?");
+                $stmt->bind_param("ss", $email, $identificacion);
                 $stmt->execute();
  
                 if ($stmt->get_result()->num_rows > 0) {
@@ -123,8 +125,8 @@ elseif ($password !== $confirm_password) {
                     $hash = password_hash($password, PASSWORD_DEFAULT);
  
                   //Aqui se realiza el ingreso del usuario usando el procedimiento almacenado sp_crear_usuario.
-                $stmtCheck = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR nombre_completo = ? OR identificacion = ?");
-                $stmtCheck->bind_param("sss", $email, $nombre_completo, $identificacion);
+                $stmtCheck = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR identificacion = ?");
+                $stmtCheck->bind_param("ss", $email, $identificacion);
                 $stmtCheck->execute();
 
                     if ($stmtCheck->get_result()->num_rows > 0) {
@@ -144,35 +146,17 @@ switch ($tipo_doc) {
     case "juridica": $tipo_doc = "RUC"; break;
 }
 
-//Se llama al procedimiento almacenado
-$stmtSp = $conn->prepare("CALL sp_crear_usuario(?,?,?,?,?,?,?,?, @resultado)");
+// Insertar el usuario directamente (con la nueva estructura: nombre/apellidos separados)
+$stmtInsert = $conn->prepare("INSERT INTO usuarios (nombre, apellido1, apellido2, email, telefono, tipo_doc, identificacion, password, id_rol) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmtInsert->bind_param("ssssssssi", $nombre, $apellido1, $apellido2, $email, $telefono, $tipo_doc, $identificacion, $hash, $role_id);
 
-$stmtSp->bind_param(
-    "ssssssis",
-    $nombre_completo,
-    $email,
-    $telefono,
-    $tipo_doc,
-    $identificacion,
-    $hash,
-    $role_id,
-    $ip_cliente
-);
+if ($stmtInsert->execute()) {
+    $success = "Usuario creado exitosamente.";
+} else {
+    $error = "Error al crear usuario: " . $stmtInsert->error;
+}
 
-$stmtSp->execute();
-
-                                  $res = $conn->query("SELECT @resultado AS res")->fetch_assoc();
-                 $resultado = $res['res'];
-
-    if ($resultado === "OK") {
-        $success = "Usuario creado exitosamente.";
-    } elseif ($resultado === "DUPLICADO") {
-        $error = "Usuario, identificación o correo ya está en uso.";
-    } else {
-        $error = "Error inesperado.";
-    }
-
-    $stmtSp->close();
+$stmtInsert->close();
 }
 
 $stmtCheck->close();
@@ -333,11 +317,23 @@ body {
         <form method="POST" action="">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
  
-            <!-- Campo: Nombre completo -->
-            <div class="mb-3">
-                <label for="nombre_completo" class="form-label">Nombre completo</label>
-                <input type="text" name="nombre_completo" id="nombre_completo" class="form-control"
-                       value="<?= htmlspecialchars($_POST['nombre_completo'] ?? '') ?>" required>
+            <!-- Campo: Nombre y apellidos -->
+            <div class="row g-2">
+                <div class="col-md-4 mb-3">
+                    <label for="nombre" class="form-label">Nombre</label>
+                    <input type="text" name="nombre" id="nombre" class="form-control"
+                           value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="apellido1" class="form-label">Apellido 1</label>
+                    <input type="text" name="apellido1" id="apellido1" class="form-control"
+                           value="<?= htmlspecialchars($_POST['apellido1'] ?? '') ?>" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="apellido2" class="form-label">Apellido 2</label>
+                    <input type="text" name="apellido2" id="apellido2" class="form-control"
+                           value="<?= htmlspecialchars($_POST['apellido2'] ?? '') ?>">
+                </div>
             </div>
  
             <!-- Campo: Correo electrónico -->

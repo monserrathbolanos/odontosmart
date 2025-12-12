@@ -1,10 +1,11 @@
 <?php
 session_start();
 require '../../config/conexion.php';
+require_once __DIR__ . '/../../config/alerts.php';
 
 // Verificar que viene el id_detalle
 if (!isset($_POST['id_detalle']) || !isset($_POST['id_carrito'])) {
-    die("Datos incompletos");
+    stopWithAlert('Datos incompletos', 'Datos incompletos', 'error');
 }
 
 $id_detalle = $_POST['id_detalle'];
@@ -19,7 +20,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    die("Producto no encontrado");
+    stopWithAlert('Producto no encontrado', 'Producto', 'error');
 }
 
 $row = $result->fetch_assoc();

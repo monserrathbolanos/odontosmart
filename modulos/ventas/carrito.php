@@ -46,6 +46,7 @@ function mostrarCarrito($conn, $id_usuario) {
                         p.id_producto,
                         p.nombre,
                         p.descripcion,
+                        p.stock_total,
                         p.precio,
                         p.unidad,
                         vp.id_promocion,
@@ -64,9 +65,82 @@ function mostrarCarrito($conn, $id_usuario) {
     $stmt2->execute();
     $result_detalle = $stmt2->get_result();
 
+    // Recolectar filas para validar stock y poder re-renderizar tras ajustes si es necesario
+    $detalles = [];
+    while ($r = $result_detalle->fetch_assoc()) {
+        $detalles[] = $r;
+    }
+
+    // Si no hay filas, regresar
+    if (count($detalles) === 0) {
+        echo "<p class='sin-productos'>No hay productos en el carrito.</p>";
+        return;
+    }
+
+    // Validar stock real y ajustar cantidades o eliminar items si es necesario
+    $stockIssues = [];
+    $stmt_update = $conn->prepare("UPDATE carrito_detalle SET cantidad = ? WHERE id_detalle = ?");
+    $stmt_delete = $conn->prepare("DELETE FROM carrito_detalle WHERE id_detalle = ?");
+    foreach ($detalles as $index => $row) {
+        $id_detalle = $row['id_detalle'];
+        $cantidad = (int)$row['cantidad'];
+        $stock_total = (int)$row['stock_total'];
+
+        if ($stock_total <= 0) {
+            // Eliminar el producto del carrito
+            $stmt_delete->bind_param("i", $id_detalle);
+            $stmt_delete->execute();
+            $stockIssues[] = "El producto <strong>{$row['nombre']}</strong> fue eliminado porque no hay stock disponible.";
+            // quitar del array para no procesarlo luego
+            unset($detalles[$index]);
+            continue;
+        }
+        if ($stock_total < $cantidad) {
+            // Ajustar cantidad al stock disponible
+            $stmt_update->bind_param("ii", $stock_total, $id_detalle);
+            $stmt_update->execute();
+            $stockIssues[] = "La cantidad de <strong>{$row['nombre']}</strong> se ajustó a {$stock_total} porque no hay suficiente stock.";
+            // actualizar en array
+            $detalles[$index]['cantidad'] = $stock_total;
+        }
+    }
+
+    // Si hubo cambios, se recomienda reconsultar los detalles para reflejar los ajustes con datos frescos
+    if (!empty($stockIssues)) {
+        // Re-fetch detalles actualizados
+        $stmt2->execute();
+        $result_detalle = $stmt2->get_result();
+        $detalles = [];
+        while ($r = $result_detalle->fetch_assoc()) {
+            $detalles[] = $r;
+        }
+    }
+
+    // Si después de los ajustes ya no hay productos
+    if (empty($detalles)) {
+        echo "<p class='sin-productos'>No hay productos en el carrito.</p>";
+        // cerrar statements y retornar
+        if (isset($stmt_update) && $stmt_update) $stmt_update->close();
+        if (isset($stmt_delete) && $stmt_delete) $stmt_delete->close();
+        return;
+    }
+
+    // Cerrar statements usados para ajustes
+    if (isset($stmt_update) && $stmt_update) $stmt_update->close();
+    if (isset($stmt_delete) && $stmt_delete) $stmt_delete->close();
+
     if ($result_detalle->num_rows === 0) {
         echo "<p class='sin-productos'>No hay productos en el carrito.</p>";
         return;
+    }
+
+    // Mostrar alertas de stock si hubo ajustes
+    if (!empty($stockIssues)) {
+        echo "<div style='background:#fff3cd;color:#856404;padding:12px;border-radius:6px;margin-bottom:15px;font-weight:600;'>";
+        foreach ($stockIssues as $si) {
+            echo "<div style='margin-bottom:6px;'>" . $si . "</div>";
+        }
+        echo "</div>";
     }
 
     echo "<table>
@@ -87,7 +161,7 @@ function mostrarCarrito($conn, $id_usuario) {
     $totalGeneral = 0;
     $descuentoTotal = 0;
 
-    while ($row = $result_detalle->fetch_assoc()) {
+    foreach ($detalles as $row) {
 
     // Detectar si tiene promoción
     $tiene_promocion = !empty($row['id_promocion']);

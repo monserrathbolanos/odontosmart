@@ -17,10 +17,11 @@
    8. Muestra mensaje de éxito y redirige al login.
  */
 require '../config/conexion.php'; // Conexión a la base de datos
+require_once __DIR__ . '/../config/alerts.php';
 
 // Validar que el formulario envió los campos necesarios por POST
 if (!isset($_POST['token'], $_POST['new_password'])) {
-    die("Solicitud inválida.");
+    stopWithAlert('Solicitud inválida.', 'Solicitud inválida', 'error');
 }
 
 // Datos recibidos desde el formulario de restablecimiento
@@ -46,7 +47,7 @@ $result = $stmt->get_result();
 
 // Si no existe un registro con ese token vigente, se detiene el proceso
 if ($result->num_rows === 0) {
-    die("Token inválido o expirado.");
+    stopWithAlert('Token inválido o expirado.', 'Token inválido', 'error');
 }
 
 $data       = $result->fetch_assoc();

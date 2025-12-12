@@ -20,16 +20,17 @@ if (!isset($_SESSION['user'])) {
 //Verifica que el usuario si tenga el permiso para acceder a la gestion de citas.
 $permisos = $_SESSION['user']['permisos'] ?? [];
 if (!in_array('gestion_citas', $permisos, true)) {
-    die('No tiene permiso para gestionar citas.');
+    stopWithAlert('No tiene permiso para gestionar citas.', 'Permisos', 'warning');
 }
 
 //Se conecta a la base de datos. 
 require_once '../../config/conexion.php'; 
+require_once __DIR__ . '/../../config/alerts.php';
 
 //Se obtiene el ID del usuario desde la sesión, para que funcione con el storage procedure
 $idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
 if ($idUsuarioSesion <= 0) {
-    die('No se pudo obtener el ID del usuario desde la sesión.');
+    stopWithAlert('No se pudo obtener el ID del usuario desde la sesión.', 'Sesión inválida', 'error');
 }
 
 //Para que solo le salgan las citas al doctor que corresponde al usuario que ha iniciado sesión, se puede agregar un filtro adicional en las consultas SQL si es necesario.
@@ -48,7 +49,7 @@ if ($idRolSesion === 2) {  // 2 = Médico
               LIMIT 1";
     $stmtOd = $conn->prepare($sqlOd);
     if (!$stmtOd) {
-        die('Error al preparar la consulta de odontólogo.');
+        stopWithAlert('Error al preparar la consulta de odontólogo.', 'Error en consulta', 'error');
     }
     $stmtOd->bind_param("i", $idUsuarioSesion);
     $stmtOd->execute();
@@ -56,7 +57,7 @@ if ($idRolSesion === 2) {  // 2 = Médico
     $stmtOd->close();
 
     if (!$resOd) {
-        die('Este usuario no está registrado como odontólogo.');
+        stopWithAlert('Este usuario no está registrado como odontólogo.', 'No Odontólogo', 'warning');
     }
 
     $idOdontologoSesion = intval($resOd['id_odontologo']);

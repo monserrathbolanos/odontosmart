@@ -17,10 +17,11 @@
   NOTA: En un entorno productivo, este enlace se enviaría por correo electrónico.
  */
 require '../config/conexion.php';// Conexión a la base de datos 
+require_once __DIR__ . '/../config/alerts.php';
 
 // 1 Verificar que venga el correo desde el formulario
 if (!isset($_POST['email'])) {
-    die("Solicitud inválida.");
+    stopWithAlert('Solicitud inválida.', 'Solicitud inválida', 'error');
 }
 
 $email = trim($_POST['email']); // Se limpia el correo para eliminar espacios extra
@@ -33,7 +34,7 @@ $resultUser = $stmtUser->get_result();
 
 // Si no existe ninguna cuenta con ese correo, se detiene el proceso
 if ($resultUser->num_rows === 0) {
-    die("No existe una cuenta con ese correo.");
+    stopWithAlert('No existe una cuenta con ese correo.', 'No existe cuenta', 'error');
 }
 
 // Se obtiene el id_usuario asociado a ese email

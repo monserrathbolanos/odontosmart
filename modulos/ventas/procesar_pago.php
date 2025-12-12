@@ -1,10 +1,11 @@
 <?php
 session_start();
 require '../../config/conexion.php';
+require_once __DIR__ . '/../../config/alerts.php';
 
 // Verificar que el usuario esté logueado
 if (!isset($_SESSION['user']['id_usuario'])) {
-    die("Error: Usuario no autenticado.");
+    stopWithAlert('Error: Usuario no autenticado.', 'No autenticado', 'warning');
 }
 
 $id_usuario = $_SESSION['user']['id_usuario'];
@@ -21,7 +22,7 @@ $result = $stmt->get_result();
 if ($result->num_rows === 0) {
 
     // Obtener datos del usuario
-    $sql_user = "SELECT nombre_completo, telefono, email FROM usuarios WHERE id_usuario = ?";
+    $sql_user = "SELECT nombre, apellido1, apellido2, telefono, email FROM usuarios WHERE id_usuario = ?";
     $stmt2 = $conn->prepare($sql_user);
     $stmt2->bind_param("i", $id_usuario);
     $stmt2->execute();
@@ -33,17 +34,20 @@ if ($result->num_rows === 0) {
                    VALUES (?, ?, ?, ?, ?, NOW())";
     $stmt3 = $conn->prepare($sql_insert);
     $apellido = "";
+    $nombre_cliente = $res_user['nombre'] ?? '';
+    $apellido_cliente = trim(($res_user['apellido1'] ?? '') . ' ' . ($res_user['apellido2'] ?? ''));
+
     $stmt3->bind_param(
         "issss",
         $id_usuario,
-        $res_user['nombre_completo'],
-        $apellido,
+        $nombre_cliente,
+        $apellido_cliente,
         $res_user['telefono'],
         $res_user['email']
     );
 
     if (!$stmt3->execute()) {
-        die("Error al insertar cliente: " . $stmt3->error);
+        stopWithAlert('Error al insertar cliente: ' . $stmt3->error);
     }
 
     // id_cliente que acaba de crearse
@@ -69,7 +73,7 @@ $stmt->execute();
 $result_carrito = $stmt->get_result();
 
 if ($result_carrito->num_rows === 0) {
-    die("No se encontró carrito para este usuario.");
+    stopWithAlert('No se encontró carrito para este usuario.');
 }
 
 $carrito = $result_carrito->fetch_assoc();
@@ -92,7 +96,7 @@ $result_detalle = $stmt2->get_result();
 
 // Validación de carrito
 if ($result_detalle->num_rows === 0) {
-    die("El carrito está vacío. No se puede procesar la venta.");
+    stopWithAlert('El carrito está vacío. No se puede procesar la venta.');
 }
 
 $productos = [];
@@ -104,7 +108,7 @@ while ($row = $result_detalle->fetch_assoc()) {
 
     // Validar stock disponible
     if ($row['stock_total'] < $row['cantidad']) {
-        die("No hay suficiente stock para el producto ID {$row['id_producto']}.");
+        stopWithAlert('No hay suficiente stock para el producto ID ' . $row['id_producto'] . '.');
     }
 
     // Determinar el precio a usar (con o sin promoción)
@@ -167,7 +171,7 @@ $stmt3->bind_param("iidddsi", $id_usuario, $id_cliente, $subtotal, $impuestos, $
 
 
 if (!$stmt3->execute()) {
-    die("Error al registrar la venta: " . $stmt3->error);
+    stopWithAlert('Error al registrar la venta: ' . $stmt3->error);
 }
 
 $id_venta = $stmt3->insert_id;
@@ -215,31 +219,7 @@ $hoy->setTime(0,0,0);
 
 // Validación final
 if ($fecha_vencimiento < $hoy) {
-   echo "
-<!DOCTYPE html>
-<html lang='es'>
-<head>
-<meta charset='UTF-8'>
-<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
-</head>
-<body>
-
-<script>
-Swal.fire({
-    icon: 'error',
-    title: 'Tarjeta vencida',
-    text: 'Por favor use una tarjeta válida.',
-    confirmButtonColor: '#d33'
-}).then(() => {
-    window.history.back();
-});
-</script>
-
-</body>
-</html>";
-
-exit;
-
+   stopWithAlert('Por favor use una tarjeta válida.', 'Tarjeta vencida', 'error');
 }
 
 
@@ -256,7 +236,7 @@ $stmtPago = $conn->prepare($sql_pago);
 $stmtPago->bind_param("idss", $id_venta, $total, $tarjeta_4, $vencimiento);
 
 if (!$stmtPago->execute()) {
-    die("Error al registrar el pago: " . $stmtPago->error);
+    stopWithAlert('Error al registrar el pago: ' . $stmtPago->error);
 }
 
 $stmt3->close();

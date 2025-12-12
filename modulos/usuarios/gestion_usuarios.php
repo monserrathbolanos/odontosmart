@@ -40,58 +40,46 @@ if (isset($_POST["buscar"])) {
 if (isset($_POST["actualizar"])) {
 
     $id_usuario      = intval($_POST["id_usuario"]);
-    $nombre_completo = $_POST["nombre"];           // viene del input "nombre"
-    $email           = $_POST["email"];
-    $telefono        = $_POST["telefono"];
-    $identificacion  = $_POST["identificacion"];
+    $nombre          = trim($_POST["nombre"] ?? '');
+    $apellido1       = trim($_POST["apellido1"] ?? '');
+    $apellido2       = trim($_POST["apellido2"] ?? '');
+    $email           = trim($_POST["email"] ?? '');
+    $telefono        = trim($_POST["telefono"] ?? '');
+    $identificacion  = trim($_POST["identificacion"] ?? '');
     $id_rol          = intval($_POST["rol"]);
 
     $ip       = $_SERVER['REMOTE_ADDR']      ?? 'DESCONOCIDA';
     $modulo   = 'gestion_usuarios';
     $ua       = $_SERVER['HTTP_USER_AGENT']  ?? '';
 
-    // Llamar SP que actualiza y escribe en bitácora
-    // OJO: usamos @resultado para que coincida con el SELECT posterior
-    $stmt = $conn->prepare("CALL sp_actualizar_usuario(?,?,?,?,?,?,?,?,?, @resultado)");
+    // Actualizar usuario directamente (la DB ahora tiene `nombre`, `apellido1`, `apellido2` en lugar de `nombre_completo`)
+    $stmt = $conn->prepare("UPDATE usuarios SET nombre = ?, apellido1 = ?, apellido2 = ?, email = ?, telefono = ?, identificacion = ?, id_rol = ? WHERE id_usuario = ?");
 
     if (!$stmt) {
         $mensaje = "Error al preparar el procedimiento almacenado: " . $conn->error;
     } else {
 
-        // "issssisss" = int, string, string, string, string, int, string, string, string
         $stmt->bind_param(
-            "issssisss",
-            $id_usuario,
-            $nombre_completo,
+            "ssssssii",
+            $nombre,
+            $apellido1,
+            $apellido2,
             $email,
             $telefono,
             $identificacion,
             $id_rol,
-            $ip,
-            $modulo,
-            $ua
+            $id_usuario
         );
 
         if ($stmt->execute()) {
             $stmt->close();
-            $conn->next_result(); // limpiar resultados del CALL
-
-            // Leer el OUT del SP
-            $res = $conn->query("SELECT @resultado AS res");
-            $row = $res->fetch_assoc();
-            $resultado = $row['res'] ?? null;
-
-            if ($resultado === 'OK') {
-                $mensaje = "Usuario actualizado correctamente.";
-            } elseif ($resultado === 'DUPLICADO') {
-                $mensaje = "Error: correo o identificación ya están en uso por otro usuario.";
-            } else {
-                $mensaje = "Error inesperado al actualizar usuario.";
-            }
+            $conn->next_result(); // limpiar resultados si hubieran
+            $mensaje = "Usuario actualizado correctamente.";
         } else {
-            $mensaje = "Error al ejecutar el procedimiento almacenado: " . $stmt->error;
+            $mensaje = "Error al actualizar usuario: " . $stmt->error;
             $stmt->close();
         }
+        
     }
 }
 
@@ -259,9 +247,19 @@ select:hover {
                 <form method="POST">
                     <input type="hidden" name="id_usuario" value="<?= $usuario['id_usuario'] ?>">
                     
-                    <div class="form-group">
-                        <label>Nombre Completo:</label>
-                        <input type="text" name="nombre" value="<?= $usuario['nombre_completo'] ?>" placeholder="Nombre completo" required>
+                    <div class="row g-2">
+                        <div class="col-md-4 form-group">
+                            <label>Nombre:</label>
+                            <input type="text" name="nombre" value="<?= htmlspecialchars($usuario['nombre'] ?? '') ?>" placeholder="Nombre" required>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Apellido 1:</label>
+                            <input type="text" name="apellido1" value="<?= htmlspecialchars($usuario['apellido1'] ?? '') ?>" placeholder="Apellido 1" required>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Apellido 2:</label>
+                            <input type="text" name="apellido2" value="<?= htmlspecialchars($usuario['apellido2'] ?? '') ?>" placeholder="Apellido 2">
+                        </div>
                     </div>
                     
                     <div class="form-group">

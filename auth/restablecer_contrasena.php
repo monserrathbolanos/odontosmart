@@ -14,10 +14,12 @@
  */
 
 require '../config/conexion.php';
+// Helper para mostrar alertas bonitas
+require_once __DIR__ . '/../config/alerts.php';
 
 // Verificar que viene el token en la URL (?token=...)
 if (!isset($_GET['token'])) {
-    die("Token no proporcionado.");
+  stopWithAlert('Token no proporcionado.', 'Token', 'error');
 }
 
 $token = $_GET['token'];
@@ -35,7 +37,7 @@ $result = $stmt->get_result();
 
 // Verificar si el token es válido (existe y no está vencido)
 if ($result->num_rows === 0) {
-    die("Token inválido o expirado.");
+  stopWithAlert('Token inválido o expirado.', 'Token inválido', 'error');
 }
 
 // No necesitas usar el id_usuario aquí directamente; sólo confirmas

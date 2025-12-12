@@ -19,6 +19,7 @@ if (!isset($_SESSION['user'])) {
 
 //Se incluye la conexion con la base de datos. 
 require_once '../../config/conexion.php';
+require_once __DIR__ . '/../../config/alerts.php';
 
 $mensaje_error = '';
 $mensaje_ok    = '';
@@ -26,7 +27,7 @@ $mensaje_ok    = '';
 $idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
 
 if ($idUsuarioSesion <= 0) {
-    die('No se pudo obtener el ID del usuario desde la sesión.');
+    stopWithAlert('No se pudo obtener el ID del usuario desde la sesión.', 'Usuario no identificado', 'error');
 }
 
 // Buscar el usuario asociado a ese usuario
@@ -34,7 +35,7 @@ $sqlCli = "SELECT id_usuario FROM usuarios WHERE id_usuario = ?";
 $stmtCli = $conn->prepare($sqlCli);
 
 if (!$stmtCli) {
-    die('Error al preparar la consulta de usuario.');
+    stopWithAlert('Error al preparar la consulta de usuario.', 'Error en consulta', 'error');
 }
 
 //Asigna los paramentros que son los datos que se van a buscar en la base de datos.
@@ -45,14 +46,14 @@ $stmtCli->close();
 
 //Verifica que el usuario tenga un usuario asociado.
 if (!$resCli) {
-    die('Este usuario no está registrado como usuario. Por favor complete su registro como usuario.');
+    stopWithAlert('Este usuario no está registrado como usuario. Por favor complete su registro como usuario.', 'Usuario no registrado', 'warning');
 }
 
 //Obtiene el id del usuario.
 $id_usuario = intval($resCli['id_usuario']);
 
 if ($id_usuario <= 0) {
-    die('ID de usuario inválido.');
+    stopWithAlert('ID de usuario inválido.', 'ID inválido', 'error');
 }
 
 //Obtener el id_cliente para el usuario logueado
@@ -63,7 +64,7 @@ $sqlCli2 = "SELECT id_cliente
 $stmtCli2 = $conn->prepare($sqlCli2);
 
 if (!$stmtCli2) {
-    die('Error al preparar la consulta de cliente.');
+    stopWithAlert('Error al preparar la consulta de cliente.', 'Error en consulta', 'error');
 }
 
 $stmtCli2->bind_param("i", $id_usuario);
@@ -72,13 +73,13 @@ $resCli2 = $stmtCli2->get_result()->fetch_assoc();
 $stmtCli2->close();
 
 if (!$resCli2) {
-    die('Este usuario no está registrado como cliente. Por favor complete su registro como cliente.');
+    stopWithAlert('Este usuario no está registrado como cliente. Por favor complete su registro como cliente.', 'Cliente no registrado', 'warning');
 }
 
 $id_cliente = intval($resCli2['id_cliente']);
 
 if ($id_cliente <= 0) {
-    die('ID de cliente inválido.');
+    stopWithAlert('ID de cliente inválido.', 'ID inválido', 'error');
 }
 
 
@@ -124,7 +125,7 @@ if (isset($_GET['accion']) && $_GET['accion'] === 'cancelar') {
 $odontologos = [];
 
 //Se realiza la consulta para obtener solo los odontólogos ACTIVOS.
-$sqlOd = "SELECT o.id_odontologo, u.nombre_completo
+$sqlOd = "SELECT o.id_odontologo, CONCAT(u.nombre, ' ', COALESCE(u.apellido1, ''), ' ', COALESCE(u.apellido2, '')) AS nombre_completo
           FROM odontologos o
           INNER JOIN usuarios u ON o.id_usuario = u.id_usuario
           WHERE o.estado = 'ACTIVO'";
@@ -255,7 +256,7 @@ $sqlCitas = "
         c.fecha_cita,
         c.estado,
         c.motivo,
-        uo.nombre_completo AS nombre_odontologo
+        CONCAT(uo.nombre, ' ', COALESCE(uo.apellido1, ''), ' ', COALESCE(uo.apellido2, '')) AS nombre_odontologo
     FROM citas c
     INNER JOIN odontologos o ON c.id_odontologo = o.id_odontologo
     INNER JOIN usuarios uo ON o.id_usuario = uo.id_usuario

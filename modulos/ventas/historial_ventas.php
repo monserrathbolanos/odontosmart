@@ -25,7 +25,7 @@ $sql_ventas = "SELECT
                     v.id_cliente,
                     v.metodo_pago,
                     v.total,
-                    u.nombre_completo AS vendedor_nombre
+                    CONCAT(u.nombre, ' ', COALESCE(u.apellido1, ''), ' ', COALESCE(u.apellido2, '')) AS vendedor_nombre
                FROM ventas v
                LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario
                ORDER BY v.fecha_venta DESC

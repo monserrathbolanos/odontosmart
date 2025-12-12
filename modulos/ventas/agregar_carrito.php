@@ -15,6 +15,7 @@ if (!in_array($rol, $rolesPermitidos)) {
 }
 
 include('../../config/conexion.php');
+require_once __DIR__ . '/../../config/alerts.php';
 
 // obtener id_usuario
 $id_usuario = $_SESSION['user']['id_usuario'];
@@ -23,7 +24,7 @@ $id_usuario = $_SESSION['user']['id_usuario'];
 $id_producto = $_POST['id_producto'] ?? null;
 
 if (!$id_producto) {
-    die("No se ha enviado ningún producto.");
+    stopWithAlert('No se ha enviado ningún producto.', 'Datos incompletos', 'error');
 }
 
 // verificar si el usuario ya tiene un carrito

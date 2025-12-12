@@ -1,10 +1,11 @@
 <?php
 session_start();
 require '../../config/conexion.php';
+require_once __DIR__ . '/../../config/alerts.php';
 
 // Verificar que se recibió un id_venta por URL
 if (!isset($_GET['id_venta'])) {
-    die("No se indicó la venta.");
+    stopWithAlert('No se indicó la venta.', 'Venta no indicada', 'error');
 }
 
 $id_venta = $_GET['id_venta'];
@@ -24,7 +25,7 @@ $stmt->close();
 
 // Verificar si la venta existe
 if (!$venta) {
-    die("Venta no encontrada.");
+    stopWithAlert('Venta no encontrada.', 'Venta no encontrada', 'error');
 }
 
 // Consultar detalle de productos comprados

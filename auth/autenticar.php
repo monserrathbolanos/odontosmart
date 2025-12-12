@@ -91,7 +91,9 @@ if ($email === '' || $password === '') {
 /*
   Consulta de la tabla usuarios para obtener:
    - id_usuario
-   - nombre_completo
+    - nombre
+    - apellido1
+    - apellido2
    - email
    - password (hash)
    - id_rol
@@ -99,7 +101,7 @@ if ($email === '' || $password === '') {
  
   Se hace JOIN con la tabla roles para obtener el nombre del rol.
 */
-$sql = "SELECT u.id_usuario, u.nombre_completo, u.email, u.password, u.id_rol, r.nombre AS rol
+$sql = "SELECT u.id_usuario, u.nombre, u.apellido1, u.apellido2, u.email, u.password, u.id_rol, r.nombre AS rol
         FROM usuarios u
         JOIN roles r ON u.id_rol = r.id_rol
         WHERE u.email = ?";
@@ -203,9 +205,15 @@ session_regenerate_id(true); // true = borra la sesión anterior en el servidor
 /*
   Guardar datos del usuario en la sesión
  */
+// Construye nombre completo a partir de los campos separados (compatibilidad con el resto del código)
+$nombre_completo = trim(($user['nombre'] ?? '') . ' ' . ($user['apellido1'] ?? '') . ' ' . ($user['apellido2'] ?? ''));
+
 $_SESSION['user'] = [
     'id_usuario'      => $user['id_usuario'],
-    'nombre_completo' => $user['nombre_completo'],
+    'nombre_completo' => $nombre_completo,
+    'nombre'          => $user['nombre'] ?? '',
+    'apellido1'       => $user['apellido1'] ?? '',
+    'apellido2'       => $user['apellido2'] ?? '',
     'email'           => $user['email'],
     'role'            => $user['rol'],      // Cliente, Administrador, Médico, Recepcionista
     'id_rol'          => $user['id_rol'],
