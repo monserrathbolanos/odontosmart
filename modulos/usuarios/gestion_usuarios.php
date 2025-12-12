@@ -1,42 +1,49 @@
 <?php
-// gestion_usuarios.php, se relaciona con las tablas Usuarios, y Roles (el campo id_rol indica que existe una relación con la tabla roles para asignar el tipo de usuario )
+// gestion_usuarios.php
+// Trabaja con las tablas usuarios, roles, clientes y odontologos
+
 session_start();
 include('../../config/conexion.php');
+
 $mensaje = "";
 $usuario = null;
 
 /* Validar rol permitido */
 $rol = $_SESSION['user']['role'] ?? null;
-$rolesPermitidos = ['Administrador']; 
+$rolesPermitidos = ['Administrador'];
 
 if (!in_array($rol, $rolesPermitidos)) {
-    // Aquí decides a dónde mandarlo: login, home o protegido.
-    // Si quieres mandarlo al login:
     header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
     exit;
 }
 
-// Buscar usuario por cédula
+// ==============================
+// 1) Buscar usuario por cédula
+// ==============================
 if (isset($_POST["buscar"])) {
-    $identificacion = $_POST["identificacion"];
-    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE identificacion=?");
-    $stmt->bind_param("s", $identificacion);
-    $stmt->execute();
-    $resultado = $stmt->get_result();
-    
-    if ($resultado && $resultado->num_rows > 0) {
-        $usuario = $resultado->fetch_assoc();
+    $identificacion = trim($_POST["identificacion"] ?? '');
+
+    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE identificacion = ?");
+    if ($stmt) {
+        $stmt->bind_param("s", $identificacion);
+        $stmt->execute();
+        $resultado = $stmt->get_result();
+        
+        if ($resultado && $resultado->num_rows > 0) {
+            $usuario = $resultado->fetch_assoc();
+        } else {
+            $mensaje = "No se encontró usuario con esa identificación.";
+        }
+
+        $stmt->close();
     } else {
-        $mensaje = "No se encontró usuario con esa cédula.";
+        $mensaje = "Error al preparar la consulta de búsqueda: " . $conn->error;
     }
-
-    //Cierra el statement y libera resultados, stantement es para consultas preparadas y next_result es para procedimientos almacenados
-    $stmt->close();
-    $conn->next_result();
-
 }
 
-// Actualizar usuario
+// ==============================
+// 2) Actualizar usuario (vía SP)
+// ==============================
 if (isset($_POST["actualizar"])) {
 
     $id_usuario      = intval($_POST["id_usuario"]);
@@ -46,53 +53,122 @@ if (isset($_POST["actualizar"])) {
     $email           = trim($_POST["email"] ?? '');
     $telefono        = trim($_POST["telefono"] ?? '');
     $identificacion  = trim($_POST["identificacion"] ?? '');
-    $id_rol          = intval($_POST["rol"]);
+    $id_rol          = intval($_POST["rol"] ?? 0);
 
     $ip       = $_SERVER['REMOTE_ADDR']      ?? 'DESCONOCIDA';
     $modulo   = 'gestion_usuarios';
-    $ua       = $_SERVER['HTTP_USER_AGENT']  ?? '';
+    $ua       = $_SERVER['HTTP_USER_AGENT']  ?? 'DESCONOCIDO';
 
-    // Actualizar usuario directamente (la DB ahora tiene `nombre`, `apellido1`, `apellido2` en lugar de `nombre_completo`)
-    $stmt = $conn->prepare("UPDATE usuarios SET nombre = ?, apellido1 = ?, apellido2 = ?, email = ?, telefono = ?, identificacion = ?, id_rol = ? WHERE id_usuario = ?");
-
-    if (!$stmt) {
-        $mensaje = "Error al preparar el procedimiento almacenado: " . $conn->error;
+    // Validaciones básicas
+    if ($nombre === '' || $apellido1 === '' || $email === '' || $identificacion === '') {
+        $mensaje = "Todos los campos obligatorios deben estar completos.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $mensaje = "Correo electrónico inválido.";
     } else {
 
-        $stmt->bind_param(
-            "ssssssii",
-            $nombre,
-            $apellido1,
-            $apellido2,
-            $email,
-            $telefono,
-            $identificacion,
-            $id_rol,
-            $id_usuario
-        );
+        // 2.1) Llamar al SP sp_actualizar_usuario
+        $stmtSp = $conn->prepare("
+            CALL sp_actualizar_usuario(?,?,?,?,?,?,?,?,?,?,?, @p_resultado)
+        ");
 
-        if ($stmt->execute()) {
-            $stmt->close();
-            $conn->next_result(); // limpiar resultados si hubieran
-            $mensaje = "Usuario actualizado correctamente.";
+        if (!$stmtSp) {
+            $mensaje = "Error al preparar el procedimiento almacenado: " . $conn->error;
         } else {
-            $mensaje = "Error al actualizar usuario: " . $stmt->error;
-            $stmt->close();
+            // Tipos: i (id_usuario), s,s,s,s,s,s, i (id_rol), s,s,s
+            $stmtSp->bind_param(
+                "issssssisss",
+                $id_usuario,     // p_id_usuario
+                $nombre,         // p_nombre
+                $apellido1,      // p_apellido1
+                $apellido2,      // p_apellido2
+                $email,          // p_email
+                $telefono,       // p_telefono
+                $identificacion, // p_identificacion
+                $id_rol,         // p_id_rol
+                $ip,             // p_ip
+                $modulo,         // p_modulo
+                $ua              // p_user_agent
+            );
+
+            if (!$stmtSp->execute()) {
+                $mensaje = "Error al ejecutar el procedimiento almacenado: " . $stmtSp->error;
+            }
+
+            $stmtSp->close();
+            // Limpiar posibles resultados del CALL
+            $conn->next_result();
+
+            // Leer valor OUT @p_resultado
+            if (empty($mensaje)) {
+                $res = $conn->query("SELECT @p_resultado AS resultado");
+                if ($res) {
+                    $row          = $res->fetch_assoc();
+                    $resultado_sp = $row['resultado'] ?? null;
+                } else {
+                    $resultado_sp = null;
+                }
+
+                if ($resultado_sp === 'DUPLICADO') {
+                    $mensaje = "Correo o identificación ya está en uso por otro usuario.";
+                } elseif ($resultado_sp === 'OK') {
+
+                    // ================================
+                    // 2.2) Lógica especial de CLIENTES
+                    // (la de ODONTOLOGOS ya la hace el SP)
+                    // ================================
+                    if (intval($id_rol) === 3) {
+                        // Ver si ya existe cliente para ese usuario
+                        $stmtChkCli = $conn->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = ?");
+                        if ($stmtChkCli) {
+                            $stmtChkCli->bind_param("i", $id_usuario);
+                            $stmtChkCli->execute();
+                            $resChkCli = $stmtChkCli->get_result();
+
+                            if ($resChkCli && $resChkCli->num_rows === 0) {
+                                // No existe -> insertar nuevo cliente (solo id_usuario; fecha_registro la pone la DB)
+                                $stmtCliIns = $conn->prepare("
+                                    INSERT INTO clientes (id_usuario)
+                                    VALUES (?)
+                                ");
+                                if ($stmtCliIns) {
+                                    $stmtCliIns->bind_param("i", $id_usuario);
+                                    $stmtCliIns->execute();
+                                    $stmtCliIns->close();
+                                }
+                            }
+                            $stmtChkCli->close();
+                        }
+                    }
+
+                    // Mensaje final
+                    $mensaje = "Usuario actualizado correctamente.";
+
+                    // Recargar datos del usuario actualizado para mostrarlos
+                    $stmtReload = $conn->prepare("SELECT * FROM usuarios WHERE id_usuario = ?");
+                    if ($stmtReload) {
+                        $stmtReload->bind_param("i", $id_usuario);
+                        $stmtReload->execute();
+                        $resReload = $stmtReload->get_result();
+                        if ($resReload && $resReload->num_rows > 0) {
+                            $usuario = $resReload->fetch_assoc();
+                        }
+                        $stmtReload->close();
+                    }
+
+                } else {
+                    $mensaje = "Error inesperado al actualizar el usuario. Código: " . ($resultado_sp ?? 'NULL');
+                }
+            }
         }
-        
     }
 }
-
-
 ?>
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Gestión de Usuarios</title>
-       <!-- FAVICON UNIFICADO -->
+    <!-- FAVICON UNIFICADO -->
     <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
     <style>
         body { 
@@ -109,10 +185,10 @@ if (isset($_POST["actualizar"])) {
             position: fixed;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             transition: width 0.3s ease;
-          }
+        }
         .navbar a {
-              display: block;
-              color: #fff;
+            display: block;
+            color: #fff;
             padding: 14px 20px;
             text-decoration: none;
             margin: 10px;
@@ -120,8 +196,8 @@ if (isset($_POST["actualizar"])) {
             transition: background 0.3s, transform 0.2s;
         }
         .navbar a:hover {
-             background-color: #264cbf;
-             transform: scale(1.05);
+            background-color: #264cbf;
+            transform: scale(1.05);
         }
         .content { 
             margin-left: 240px; 
@@ -135,19 +211,19 @@ if (isset($_POST["actualizar"])) {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         button {
-    padding: 8px 15px;
-    background: #152FBF;  /* Azul principal */
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 5px 0;
-    transition: 0.3s ease-in-out; /* transición suave */
-}
-       button:hover {
-    background: #264CBF;   /* Azul más oscuro */
-    transform: scale(1.05); /* aumenta un 5% */
-}
+            padding: 8px 15px;
+            background: #152FBF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px 0;
+            transition: 0.3s ease-in-out;
+        }
+        button:hover {
+            background: #264CBF;
+            transform: scale(1.05);
+        }
         input, select {
             padding: 8px;
             margin: 5px 0;
@@ -178,120 +254,120 @@ if (isset($_POST["actualizar"])) {
             margin-bottom: 5px;
             font-weight: bold;
         }
-         .logo-navbar {
+        .logo-navbar {
             position: absolute;
-            bottom: 40px;   /* ajustar para subirlo o bajarlo */
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
-            width: 140px;   /* tamaño del logo */
+            width: 140px;
             opacity: 0.9;
         }
         select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    width: 250px;
-    transition: all 0.3s ease-in-out; /* transición suave para hover */
-    font-size: 1em;
-    cursor: pointer;
-}
-
-/* Efecto al pasar el mouse */
-select:hover {
-    border-color: #152FBF;       /* cambiar color del borde */
-    transform: scale(1.03);      /* ligero aumento de tamaño */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* sombra suave */
-}
-
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 250px;
+            transition: all 0.3s ease-in-out;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        select:hover {
+            border-color: #152FBF;
+            transform: scale(1.03);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
     <div class="navbar">
-    <?php include('../../views/navbar.php'); ?>
-
-    <!-- Logo inferior del menú -->
-    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
-</div>
+        <?php include('../../views/navbar.php'); ?>
+        <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+    </div>
 
     <div class="content">
         <div class="seccion">
-            <h1 style="color: #69B7BF;"> Gestión de Usuarios</h1>
+            <h1 style="color: #69B7BF;">Gestión de Usuarios</h1>
             
             <!-- Búsqueda de usuario -->
             <div class="form-group">
-                <h3> Buscar Usuario</h3>
+                <h3>Buscar Usuario</h3>
                 <form method="POST">
-                    <input type="text" name="identificacion" placeholder="Ingrese la cédula" required>
+                    <input type="text" name="identificacion" placeholder="Ingrese la identificación" required>
                     <button type="submit" name="buscar">Buscar Usuario</button>
-                    
                 </form>
-            
-                    
-               <button onclick="location.href='/odontosmart/modulos/usuarios/admin_crear_usuarios.php'">Crear Usuario</button>
 
+                <button onclick="location.href='/odontosmart/modulos/usuarios/admin_crear_usuarios.php'">
+                    Crear Usuario
+                </button>
             </div>
-
-            
 
             <!-- Mensajes -->
             <?php if (!empty($mensaje)): ?>
-                <div class="mensaje <?php echo strpos($mensaje, '') !== false ? 'exito' : 'error'; ?>">
-                    <?php echo $mensaje; ?>
+                <div class="mensaje <?php echo (strpos($mensaje, 'correctamente') !== false ? 'exito' : 'error'); ?>">
+                    <?php echo htmlspecialchars($mensaje); ?>
                 </div>
             <?php endif; ?>
 
             <!-- Formulario de edición -->
             <?php if ($usuario): ?>
             <div class="seccion">
-                <h3> Editar Usuario</h3>
+                <h3>Editar Usuario</h3>
                 <form method="POST">
-                    <input type="hidden" name="id_usuario" value="<?= $usuario['id_usuario'] ?>">
+                    <input type="hidden" name="id_usuario" value="<?= (int)$usuario['id_usuario'] ?>">
                     
                     <div class="row g-2">
                         <div class="col-md-4 form-group">
                             <label>Nombre:</label>
-                            <input type="text" name="nombre" value="<?= htmlspecialchars($usuario['nombre'] ?? '') ?>" placeholder="Nombre" required>
+                            <input type="text" name="nombre" 
+                                   value="<?= htmlspecialchars($usuario['nombre'] ?? '') ?>" 
+                                   placeholder="Nombre" required>
                         </div>
                         <div class="col-md-4 form-group">
                             <label>Apellido 1:</label>
-                            <input type="text" name="apellido1" value="<?= htmlspecialchars($usuario['apellido1'] ?? '') ?>" placeholder="Apellido 1" required>
+                            <input type="text" name="apellido1" 
+                                   value="<?= htmlspecialchars($usuario['apellido1'] ?? '') ?>" 
+                                   placeholder="Apellido 1" required>
                         </div>
                         <div class="col-md-4 form-group">
                             <label>Apellido 2:</label>
-                            <input type="text" name="apellido2" value="<?= htmlspecialchars($usuario['apellido2'] ?? '') ?>" placeholder="Apellido 2">
+                            <input type="text" name="apellido2" 
+                                   value="<?= htmlspecialchars($usuario['apellido2'] ?? '') ?>" 
+                                   placeholder="Apellido 2">
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>Email:</label>
-                        <input type="email" name="email" value="<?= $usuario['email'] ?>" placeholder="Email" required>
+                        <input type="email" name="email" 
+                               value="<?= htmlspecialchars($usuario['email'] ?? '') ?>" 
+                               placeholder="Email" required>
                     </div>
                     
                     <div class="form-group">
                         <label>Teléfono:</label>
-                        <input type="text" name="telefono" value="<?= $usuario['telefono'] ?>" placeholder="Teléfono" required>
+                        <input type="text" name="telefono" 
+                               value="<?= htmlspecialchars($usuario['telefono'] ?? '') ?>" 
+                               placeholder="Teléfono" required>
                     </div>
                     
                     <div class="form-group">
-                        <label>Cédula:</label>
-                        <input type="text" name="identificacion" value="<?= $usuario['identificacion'] ?>" placeholder="Cédula" required>
+                        <label>Identificación:</label>
+                        <input type="text" name="identificacion" 
+                               value="<?= htmlspecialchars($usuario['identificacion'] ?? '') ?>" 
+                               placeholder="Identificación" required>
                     </div>
                     
                     <div class="form-group">
                         <label>Rol:</label>
                         <select name="rol" required>
-                            <option value="1" <?= ($usuario['id_rol']==1?"selected":"") ?>> Administrador</option>
-                            <option value="2" <?= ($usuario['id_rol']==2?"selected":"") ?>> Médico</option>
-                            <option value="3" <?= ($usuario['id_rol']==3?"selected":"") ?>> Cliente</option>
-                            <option value="4" <?= ($usuario['id_rol']==4?"selected":"") ?>> Recepcionista</option>
+                            <option value="1" <?= ($usuario['id_rol']==1 ? "selected" : "") ?>>Administrador</option>
+                            <option value="2" <?= ($usuario['id_rol']==2 ? "selected" : "") ?>>Médico</option>
+                            <option value="3" <?= ($usuario['id_rol']==3 ? "selected" : "") ?>>Cliente</option>
+                            <option value="4" <?= ($usuario['id_rol']==4 ? "selected" : "") ?>>Recepcionista</option>
                         </select>
+                    </div>
 
-                    
-                    
-                    <button type="submit" name="actualizar"> Actualizar Usuario</button>
-                    
-                    
-
+                    <button type="submit" name="actualizar">Actualizar Usuario</button>
                 </form>
             </div>
             <?php endif; ?>

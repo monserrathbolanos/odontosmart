@@ -1,81 +1,107 @@
 <?php
-
 /*
   actualizar_contrasena.php
+  --------------------------
   Endpoint que recibe el token de recuperación y la nueva contraseña
   desde el formulario de restablecimiento y actualiza la contraseña
   del usuario en la tabla `usuarios`.
- 
+
   Flujo:
    1. Valida que la petición POST incluya `token` y `new_password`.
-   2. Busca en `restablecer_contrasenas` un token válido (no expirado).
+   2. Busca en `restablecer_contrasenas` un token válido (no expirado),
+      uniendo con `usuarios` para obtener el email.
    3. Obtiene id_usuario y el correo asociado al token.
    4. Encripta la nueva contraseña.
    5. Actualiza la contraseña del usuario en `usuarios`.
    6. Elimina el token ya utilizado.
    7. Registra el evento en bitácoras.
-   8. Muestra mensaje de éxito y redirige al login.
- */
+   8. Redirige al login.
+*/
+
 require '../config/conexion.php'; // Conexión a la base de datos
 require_once __DIR__ . '/../config/alerts.php';
 
-// Validar que el formulario envió los campos necesarios por POST
-if (!isset($_POST['token'], $_POST['new_password'])) {
+// Validar que venga por POST y con los campos requeridos
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' ||
+    !isset($_POST['token'], $_POST['new_password'])) {
     stopWithAlert('Solicitud inválida.', 'Solicitud inválida', 'error');
 }
 
-// Datos recibidos desde el formulario de restablecimiento
+// Datos recibidos desde el formulario
 $token        = $_POST['token'];
 $new_password = $_POST['new_password'];
 
-// Validación del formato de la nueva contraseña (min 8, 1 mayúscula, 1 número, 1 carácter especial)
-$pwd_ok = preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._\-])[A-Za-z\d@$!%*?&#._\-]{8,}$/', $new_password);
+// Validación de la nueva contraseña
+$pwd_ok = preg_match(
+    '/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._\-])[A-Za-z\d@$!%*?&#._\-]{8,}$/',
+    $new_password
+);
+
 if (!$pwd_ok) {
-    echo "<script>alert('La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.'); window.location.href='restablecer_contrasena.php?token=".urlencode($token)."';</script>";
+    echo "<script>
+            alert('La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.');
+            window.location.href='restablecer_contrasena.php?token=" . urlencode($token) . "';
+          </script>";
     exit;
 }
 
-// 1) Buscar token válido y obtener id_usuario + email
+// 1) Buscar token válido y obtener id_usuario + email (JOIN con usuarios)
 $stmt = $conn->prepare("
-    SELECT id_usuario, email 
-    FROM restablecer_contrasenas 
-    WHERE token = ? AND expira > NOW()
+    SELECT rc.id_usuario, u.email
+    FROM restablecer_contrasenas rc
+    INNER JOIN usuarios u ON u.id_usuario = rc.id_usuario
+    WHERE rc.token = ?
+      AND rc.expira > NOW()
+    LIMIT 1
 ");
+if (!$stmt) {
+    stopWithAlert('Error al preparar la consulta de token.', 'Error interno', 'error');
+}
+
 $stmt->bind_param("s", $token);
 $stmt->execute();
 $result = $stmt->get_result();
 
 // Si no existe un registro con ese token vigente, se detiene el proceso
 if ($result->num_rows === 0) {
+    $stmt->close();
     stopWithAlert('Token inválido o expirado.', 'Token inválido', 'error');
 }
 
 $data       = $result->fetch_assoc();
-$id_usuario = $data['id_usuario'];
+$id_usuario = (int)$data['id_usuario'];
 $email      = $data['email'];
 $stmt->close();
 
 // 2) Encriptar contraseña nueva con password_hash
 $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
-// 3) Actualizar contraseña en la tabla `usuarios`
+// 3) Actualizar contraseña en la tabla `usuarios` por id_usuario
 $update_stmt = $conn->prepare("
-    UPDATE usuarios 
-    SET password = ? 
-    WHERE email = ?
+    UPDATE usuarios
+    SET password = ?
+    WHERE id_usuario = ?
 ");
-$update_stmt->bind_param("ss", $hashed_password, $email);
+if (!$update_stmt) {
+    stopWithAlert('Error al preparar la actualización de contraseña.', 'Error interno', 'error');
+}
+
+$update_stmt->bind_param("si", $hashed_password, $id_usuario);
 $update_stmt->execute();
 $update_stmt->close();
 
-// 4) Eliminar el token ya usado de la tabla de restablecimiento
+// 4) Eliminar el/los token(s) usados de la tabla de restablecimiento
+//    Puedes borrar solo el token usado o todos los del usuario.
+//    Aquí borro por token concreto:
 $delete_stmt = $conn->prepare("
-    DELETE FROM restablecer_contrasenas 
-    WHERE email = ?
+    DELETE FROM restablecer_contrasenas
+    WHERE token = ?
 ");
-$delete_stmt->bind_param("s", $email);
-$delete_stmt->execute();
-$delete_stmt->close();
+if ($delete_stmt) {
+    $delete_stmt->bind_param("s", $token);
+    $delete_stmt->execute();
+    $delete_stmt->close();
+}
 
 // 5) Registrar en bitácora el restablecimiento de contraseña
 $ip         = $_SERVER['REMOTE_ADDR']     ?? null;
@@ -86,19 +112,20 @@ $modulo   = 'login';
 $detalles = 'Usuario restableció su contraseña mediante enlace de recuperación.';
 
 $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
-$stmtLog->bind_param(
-    "isssss",
-    $id_usuario,
-    $accion,
-    $modulo,
-    $ip,
-    $user_agent,
-    $detalles
-);
-$stmtLog->execute();
-$stmtLog->close();
+if ($stmtLog) {
+    $stmtLog->bind_param(
+        "isssss",
+        $id_usuario,
+        $accion,
+        $modulo,
+        $ip,
+        $user_agent,
+        $detalles
+    );
+    $stmtLog->execute();
+    $stmtLog->close();
+}
 
-// 6) Mensaje final y redirección al formulario de inicio de sesión
-// Redirigimos al login con un flag para mostrar un alert elegante con Bootstrap
+// 6) Redirigir al formulario de inicio de sesión con bandera de éxito
 header('Location: iniciar_sesion.php?reset=1');
 exit;

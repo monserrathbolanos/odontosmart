@@ -2,7 +2,7 @@
 session_start();
 
 $rol = $_SESSION['user']['role'] ?? null;
-$rolesPermitidos = ['Cliente']; // ej.
+$rolesPermitidos = ['Cliente','Administrador']; // ej.
  
 if (!in_array($rol, $rolesPermitidos)) {
     // Aquí decides a dónde mandarlo: login, home o protegido.
@@ -199,24 +199,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mensaje_error = 'La fecha y hora seleccionadas ya están ocupadas. Por favor, elija otro horario.';
             } else {
 
-                // Llamar SP que inserta la cita y registra en bitácora
-// Llamar SP que inserta la cita y registra en bitácora
+ // Llamar SP que inserta la cita y registra en bitácora
 $stmt2 = $conn->prepare("
-    CALL sp_citas_crear(?,?,?,?,?,?, @resultado)
+    CALL sp_citas_crear(?,?,?,?,?,?,?,?, @resultado)
+
 ");
 
 if ($stmt2) {
-    $ip_usuario = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+    $ip_usuario  = $_SERVER['REMOTE_ADDR']      ?? 'DESCONOCIDA';
+    $modulo      = 'agendar_cita';
+    $user_agent  = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-    // iissis = int, int, string, string, int, string
+    // iississs = int, int, string, string, int, string, string, string
     $stmt2->bind_param(
-        "iissis",
-        $id_cliente,     
-        $id_odontologo,
-        $fecha_cita,
-        $motivo,
-        $idUsuarioSesion,
-        $ip_usuario
+        "iississs",
+        $id_cliente,        // i
+        $id_odontologo,     // i
+        $fecha_cita,        // s
+        $motivo,            // s
+        $idUsuarioSesion,   // i
+        $ip_usuario,        // s
+        $modulo,            // s
+        $user_agent         // s
     );
 
     if ($stmt2->execute()) {
@@ -239,6 +243,7 @@ if ($stmt2) {
 } else {
     $mensaje_error = "Error al preparar el procedimiento para agendar la cita.";
 }
+
 
             }
         } else {

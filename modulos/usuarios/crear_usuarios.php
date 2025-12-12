@@ -1,152 +1,214 @@
 <?php
 // --- crear_usuarios.php ---
- 
+// Registro público de usuarios (siempre como CLIENTE)
+
 require '../../config/conexion.php';
 require '../../config/csrf.php';
- 
+
 session_start();
 
- // Genera un token CSRF para proteger el formulario
+// Genera un token CSRF para proteger el formulario
 $csrf_token = generate_csrf_token();
- 
-// Obtener roles
-$roles = [];
-$result = $conn->query("SELECT id_rol, nombre FROM roles WHERE id_rol = 3");
-while ($row = $result->fetch_assoc()) {
-    $roles[] = $row;
-}
- 
+
+// Rol fijo: CLIENTE
+$role_id = 3;
+
 // Formulario para enviar datos a la base de datos cuando se crea un nuevo usuario
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
- 
+
+    // Verificación del token CSRF
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
-        $error = "Token de seguridad inválido.";
+        $error = "Token de seguridad inválido. Por favor, vuelve a intentarlo.";
     } else {
- 
-        // Recuperar datos
-        $nombre            = trim($_POST['nombre'] ?? '');
-        $apellido1         = trim($_POST['apellido1'] ?? '');
-        $apellido2         = trim($_POST['apellido2'] ?? '');
-        $email             = trim($_POST['email'] ?? '');
-        $password          = $_POST['password'] ?? '';
-        $confirm_password  = $_POST['confirm_password'] ?? '';
-        $role_id           = 3;
-        $identificacion    = trim($_POST['identificacion'] ?? '');
-        $telefono          = trim($_POST['telefono'] ?? '');
- 
-        // Validaciones
+
+        // =========================
+        // 1) RECUPERAR DATOS
+        // =========================
+        $nombre         = trim($_POST['nombre'] ?? '');
+        $apellido1      = trim($_POST['apellido1'] ?? '');
+        $apellido2      = trim($_POST['apellido2'] ?? '');
+        $email          = trim($_POST['email'] ?? '');
+        $password       = $_POST['password'] ?? '';
+        $confirm_pass   = $_POST['confirm_password'] ?? '';
+        $tipo_doc       = $_POST['tipo_doc'] ?? '';
+        $identificacion = trim($_POST['identificacion'] ?? '');
+        $telefono       = trim($_POST['telefono'] ?? '');
+
+        // =========================
+        // 2) VALIDACIONES
+        // =========================
+
         if ($nombre === '' || $apellido1 === '' || $email === '' || $password === '') {
-            $error = "Todos los campos son obligatorios.";
+            $error = "Todos los campos obligatorios deben estar completos.";
         }
 
-        
-// Validación del documento según tipo
-$tipo_doc = $_POST['tipo_doc'] ?? '';
+        // Validación del tipo de documento y formato
+        if (!isset($error)) {
 
-$patrones = [
-    "cedula"   => "/^[1-9]-\d{4}-\d{4}$/",
-    "dimex"    => "/^\d{8}[A-Z]$/",
-    "pasaporte"=> "/^[a-zA-Z0-9]{6,9}$/",
-    "juridica" => "/^\d{1}-\d{3}-\d{6}$/"
-];
+            $patrones = [
+                "cedula"   => "/^[1-9]-\d{4}-\d{4}$/",
+                "dimex"    => "/^\d{8}[A-Z]$/",
+                "pasaporte"=> "/^[a-zA-Z0-9]{6,9}$/",
+                "juridica" => "/^\d{1}-\d{3}-\d{6}$/"
+            ];
 
-if (!isset($patrones[$tipo_doc])) {
-    $error = "Debe seleccionar un tipo de identificación válido.";
-} elseif (!preg_match($patrones[$tipo_doc], $identificacion)) {
-    $error = "Formato inválido para el tipo de documento seleccionado.";
-}
-
-// Validación del email
-elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $error = "Correo inválido.";
-}
-
-//  TELÉFONO CON SOLO NÚMEROS Y CÓDIGO DE PAÍS
-elseif (!preg_match('/^\+\d{8,15}$/', $telefono)) {
-    $error = "El teléfono debe tener solo números y código de país. Ej: +50688889999";
-}
-
-
-// VALIDACIÓN FUERTE DE CONTRASEÑA (OBLIGATORIA)
-elseif (!preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._-])[A-Za-z\d@$!%*?&#._-]{8,}$/', $password)) {
-    $error = "La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.";
-}
-
-// CONFIRMAR CONTRASEÑA
-elseif ($password !== $confirm_password) {
-    $error = "Las contraseñas no coinciden.";
-}
- else {
- 
-            // Verifica que el rol seleccionado exista
-            $stmtRole = $conn->prepare("SELECT id_rol FROM roles WHERE id_rol = ?");
-            $stmtRole->bind_param("i", $role_id);
-            $stmtRole->execute();
- 
-            if ($stmtRole->get_result()->num_rows === 0) {
-                $error = "Rol inválido.";
-            } else {
- 
-                // Validar si existe usuario/correo/identificación para que no hayan duplicados
-                $stmt = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR identificacion = ?");
-                $stmt->bind_param("ss", $email, $identificacion);
-                $stmt->execute();
- 
-                if ($stmt->get_result()->num_rows > 0) {
-                    $error = "Usuario, identificación o correo ya está en uso.";
-                } else {
- 
-                    // Insertar IP para el call y usuario
-
-                    $hash = password_hash($password, PASSWORD_DEFAULT);
-                    $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
- 
-                  //Aqui se realiza el ingreso del usuario usando el procedimiento almacenado sp_crear_usuario.
-                $stmtCheck = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? OR identificacion = ?");
-                $stmtCheck->bind_param("ss", $email, $identificacion);
-                $stmtCheck->execute();
-
-                    if ($stmtCheck->get_result()->num_rows > 0) {
-                         $error = "Usuario, identificación o correo ya está en uso.";
-                    } else {
-
-                 // 2)Se encripta la contraseña y se llama al procedimiento almacenado para crear el usuario.
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-
-// normaliza antes de llamar SP:
-switch ($tipo_doc) {
-    case "cedula": $tipo_doc = "CEDULA"; break;
-    case "dimex":  $tipo_doc = "DIMEX"; break;
-    case "pasaporte": $tipo_doc = "PASAPORTE"; break;
-    case "juridica": $tipo_doc = "RUC"; break;
-}
-
-// Insertar el usuario directamente (con la nueva estructura: nombre/apellidos separados)
-$stmtInsert = $conn->prepare("INSERT INTO usuarios (nombre, apellido1, apellido2, email, telefono, tipo_doc, identificacion, password, id_rol) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-$stmtInsert->bind_param("ssssssssi", $nombre, $apellido1, $apellido2, $email, $telefono, $tipo_doc, $identificacion, $hash, $role_id);
-
-if ($stmtInsert->execute()) {
-    $success = "Usuario creado exitosamente.";
-} else {
-    // Si hay error, intentamos detectarlo (duplicado por índice, etc.)
-    $error = "Error al crear usuario: " . $stmtInsert->error;
-}
-
-$stmtInsert->close();
-}
-
-$stmtCheck->close();
-}
+            if (!isset($patrones[$tipo_doc])) {
+                $error = "Debe seleccionar un tipo de identificación válido.";
+            } elseif (!preg_match($patrones[$tipo_doc], $identificacion)) {
+                $error = "Formato inválido para el tipo de documento seleccionado.";
             }
- 
-            $stmtRole->close();
+        }
+
+        // Validación de correo
+        if (!isset($error) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Correo inválido.";
+        }
+
+        // Validación de teléfono
+        if (!isset($error) && !preg_match('/^\+\d{8,15}$/', $telefono)) {
+            $error = "El teléfono debe tener solo números y código de país. Ej: +50688889999";
+        }
+
+        // Validación fuerte de contraseña
+        if (
+            !isset($error) &&
+            !preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._-])[A-Za-z\d@$!%*?&#._-]{8,}$/', $password)
+        ) {
+            $error = "La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.";
+        }
+
+        // Confirmación de contraseña
+        if (!isset($error) && $password !== $confirm_pass) {
+            $error = "Las contraseñas no coinciden.";
+        }
+
+        // Validar que el rol 3 exista en la tabla roles
+        if (!isset($error)) {
+            $stmtRole = $conn->prepare("SELECT id_rol FROM roles WHERE id_rol = ?");
+            if ($stmtRole) {
+                $stmtRole->bind_param("i", $role_id);
+                $stmtRole->execute();
+                if ($stmtRole->get_result()->num_rows === 0) {
+                    $error = "Rol inválido.";
+                }
+                $stmtRole->close();
+            } else {
+                $error = "Error al validar el rol: " . $conn->error;
+            }
+        }
+
+        // =========================
+        // 3) LLAMAR SP SOLO SI NO HAY ERROR
+        // =========================
+        if (!isset($error)) {
+
+            // Normaliza tipo_doc para la BD
+            switch ($tipo_doc) {
+                case "cedula":    $tipo_doc_norm = "CEDULA";    break;
+                case "dimex":     $tipo_doc_norm = "DIMEX";     break;
+                case "pasaporte": $tipo_doc_norm = "PASAPORTE"; break;
+                case "juridica":  $tipo_doc_norm = "RUC";       break;
+                default:          $tipo_doc_norm = strtoupper($tipo_doc); break;
+            }
+
+            // Hashear contraseña
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+
+            // Datos para bitácora
+            $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+            $modulo     = 'Registro público - Crear usuario';
+            $userAgent  = $_SERVER['HTTP_USER_AGENT'] ?? 'DESCONOCIDO';
+
+            // =========================
+            // LLAMADA AL SP sp_crear_usuario
+            // =========================
+
+            $stmtSp = $conn->prepare("
+                CALL sp_crear_usuario(?,?,?,?,?,?,?,?,?,?,?,?, @p_resultado)
+            ");
+
+            if (!$stmtSp) {
+                $error = "Error al preparar el procedimiento almacenado: " . $conn->error;
+            } else {
+
+                // 11 strings + 1 int => "ssssssssisss"
+                $stmtSp->bind_param(
+                    "ssssssssisss",
+                    $nombre,          // p_nombre
+                    $apellido1,       // p_apellido1
+                    $apellido2,       // p_apellido2
+                    $email,           // p_email
+                    $telefono,        // p_telefono
+                    $tipo_doc_norm,   // p_tipo_doc
+                    $identificacion,  // p_identificacion
+                    $hash,            // p_password
+                    $role_id,         // p_id_rol (i)
+                    $ip_cliente,      // p_ip
+                    $modulo,          // p_modulo
+                    $userAgent        // p_user_agent
+                );
+
+                if (!$stmtSp->execute()) {
+                    $error = "Error al ejecutar el procedimiento almacenado: " . $stmtSp->error;
+                }
+
+                $stmtSp->close();
+                $conn->next_result(); // Limpia resultado del CALL
+
+                // Leer OUT p_resultado
+                if (!isset($error)) {
+                    $res = $conn->query("SELECT @p_resultado AS resultado");
+                    $row = $res->fetch_assoc();
+                    $resultado = $row['resultado'] ?? null;
+
+                    if ($resultado === 'DUPLICADO') {
+                        $error = "Usuario, identificación o correo ya está en uso.";
+                    } elseif ($resultado === 'OK') {
+
+                        // =========================
+                        // 4) INSERT EN CLIENTES (ROL 3)
+                        // =========================
+
+                        // Buscar id_usuario recién creado (por email)
+                        $new_user_id = 0;
+                        $stmtId = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email = ? LIMIT 1");
+                        if ($stmtId) {
+                            $stmtId->bind_param("s", $email);
+                            $stmtId->execute();
+                            $rowId = $stmtId->get_result()->fetch_assoc();
+                            $new_user_id = $rowId['id_usuario'] ?? 0;
+                            $stmtId->close();
+                        }
+
+                        if ($new_user_id > 0 && intval($role_id) === 3) {
+                            // Tu tabla clientes solo tiene: id_cliente, id_usuario, fecha_registro
+                            $stmtCli = $conn->prepare("INSERT INTO clientes (id_usuario) VALUES (?)");
+                            if ($stmtCli) {
+                                $stmtCli->bind_param("i", $new_user_id);
+                                if (!$stmtCli->execute()) {
+                                    $error = "Usuario creado, pero no se pudo crear registro de cliente: " . $stmtCli->error;
+                                }
+                                $stmtCli->close();
+                            } else {
+                                $error = "Usuario creado, pero no se pudo preparar inserción en clientes: " . $conn->error;
+                            }
+                        }
+
+                        if (!isset($error)) {
+                            $success = "Usuario creado exitosamente.";
+                        }
+
+                    } else {
+                        $error = "Error inesperado al crear usuario (resultado SP: " . ($resultado ?? 'NULL') . ").";
+                    }
+                }
+            }
         }
     }
 }
- 
+
 $conn->close();
 ?>
- 
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -160,9 +222,7 @@ $conn->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
- 
 <style>
-
 /* Estilos generales del cuerpo de la página */
  body {
     margin: 0;
@@ -189,7 +249,7 @@ $conn->close();
     background: #ffffffaf; /* Fondo semi-transparente */
     color: #000;
     border-radius: 12px;
-    padding: 28px; /* reduced padding for more compact layout */
+    padding: 28px;
     max-width: 100%;
     margin: auto;
     box-shadow: 0 8px 18px rgba(0,0,0,0.15);
@@ -209,7 +269,6 @@ h3 {
 }
 
 /* Formulario con layout de dos columnas */
-/* Use a class for the grid to avoid affecting other forms */
 .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -217,7 +276,7 @@ h3 {
     align-items: start;
 }
 
-/* Helper to make an item span full width of the grid */
+/* Helper para span completo */
 .form-full {
     grid-column: 1 / -1;
 }
@@ -310,7 +369,7 @@ input:focus, select:focus {
     }
 }
 
-/* Horizontal card layout: aside (logo/info) + main (form) */
+/* Layout interno */
 .card-inner {
     display: flex;
     gap: 20px;
@@ -350,11 +409,9 @@ input:focus, select:focus {
         max-width: 160px;
     }
 }
-
 </style>
- 
+
 <body class="bg-light">
- 
 <div class="container mt-5">
     <div class="card shadow-lg" style="max-width: 920px; margin: auto;">
       <div class="card-inner">
@@ -376,8 +433,7 @@ input:focus, select:focus {
           <form method="POST" action="" class="form-grid">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
               
-              <!-- Campo: Nombre y apellidos -->
-              <div class="row g-2">
+              <div class="row g-2 form-full">
                   <div class="col-md-4 mb-3">
                       <label for="nombre" class="form-label">Nombre</label>
                       <input type="text" name="nombre" id="nombre" class="form-control"
@@ -395,105 +451,78 @@ input:focus, select:focus {
                   </div>
               </div>
               
-              <!-- Campo: Correo electrónico -->
-              <div class="mb-3">
+              <div class="mb-3 form-full">
                   <label for="email" class="form-label">Correo electrónico</label>
                   <input type="email" name="email" id="email" class="form-control"
                          value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
               </div>
- 
-            <div class="mb-3">
-    <label for="tipo_doc" class="form-label">Tipo de Identificación</label>
-    <select name="tipo_doc" id="tipo_doc" class="form-select" required>
-        <option value="">Seleccione</option>
-        <option value="cedula" <?= (($_POST['tipo_doc'] ?? '')=='cedula')?'selected':'' ?>>Cédula CR</option>
-        <option value="dimex" <?= (($_POST['tipo_doc'] ?? '')=='dimex')?'selected':'' ?>>DIMEX</option>
-        <option value="pasaporte" <?= (($_POST['tipo_doc'] ?? '')=='pasaporte')?'selected':'' ?>>Pasaporte</option>
-        <option value="juridica" <?= (($_POST['tipo_doc'] ?? '')=='juridica')?'selected':'' ?>>Cédula Jurídica</option>
-    </select>
+
+              <div class="mb-3 form-full">
+                  <label for="tipo_doc" class="form-label">Tipo de Identificación</label>
+                  <select name="tipo_doc" id="tipo_doc" class="form-select" required>
+                      <option value="">Seleccione</option>
+                      <option value="cedula"   <?= (($_POST['tipo_doc'] ?? '')=='cedula')?'selected':'' ?>>Cédula CR</option>
+                      <option value="dimex"    <?= (($_POST['tipo_doc'] ?? '')=='dimex')?'selected':'' ?>>DIMEX</option>
+                      <option value="pasaporte"<?= (($_POST['tipo_doc'] ?? '')=='pasaporte')?'selected':'' ?>>Pasaporte</option>
+                      <option value="juridica" <?= (($_POST['tipo_doc'] ?? '')=='juridica')?'selected':'' ?>>Cédula Jurídica</option>
+                  </select>
+              </div>
+
+              <div class="mb-3 form-full">
+                  <label for="identificacion" class="form-label">Número de Identificación</label>
+                  <input type="text" name="identificacion" id="identificacion" class="form-control"
+                         value="<?= htmlspecialchars($_POST['identificacion'] ?? '') ?>" required>
+                  <small id="msgFormato" style="color: red; font-size: 12px;"></small>
+              </div>
+
+              <div class="mb-3 form-full">
+                  <label for="telefono" class="form-label">Teléfono</label>
+                  <input type="text" name="telefono" id="telefono" class="form-control"
+                         placeholder="+50688889999"
+                         value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>" required>
+                  <small id="msgTelefono" style="color:red; font-size:12px;"></small>
+              </div>
+
+              <div class="mb-3 form-full">
+                  <label for="password" class="form-label">Contraseña</label>
+                  <input type="password" name="password" id="password" class="form-control"
+                         placeholder="Ej: Odonto&2025" required>
+                  <small id="msgPassword" style="font-size:12px;"></small>
+              </div>
+
+              <div class="mb-3 form-full">
+                  <label for="confirm_password" class="form-label">Confirmar contraseña</label>
+                  <input type="password" name="confirm_password" id="confirm_password" class="form-control"
+                         placeholder="Repita la contraseña" required>
+                  <small id="msgConfirmPassword" style="font-size:12px;"></small>
+              </div>
+
+              <div class="form-actions form-full d-flex gap-2">
+                  <button type="submit" class="btn btn-success flex-fill">Crear usuario</button>
+                  <a href="/odontosmart/index.php" class="btn btn-primary flex-fill">Volver al inicio</a>
+              </div>
+
+              <a href="../../auth/iniciar_sesion.php" class="btn btn-secondary form-full mt-2">Iniciar sesión</a>
+          </form>
+
+        </div>
+      </div>
+    </div>
 </div>
-
-<div class="mb-3">
-    <label for="identificacion" class="form-label">Número de Identificación</label>
-    <input type="text" name="identificacion" id="identificacion" class="form-control"
-           value="<?= htmlspecialchars($_POST['identificacion'] ?? '') ?>" required>
-
-    <small id="msgFormato" style="color: red; font-size: 12px;"></small>
-</div>
- 
-            <div class="mb-3">
-                <label for="telefono" class="form-label">Teléfono</label>
-                <input type="text" name="telefono" id="telefono" class="form-control"
-                  placeholder="+50688889999"
-                  inputmode="numeric"
-                  value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>" required>
-
-<small id="msgTelefono" style="color:red; font-size:12px;"></small>
-
-            </div>
- 
-            <div class="mb-3">
-                <label for="password" class="form-label">Contraseña</label>
-                <input type="password" name="password" id="password" class="form-control"
-                 placeholder="Ej: Odonto&2025" required>
-
-                <small id="msgPassword" style="font-size:12px;"></small>
-            </div>
-
-            <div class="mb-3">
-                <label for="confirm_password" class="form-label">Confirmar contraseña</label>
-                <input type="password" name="confirm_password" id="confirm_password" class="form-control"
-                 placeholder="Repita la contraseña" required>
-
-                <small id="msgConfirmPassword" style="font-size:12px;"></small>
-            </div>
-
- 
-           
- 
-            <div class="form-actions form-full d-flex gap-2">
-                <button type="submit" class="btn btn-success flex-fill">Crear usuario</button>
-                <a href="/odontosmart/index.php" class="btn btn-primary flex-fill">Volver al inicio</a>
-            </div>
-
-            <a href="../../auth/iniciar_sesion.php" class="btn btn-secondary form-full mt-2">Iniciar sesión</a>
- 
-                        </form>
-
-                </div> <!-- /.card-main -->
-            </div> <!-- /.card-inner -->
-        </div> <!-- /.card -->
-</div> <!-- /.container -->
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    const selectTipo = document.getElementById("tipo_doc");
-    const inputIdent = document.getElementById("identificacion");
-    const msg = document.getElementById("msgFormato");
-
+    const selectTipo    = document.getElementById("tipo_doc");
+    const inputIdent    = document.getElementById("identificacion");
+    const msg           = document.getElementById("msgFormato");
     const inputTelefono = document.getElementById("telefono");
-    const msgTelefono = document.getElementById("msgTelefono");
+    const msgTelefono   = document.getElementById("msgTelefono");
+    const inputPassword = document.getElementById("password");
+    const inputConfirm  = document.getElementById("confirm_password");
+    const msgPassword   = document.getElementById("msgPassword");
+    const msgConfirm    = document.getElementById("msgConfirmPassword");
 
- inputTelefono.addEventListener("input", function () {
-
-    // Elimina TODO lo que no sea número o +
-    this.value = this.value.replace(/[^0-9+]/g, "");
-
-    const regexTelefono = /^\+\d{8,15}$/;
-
-    if (!regexTelefono.test(this.value)) {
-        this.style.borderColor = "red";
-        msgTelefono.textContent = "Formato correcto: +50688889999";
-    } else {
-        this.style.borderColor = "green";
-        msgTelefono.textContent = "";
-    }
-
-});
- 
-
-    // Expresiones regulares y mensajes claros
     const validaciones = {
         cedula: {
             regex: /^[1-9]-\d{4}-\d{4}$/,
@@ -513,17 +542,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
-    // Reset cuando cambia tipo
     selectTipo.addEventListener("change", function () {
         inputIdent.value = "";
         msg.textContent = "";
         inputIdent.style.borderColor = "";
     });
 
-    // Validación en tiempo real
     inputIdent.addEventListener("input", function () {
         let tipo = selectTipo.value;
-
         if (tipo && validaciones[tipo]) {
             if (!validaciones[tipo].regex.test(this.value)) {
                 this.style.borderColor = "red";
@@ -532,6 +558,44 @@ document.addEventListener("DOMContentLoaded", function () {
                 this.style.borderColor = "green";
                 msg.textContent = "";
             }
+        }
+    });
+
+    inputTelefono.addEventListener("input", function () {
+        this.value = this.value.replace(/[^0-9+]/g, "");
+        const regexTelefono = /^\+\d{8,15}$/;
+        if (!regexTelefono.test(this.value)) {
+            this.style.borderColor = "red";
+            msgTelefono.textContent = "Formato correcto: +50688889999";
+        } else {
+            this.style.borderColor = "green";
+            msgTelefono.textContent = "";
+        }
+    });
+
+    inputPassword.addEventListener("input", function () {
+        const value = this.value;
+        const tieneMayuscula = /[A-Z]/.test(value);
+        const tieneNumero    = /[0-9]/.test(value);
+        const tieneEspecial  = /[@$!%*?&#._-]/.test(value);
+        const tieneLongitud  = value.length >= 8;
+
+        if (!tieneLongitud || !tieneMayuscula || !tieneNumero || !tieneEspecial) {
+            msgPassword.textContent = "❌ Contraseña débil";
+            msgPassword.style.color = "red";
+        } else {
+            msgPassword.textContent = "✅ Contraseña segura";
+            msgPassword.style.color = "green";
+        }
+    });
+
+    inputConfirm.addEventListener("input", function () {
+        if (this.value !== inputPassword.value) {
+            msgConfirm.textContent = "❌ Las contraseñas no coinciden";
+            msgConfirm.style.color = "red";
+        } else {
+            msgConfirm.textContent = "✅ Las contraseñas coinciden";
+            msgConfirm.style.color = "green";
         }
     });
 });

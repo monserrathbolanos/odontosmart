@@ -1,11 +1,10 @@
 <?php
 session_start();
 require '../../config/conexion.php';
-require_once __DIR__ . '/../../config/alerts.php';
 
 // Verificar que el usuario esté logueado
 if (!isset($_SESSION['user']['id_usuario'])) {
-    stopWithAlert('Error: Usuario no autenticado.', 'No autenticado', 'warning');
+    die("Error: Usuario no autenticado.");
 }
 
 $id_usuario = $_SESSION['user']['id_usuario'];
@@ -17,37 +16,17 @@ $stmt->bind_param("i", $id_usuario);
 $stmt->execute();
 $result = $stmt->get_result();
 
-
-
 if ($result->num_rows === 0) {
 
-    // Obtener datos del usuario
-    $sql_user = "SELECT nombre, apellido1, apellido2, telefono, email FROM usuarios WHERE id_usuario = ?";
-    $stmt2 = $conn->prepare($sql_user);
-    $stmt2->bind_param("i", $id_usuario);
-    $stmt2->execute();
-    $res_user = $stmt2->get_result()->fetch_assoc();
-    $stmt2->close();
-
-    // Insertar en clientes
-    $sql_insert = "INSERT INTO clientes (id_usuario, nombre, apellido, telefono, correo, fecha_registro)
-                   VALUES (?, ?, ?, ?, ?, NOW())";
+    // *** NUEVA VERSIÓN ***
+    // La tabla clientes ahora solo tiene: id_cliente (AI), id_usuario, fecha_registro
+    $sql_insert = "INSERT INTO clientes (id_usuario, fecha_registro)
+                   VALUES (?, NOW())";
     $stmt3 = $conn->prepare($sql_insert);
-    $apellido = "";
-    $nombre_cliente = $res_user['nombre'] ?? '';
-    $apellido_cliente = trim(($res_user['apellido1'] ?? '') . ' ' . ($res_user['apellido2'] ?? ''));
-
-    $stmt3->bind_param(
-        "issss",
-        $id_usuario,
-        $nombre_cliente,
-        $apellido_cliente,
-        $res_user['telefono'],
-        $res_user['email']
-    );
+    $stmt3->bind_param("i", $id_usuario);
 
     if (!$stmt3->execute()) {
-        stopWithAlert('Error al insertar cliente: ' . $stmt3->error);
+        die("Error al insertar cliente: " . $stmt3->error);
     }
 
     // id_cliente que acaba de crearse
@@ -73,7 +52,7 @@ $stmt->execute();
 $result_carrito = $stmt->get_result();
 
 if ($result_carrito->num_rows === 0) {
-    stopWithAlert('No se encontró carrito para este usuario.');
+    die("No se encontró carrito para este usuario.");
 }
 
 $carrito = $result_carrito->fetch_assoc();
@@ -96,7 +75,7 @@ $result_detalle = $stmt2->get_result();
 
 // Validación de carrito
 if ($result_detalle->num_rows === 0) {
-    stopWithAlert('El carrito está vacío. No se puede procesar la venta.');
+    die("El carrito está vacío. No se puede procesar la venta.");
 }
 
 $productos = [];
@@ -108,14 +87,14 @@ while ($row = $result_detalle->fetch_assoc()) {
 
     // Validar stock disponible
     if ($row['stock_total'] < $row['cantidad']) {
-        stopWithAlert('No hay suficiente stock para el producto ID ' . $row['id_producto'] . '.');
+        die("No hay suficiente stock para el producto ID {$row['id_producto']}.");
     }
 
     // Determinar el precio a usar (con o sin promoción)
     $precio_unitario = $row['precio']; // Precio original
     $tiene_promocion = !empty($row['id_promocion']);
 
-     if ($tiene_promocion) {
+    if ($tiene_promocion) {
         $precio_unitario = $row['precio_con_descuento']; // Precio con descuento
         $descuento_producto = $row['monto_descuento'] * $row['cantidad'];
         $descuento_total += $descuento_producto;
@@ -130,14 +109,13 @@ while ($row = $result_detalle->fetch_assoc()) {
     $total_producto = $precio_unitario * $row['cantidad'];
     $subtotal += $total_producto;
 
-  $productos[] = [
-    "id_producto" => $row['id_producto'],
-    "cantidad" => $row['cantidad'],
-    "precio_unitario" => $precio_unitario, // ya tiene el descuento si aplica
-    "total" => $total_producto,
-    "descuento" => $tiene_promocion ? $descuento_producto : 0
-];
-
+    $productos[] = [
+        "id_producto" => $row['id_producto'],
+        "cantidad" => $row['cantidad'],
+        "precio_unitario" => $precio_unitario, // ya tiene el descuento si aplica
+        "total" => $total_producto,
+        "descuento" => $tiene_promocion ? $descuento_producto : 0
+    ];
 }
 
 $stmt2->close();
@@ -160,21 +138,18 @@ $total = $subtotal + $impuestos;
 $metodo_pago = "Tarjeta";
 $estado = 1;
 
-
 $sql_venta = "INSERT INTO ventas (id_usuario, id_cliente, fecha_venta, subtotal, impuestos, total, metodo_pago, estado)
               VALUES (?, ?, NOW(), ?, ?, ?, ?, ?)";
-
 
 $stmt3 = $conn->prepare($sql_venta);
 $stmt3->bind_param("iidddsi", $id_usuario, $id_cliente, $subtotal, $impuestos, $total, $metodo_pago, $estado);
 
-
-
 if (!$stmt3->execute()) {
-    stopWithAlert('Error al registrar la venta: ' . $stmt3->error);
+    die("Error al registrar la venta: " . $stmt3->error);
 }
 
 $id_venta = $stmt3->insert_id;
+
 
 // Registro de pago (TARJETA)
 
@@ -187,7 +162,6 @@ if (!$nombre_titular || !$numero_tarjeta || !$vencimiento) {
     echo "<script>alert('Error: Datos de tarjeta incompletos.'); window.history.back();</script>";
     exit;
 }
-
 
 // Normalizar formato YYYY-MM desde el input type="month"
 $vencimiento = trim($vencimiento);
@@ -219,11 +193,32 @@ $hoy->setTime(0,0,0);
 
 // Validación final
 if ($fecha_vencimiento < $hoy) {
-   stopWithAlert('Por favor use una tarjeta válida.', 'Tarjeta vencida', 'error');
+
+    echo "
+<!DOCTYPE html>
+<html lang='es'>
+<head>
+<meta charset='UTF-8'>
+<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+</head>
+<body>
+
+<script>
+Swal.fire({
+    icon: 'error',
+    title: 'Tarjeta vencida',
+    text: 'Por favor use una tarjeta válida.',
+    confirmButtonColor: '#d33'
+}).then(() => {
+    window.history.back();
+});
+</script>
+
+</body>
+</html>";
+
+    exit;
 }
-
-
-
 
 // Solo guardar los últimos 4 dígitos
 $tarjeta_4 = substr($numero_tarjeta, -4);
@@ -236,7 +231,7 @@ $stmtPago = $conn->prepare($sql_pago);
 $stmtPago->bind_param("idss", $id_venta, $total, $tarjeta_4, $vencimiento);
 
 if (!$stmtPago->execute()) {
-    stopWithAlert('Error al registrar el pago: ' . $stmtPago->error);
+    die("Error al registrar el pago: " . $stmtPago->error);
 }
 
 $stmt3->close();
@@ -248,7 +243,6 @@ $sql_detalle_venta = "INSERT INTO detalle_venta (id_venta, id_producto, cantidad
 $stmt4 = $conn->prepare($sql_detalle_venta);
 
 $sql_update_stock = "UPDATE productos SET stock_total = stock_total - ? WHERE id_producto = ?";
-
 $stmt_stock = $conn->prepare($sql_update_stock);
 
 foreach ($productos as $p) {
@@ -269,14 +263,13 @@ foreach ($productos as $p) {
     $stmt_stock->execute();
 
     // Actualizar cantidad en lote_producto
-        $sql_update_lote = "UPDATE lote_producto 
-                    SET cantidad = cantidad - ? 
-                    WHERE id_producto = ?";
-        $stmt_lote = $conn->prepare($sql_update_lote);
-        $stmt_lote->bind_param("ii", $p['cantidad'], $p['id_producto']);
-        $stmt_lote->execute();
-        $stmt_lote->close();
-
+    $sql_update_lote = "UPDATE lote_producto 
+                        SET cantidad = cantidad - ? 
+                        WHERE id_producto = ?";
+    $stmt_lote = $conn->prepare($sql_update_lote);
+    $stmt_lote->bind_param("ii", $p['cantidad'], $p['id_producto']);
+    $stmt_lote->execute();
+    $stmt_lote->close();
 }
 
 $stmt4->close();
@@ -299,7 +292,6 @@ if (!empty($promociones_aplicadas)) {
 $conn->query("DELETE FROM carrito_detalle WHERE id_carrito = $id_carrito");
 $conn->query("DELETE FROM carrito WHERE id_carrito = $id_carrito");
 
-
 // Registro en bitácora con SP
 $ip_cliente = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
 
@@ -308,7 +300,6 @@ $stmtLog = $conn->prepare("
 ");
 
 if ($stmtLog) {
-
     $stmtLog->bind_param("iids", $id_usuario, $id_venta, $total, $ip_cliente);
 
     if ($stmtLog->execute()) {
@@ -323,7 +314,6 @@ if ($stmtLog) {
         $stmtLog->close();
     }
 }
-
 
 // Redirigir a factura
 header("Location: factura.php?id_venta=" . $id_venta);

@@ -1,16 +1,17 @@
 <?php
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // inventario.php // Trabaja con las tablas categoria_productos y productos
 session_start();
 include('../../config/conexion.php');
-
-
 
 $rol = $_SESSION['user']['role'] ?? null;
 $rolesPermitidos = ['Administrador', 'Médico', 'Recepcionista']; // ej.
  
 if (!in_array($rol, $rolesPermitidos)) {
-    // Aquí decides a dónde mandarlo: login, home o protegido.
-    // Si quieres mandarlo al login:
     header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
     exit;
 }
@@ -28,108 +29,156 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stock_total     = intval($_POST["stock_total"] ?? 0);
     $id_categoria    = intval($_POST["id_categoria"] ?? 0);
     $fecha_caducidad = $_POST["fecha_caducidad"] ?? null;
-
     // Validar que la fecha de caducidad no sea en el pasado
-if ($fecha_caducidad) {
-    // Crear objetos DateTime
-    $hoy = new DateTime('today'); // solo fecha, sin hora
-    $fechaCad = DateTime::createFromFormat('Y-m-d', $fecha_caducidad);
+    if ($fecha_caducidad) {
+        $hoy = new DateTime('today'); // solo fecha, sin hora
+        $fechaCad = DateTime::createFromFormat('Y-m-d', $fecha_caducidad);
 
-    if (!$fechaCad) {
-        // Formato inválido
-        $mensaje = " Error: la fecha de caducidad no tiene un formato válido.";
-    } elseif ($fechaCad < $hoy) {
-        // Fecha en el pasado
-        $mensaje = " Error: la fecha de caducidad no puede estar en el pasado.";
+        if (!$fechaCad) {
+            // Formato inválido
+            $mensaje = " Error: la fecha de caducidad no tiene un formato válido.";
+        } elseif ($fechaCad < $hoy) {
+            // Fecha en el pasado
+            $mensaje = " Error: la fecha de caducidad no puede estar en el pasado.";
+        }
     }
-}
 
-// Solo continuar si no hay errores de fecha
-if (empty($mensaje)) {
-    $costo_unidad    = floatval($_POST["costo_unidad"] ?? 0);
-}
-    // Para la tabla de lote_producto
-    $cantidad_lote = $_POST['stock_total'];  
-    $fecha_lote = $_POST['fecha_caducidad'];
+    // Solo continuar si no hay errores de fecha
+    if (empty($mensaje)) {
 
+        $costo_unidad = floatval($_POST["costo_unidad"] ?? 0);
 
-    $idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
-    $ip_cliente      = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
- 
-    // Llamar al SP que crea producto y registra en bitácora
-    $stmt = $conn->prepare("
-        CALL sp_productos_crear(?,?,?,?,?,?,?,?,?,?,?, @resultado)
-    ");
+        // Para la tabla de lote_producto
+        $cantidad_lote = $stock_total;
+        $fecha_lote    = $fecha_caducidad;
+        $numero_lote   = $_POST['numero_lote'] ?? 0;
 
-    if ($stmt) {
-        // Tipos: i s s s d d i i s i s  (11 parámetros)
-        $stmt->bind_param(
-            "isssddiisis",
-            $id_categoria,      // i
-            $nombre,            // s
-            $descripcion,       // s
-            $unidad,            // s
-            $precio,            // d
-            $costo_unidad,      // d
-            $stock_total,       // i
-            $stock_minimo,      // i
-            $fecha_caducidad,   // s (DATE en formato 'Y-m-d')
-            $idUsuarioSesion,   // i
-            $ip_cliente         // s
-        );
+            // Validaciones de campos obligatorios
+            $nombre = trim($nombre);
+            if ($nombre === '') {
+                $mensaje = " Error: el nombre del producto es obligatorio.";
+            } elseif ($id_categoria <= 0) {
+                $mensaje = " Error: la categoría es obligatoria.";
+            }
 
-        if ($stmt->execute()) {
-            $stmt->close();
-            $conn->next_result(); // Limpia resultados del CALL
+        $idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
+        $ip_cliente      = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+        $modulo          = 'Inventario - Crear producto';
+        $userAgent       = $_SERVER['HTTP_USER_AGENT'] ?? 'DESCONOCIDO';
 
-            // Leer el valor OUT del SP
-            $res = $conn->query("SELECT @resultado AS res");
-            $row = $res->fetch_assoc();
-            $resultado = $row['res'] ?? null;
+        // Llamar al SP que crea producto y registra en bitácora
+        // Detectar firma del SP en la base de datos (para soportar parámetros adicionales como p_modulo y p_user_agent)
+        $procName = 'sp_productos_crear';
+        $procParams = [];
+        $resParams = $conn->query("SELECT PARAMETER_NAME FROM information_schema.parameters WHERE SPECIFIC_SCHEMA = DATABASE() AND SPECIFIC_NAME = '" . $procName . "' AND PARAMETER_MODE <> 'OUT' ORDER BY ORDINAL_POSITION");
+        if ($resParams) {
+            while ($rowP = $resParams->fetch_assoc()) {
+                $procParams[] = $rowP['PARAMETER_NAME'];
+            }
+        }
 
-            if ($resultado === 'OK') {
-                // Obtener el ID del último producto insertado
-                $res2 = $conn->query("SELECT MAX(id_producto) AS id FROM productos");
-                $id_producto = $res2->fetch_assoc()['id'];
+        if (empty($procParams)) {
+            $mensaje = " Error: no se pudo detectar la firma del procedimiento almacenado '$procName' en la base de datos.";
+        } else {
+            $placeholders = [];
+            $bindTypes = '';
+            $bindValues = [];
+            foreach ($procParams as $pname) {
+                $placeholders[] = '?';
+                switch ($pname) {
+                    case 'p_id_categoria': $bindTypes .= 'i'; $bindValues[] = $id_categoria; break;
+                    case 'p_nombre': $bindTypes .= 's'; $bindValues[] = $nombre; break;
+                    case 'p_descripcion': $bindTypes .= 's'; $bindValues[] = $descripcion; break;
+                    case 'p_unidad': $bindTypes .= 's'; $bindValues[] = $unidad; break;
+                    case 'p_precio': $bindTypes .= 'd'; $bindValues[] = $precio; break;
+                    case 'p_costo_unidad': $bindTypes .= 'd'; $bindValues[] = $costo_unidad; break;
+                    case 'p_stock_total': $bindTypes .= 'i'; $bindValues[] = $stock_total; break;
+                    case 'p_stock_minimo': $bindTypes .= 'i'; $bindValues[] = $stock_minimo; break;
+                    case 'p_fecha_caducidad': $bindTypes .= 's'; $bindValues[] = $fecha_caducidad; break;
+                    case 'p_id_usuario': $bindTypes .= 'i'; $bindValues[] = $idUsuarioSesion; break;
+                    case 'p_ip': $bindTypes .= 's'; $bindValues[] = $ip_cliente; break;
+                    case 'p_modulo': $bindTypes .= 's'; $bindValues[] = $modulo; break;
+                    case 'p_user_agent': $bindTypes .= 's'; $bindValues[] = $userAgent; break;
+                    default: $bindTypes .= 's'; $bindValues[] = ''; break;
+                }
+            }
 
-                // Insertar lote
-                $stmt2 = $conn->prepare("
-                    INSERT INTO lote_producto (id_producto, cantidad, numero_lote, fecha_caducidad)
-                    VALUES (?, ?, ?, ?)
-                ");
+            $callSql = "CALL " . $procName . "(" . implode(',', $placeholders) . ", @resultado)";
+            $stmt = $conn->prepare($callSql);
 
-    $stmt2->bind_param(
-        "iiis",
-        $id_producto,
-        $cantidad_lote,
-        $_POST['numero_lote'],
-        $fecha_lote
-    );
+            if ($stmt) {
+                // bind_param requires references
+                $refValues = [];
+                foreach ($bindValues as $k => $v) { $refValues[$k] = &$bindValues[$k]; }
+                array_unshift($refValues, $bindTypes);
+                call_user_func_array([$stmt, 'bind_param'], $refValues);
 
-    $stmt2->execute();
-    $stmt2->close();
+                try {
+                    $ok = $stmt->execute();
+                } catch (mysqli_sql_exception $ex) {
+                    $ok = false;
+                    $mensaje = " Error de base de datos: " . $ex->getMessage();
+                }
 
-    $mensaje = " El producto fue agregado correctamente.";
-            } elseif ($resultado === 'DUPLICADO') {
-                $mensaje = " Error: ya existe un producto con ese nombre en la misma categoría.";
+                if ($ok) {
+                    $stmt->close();
+                    $conn->next_result(); // Limpia resultados del CALL
+
+                // Leer el valor OUT del SP
+                $res = $conn->query("SELECT @resultado AS res");
+                $row = $res->fetch_assoc();
+                $resultado = $row['res'] ?? null;
+
+                if ($resultado === 'OK') {
+                    // Obtener el ID del último producto insertado
+                    $res2 = $conn->query("SELECT MAX(id_producto) AS id FROM productos");
+                    $id_producto = $res2->fetch_assoc()['id'];
+
+                    // Insertar lote
+                    $stmt2 = $conn->prepare("
+                        INSERT INTO lote_producto (id_producto, cantidad, numero_lote, fecha_caducidad)
+                        VALUES (?, ?, ?, ?)
+                    ");
+
+                    $stmt2->bind_param(
+                        "iiis",
+                        $id_producto,
+                        $cantidad_lote,
+                        $numero_lote,
+                        $fecha_lote
+                    );
+
+                    try {
+                        $stmt2->execute();
+                    } catch (mysqli_sql_exception $ex) {
+                        $mensaje = " Error al insertar lote: " . $ex->getMessage();
+                    }
+                    $stmt2->close();
+
+                    $mensaje = " El producto fue agregado correctamente.";
+                } elseif ($resultado === 'DUPLICADO') {
+                    $mensaje = " Error: ya existe un producto con ese nombre en la misma categoría.";
+                } elseif ($resultado === 'CADUCADO') {
+                    // Por si el SP también valida fecha y devuelve esto
+                    $mensaje = " Error: la fecha de caducidad no puede estar en el pasado.";
+                } else {
+                    $mensaje = " Error inesperado al agregar el producto.";
+                }
             } else {
-                $mensaje = " Error inesperado al agregar el producto.";
+                $mensaje = " Error al ejecutar el procedimiento almacenado.";
+                $stmt->close();
             }
         } else {
-            $mensaje = " Error al ejecutar el procedimiento almacenado.";
-            $stmt->close();
+            $mensaje = " Error al preparar el procedimiento almacenado.";
         }
-    } else {
-        $mensaje = " Error al preparar el procedimiento almacenado.";
     }
 }
-
+}
+// Obtener categorías
 // Obtener categorías
 $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos");
+
 ?>
-
-
-
 
 <!DOCTYPE html>
 <html lang="es">
@@ -139,10 +188,10 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
     <!-- FAVICON -->
     <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
             background: #f5f5f5;
         }
          .navbar {
@@ -167,9 +216,9 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
              background-color: #264cbf;
              transform: scale(1.05);
         }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
+        .content {
+            margin-left: 240px;
+            padding: 20px;
         }
         .seccion {
             background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
@@ -250,7 +299,7 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
             width: 140px;   /* tamaño del logo */
             opacity: 0.9;
         }
-
+ 
     </style>
 </head>
 <body>
@@ -259,55 +308,55 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
     <?php include('../../views/navbar.php'); ?>
     <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
 </div>
-
+ 
     <div class="content">
         <div class="seccion">
             <h1 style="color: #51a1aaff;">Control de Inventario</h1>
             <h2 style="color: #69B7BF;">Agregar Producto al Inventario</h2>
             <p>Complete el formulario para agregar un nuevo producto al sistema.</p>
-
+ 
             <?php if (!empty($mensaje)): ?>
                 <div class="mensaje <?php echo strpos($mensaje, 'correctamente') !== false ? 'exito' : 'error'; ?>">
                     <?php echo $mensaje; ?>
                 </div>
             <?php endif; ?>
-
+ 
             <div class="form-container">
                 <form method="POST" action="">
                     <div class="form-group">
                         <label class="required">Nombre del producto:</label>
                         <input type="text" name="nombre" placeholder="Ej: Anestesia Lidocaína 2%" required>
                     </div>
-
+ 
                     <div class="form-group">
                         <label>Descripción:</label>
                         <input type="text" name="descripcion" placeholder="Descripción detallada del producto">
                         <div class="form-hint">Opcional - describe las características del producto</div>
                     </div>
-
+ 
                     <div class="form-group">
                         <label class="required">Unidad de medida:</label>
                         <input type="text" name="unidad" placeholder="Ej: caja, litro, paquete, unidad" required>
                         <div class="form-hint">Especifique cómo se mide el producto</div>
                     </div>
-
+ 
                     <div class="form-group">
                         <label class="required">Precio de venta:</label>
                         <input type="number" step="0.01" name="precio" placeholder="0.00" min="0" required>
                         <div class="form-hint">Precio en colones (₡) - Incluir decimales</div>
                     </div>
-
+ 
                     <div class="form-group">
                         <label class="required">Cantidad a ingresar:</label>
                         <input type="number" name="stock_total" placeholder="0" min="0" required>
                     </div>
-
+ 
                     <div class="form-group">
                         <label class="required">Stock mínimo:</label>
                         <input type="number" name="stock_minimo" placeholder="0" min="0" required>
                         <div class="form-hint">Cantidad mínima antes de alertar por bajo stock</div>
                     </div>
-
+ 
                     <div class="form-group">
                         <label class="required">Categoría:</label>
                         <select name="id_categoria" required>
@@ -319,28 +368,28 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
                             <?php endwhile; ?>
                         </select>
                     </div>
-
+ 
                     <div class="form-group">
                         <label class="required">Fecha de caducidad:</label>
-                        <input 
-                            type="date" 
-                            name="fecha_caducidad" 
-                            required 
+                        <input
+                            type="date"
+                            name="fecha_caducidad"
+                            required
                             min="<?php echo date('Y-m-d'); ?>">
                     </div>
-
+ 
                     <div class="form-group">
                         <label class="required">Costo por unidad:</label>
                         <input type="number" step="0.01" name="costo_unidad" placeholder="0.00" min="0" required>
                         <div class="form-hint">Costo de adquisición en colones (₡)</div>
                     </div>
-                
+               
                     <div class="form-group">
                         <label class="required">Número de lote:</label>
                         <input type="number" step="1" name="numero_lote" placeholder="0" min="0" required>
                         <div class="form-hint">Ingrese el número de lote del producto</div>
                     </div>
-
+ 
                     <button type="submit">Guardar Producto</button>
                 </form>
             </div>
@@ -348,3 +397,4 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
     </div>
 </body>
 </html>
+ 

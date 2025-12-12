@@ -32,7 +32,7 @@ $permisosPorRol = [
     'Administrador' => [
         'ver_info_clinica',
         'ver_servicios',
-        // 'agendar_cita',
+        //'agendar_cita',
         'ir_a_pagar',
         'ver_inventario',
         'control_inventario',
