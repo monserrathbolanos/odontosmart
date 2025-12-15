@@ -27,9 +27,9 @@ while ($row = $result->fetch_assoc()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    // Verificación del token CSRF
-    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    try {
+        // Verificación del token CSRF
+        if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
         $error = "Token de seguridad inválido. Por favor, vuelve a intentarlo.";
     } else {
 
@@ -210,6 +210,29 @@ if (intval($role_id) === 3 && $new_user_id > 0) {
                 }
             }
         }
+        }
+    } catch (Throwable $e) {
+        $error = "Error inesperado: " . $e->getMessage();
+
+        // --- LOGGING FALLBACK (Fresh Connection) ---
+        try {
+            if (isset($conn) && $conn instanceof mysqli) { @$conn->close(); }
+            include '../../config/conexion.php';
+
+            $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+            $accion         = "CREAR_USUARIO_FAIL";
+            $modulo         = "usuarios/admin_crear_usuarios";
+            $ip             = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+            $user_agent     = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+            $detalles       = "Exception: " . $e->getMessage();
+
+            $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+            if ($stmtLog) {
+                $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+                $stmtLog->execute();
+                $stmtLog->close();
+            }
+        } catch (Throwable $t) { /* Silent fail */ }
     }
 }
 

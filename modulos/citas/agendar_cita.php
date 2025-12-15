@@ -141,114 +141,133 @@ if ($resOd = $conn->query($sqlOd)) {
 
 //Formulario para procesar la cita: Procesa el formulario cuando se envia una solicitud de agendar cita por el metodo POST.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $fecha         = trim($_POST['fecha_cita'] ?? '');
-    $hora          = trim($_POST['hora_cita'] ?? '');
-    $motivo        = trim($_POST['motivo'] ?? '');
-    $id_odontologo = intval($_POST['id_odontologo'] ?? 0);
+    try { 
+        $fecha         = trim($_POST['fecha_cita'] ?? '');
+        $hora          = trim($_POST['hora_cita'] ?? '');
+        $motivo        = trim($_POST['motivo'] ?? '');
+        $id_odontologo = intval($_POST['id_odontologo'] ?? 0);
 
-    //Funcion para que el usuario solo agende citas en los dias habilitados de lunes a sabado.  
-    if ($fecha === '' || $hora === '') {
-        $mensaje_error = 'Seleccione una fecha y una hora.';
-    } elseif ($id_odontologo <= 0) {
-        $mensaje_error = 'Seleccione a uno de nuestros odontólogos disponibles para su cita.';
-    } else {
-        // Validación de la hora que selecciona el usuario. 
-        $partesHora = explode(':', $hora);
-        $h = isset($partesHora[0]) ? intval($partesHora[0]) : -1;
-        $m = isset($partesHora[1]) ? intval($partesHora[1]) : -1;
-
-        // Solo permite al usuario elegir citas en el tiempo definido con intervalos de 30 minutos.
-        if ($h < 8 || $h > 16 || !in_array($m, [0, 30], true) || ($h == 16 && $m != 0)) {
-            $mensaje_error = 'La hora seleccionada no es válida. Nuestro horario de atencion es de 8:00 a.m. a 4:00 p.m..';
+        //Funcion para que el usuario solo agende citas en los dias habilitados de lunes a sabado.  
+        if ($fecha === '' || $hora === '') {
+            $mensaje_error = 'Seleccione una fecha y una hora.';
+        } elseif ($id_odontologo <= 0) {
+            $mensaje_error = 'Seleccione a uno de nuestros odontólogos disponibles para su cita.';
         } else {
-            // Combina la fecha y hora
-            $fecha_cita = $fecha . ' ' . $hora . ':00';
+            // Validación de la hora que selecciona el usuario. 
+            $partesHora = explode(':', $hora);
+            $h = isset($partesHora[0]) ? intval($partesHora[0]) : -1;
+            $m = isset($partesHora[1]) ? intval($partesHora[1]) : -1;
 
-            //No permite que el usuario agende citas en fechas pasadas.
-            if ($fecha < date('Y-m-d')) {
-                $mensaje_error = 'Su cita no puede ser agendada en una fecha pasada, por favor seleccione otra fecha.';
+            // Solo permite al usuario elegir citas en el tiempo definido con intervalos de 30 minutos.
+            if ($h < 8 || $h > 16 || !in_array($m, [0, 30], true) || ($h == 16 && $m != 0)) {
+                $mensaje_error = 'La hora seleccionada no es válida. Nuestro horario de atencion es de 8:00 a.m. a 4:00 p.m..';
             } else {
-                //Los domingos no se permiten agendar citas.
-                $diaSemana = date('w', strtotime($fecha)); // 0 = domingo, 1 = lunes...
+                // Combina la fecha y hora
+                $fecha_cita = $fecha . ' ' . $hora . ':00';
 
-                if ($diaSemana == 0) {
-                    $mensaje_error = 'Las citas solo se pueden agendar de lunes a sábado. Por favor seleccione otra fecha.';
+                //No permite que el usuario agende citas en fechas pasadas.
+                if ($fecha < date('Y-m-d')) {
+                    $mensaje_error = 'Su cita no puede ser agendada en una fecha pasada, por favor seleccione otra fecha.';
+                } else {
+                    //Los domingos no se permiten agendar citas.
+                    $diaSemana = date('w', strtotime($fecha)); // 0 = domingo, 1 = lunes...
+
+                    if ($diaSemana == 0) {
+                        $mensaje_error = 'Las citas solo se pueden agendar de lunes a sábado. Por favor seleccione otra fecha.';
+                    }
                 }
             }
         }
-    }
 
-    //Control de errores, si no hay errores entonces se procede a guardar la cita en la base de datos.
-    if ($mensaje_error === '') {
+        //Control de errores, si no hay errores entonces se procede a guardar la cita en la base de datos.
+        if ($mensaje_error === '') {
 
-        //Verifica que no exista otra cita agendada en esa misma fecha y hora.
-        $sqlCheck = "SELECT COUNT(*) AS total
-                     FROM citas
-                     WHERE fecha_cita = ?
-                       AND estado <> 'cancelada'";
+            //Verifica que no exista otra cita agendada en esa misma fecha y hora.
+            $sqlCheck = "SELECT COUNT(*) AS total
+                         FROM citas
+                         WHERE fecha_cita = ?
+                           AND estado <> 'cancelada'";
 
-        //Prepara y ejecuta la consulta para verificar la disponibilidad de la cita. 
-        $stmt = $conn->prepare($sqlCheck);
-        if ($stmt) {
-            $stmt->bind_param("s", $fecha_cita);
-            $stmt->execute();
-            $res = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
+            //Prepara y ejecuta la consulta para verificar la disponibilidad de la cita. 
+            $stmt = $conn->prepare($sqlCheck);
+            if ($stmt) {
+                $stmt->bind_param("s", $fecha_cita);
+                $stmt->execute();
+                $res = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
 
-            if ($res['total'] > 0) {
-                $mensaje_error = 'La fecha y hora seleccionadas ya están ocupadas. Por favor, elija otro horario.';
+                if ($res['total'] > 0) {
+                    $mensaje_error = 'La fecha y hora seleccionadas ya están ocupadas. Por favor, elija otro horario.';
+                } else {
+
+                    // Llamar SP que inserta la cita y registra en bitácora
+                    $stmt2 = $conn->prepare("CALL sp_citas_crear(?,?,?,?,?,?,?,?, @resultado)");
+
+                    if ($stmt2) {
+                        $ip_usuario  = $_SERVER['REMOTE_ADDR']      ?? 'DESCONOCIDA';
+                        $modulo      = 'agendar_cita';
+                        $user_agent  = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+                        // iississs = int, int, string, string, int, string, string, string
+                        $stmt2->bind_param(
+                            "iississs",
+                            $id_cliente,        // i
+                            $id_odontologo,     // i
+                            $fecha_cita,        // s
+                            $motivo,            // s
+                            $idUsuarioSesion,   // i
+                            $ip_usuario,        // s
+                            $modulo,            // s
+                            $user_agent         // s
+                        );
+
+                        if ($stmt2->execute()) {
+                            $stmt2->close();
+                            $conn->next_result();
+
+                            $res = $conn->query("SELECT @resultado AS res");
+                            $row = $res->fetch_assoc();
+                            $resultado_sp = $row['res'] ?? null;
+
+                            if ($resultado_sp === 'OK') {
+                                $mensaje_ok = "Su cita se agendó correctamente.";
+                            } else {
+                                // SP retornó ERROR (ya logueado por SP)
+                                $mensaje_error = "Lo sentimos, su cita no se pudo agendar. Intente nuevamente.";
+                            }
+                        } else {
+                            throw new Exception("Error al ejecutar SP: " . $stmt2->error);
+                        }
+                    } else {
+                         throw new Exception("Error al preparar SP: " . $conn->error);
+                    }
+                }
             } else {
-
- // Llamar SP que inserta la cita y registra en bitácora
-$stmt2 = $conn->prepare("
-    CALL sp_citas_crear(?,?,?,?,?,?,?,?, @resultado)
-
-");
-
-if ($stmt2) {
-    $ip_usuario  = $_SERVER['REMOTE_ADDR']      ?? 'DESCONOCIDA';
-    $modulo      = 'agendar_cita';
-    $user_agent  = $_SERVER['HTTP_USER_AGENT'] ?? '';
-
-    // iississs = int, int, string, string, int, string, string, string
-    $stmt2->bind_param(
-        "iississs",
-        $id_cliente,        // i
-        $id_odontologo,     // i
-        $fecha_cita,        // s
-        $motivo,            // s
-        $idUsuarioSesion,   // i
-        $ip_usuario,        // s
-        $modulo,            // s
-        $user_agent         // s
-    );
-
-    if ($stmt2->execute()) {
-        $stmt2->close();
-        $conn->next_result();
-
-        $res = $conn->query("SELECT @resultado AS res");
-        $row = $res->fetch_assoc();
-        $resultado_sp = $row['res'] ?? null;
-
-        if ($resultado_sp === 'OK') {
-            $mensaje_ok = "Su cita se agendó correctamente.";
-        } else {
-            $mensaje_error = "Lo sentimos, su cita no se pudo agendar. Intente nuevamente.";
-        }
-    } else {
-        $mensaje_error = "Error al ejecutar el procedimiento para agendar la cita.";
-        $stmt2->close();
-    }
-} else {
-    $mensaje_error = "Error al preparar el procedimiento para agendar la cita.";
-}
-
-
+                throw new Exception("Error en la verificación de disponibilidad: " . $conn->error);
             }
-        } else {
-            $mensaje_error = "Error en la verificación de disponibilidad.";
         }
+    } catch (Throwable $e) {
+        $mensaje_error = "Error inesperado: " . $e->getMessage();
+        
+        // --- LOGGING FALLBACK (Fresh Connection) ---
+        try {
+            if (isset($conn) && $conn instanceof mysqli) { @$conn->close(); }
+            include '../../config/conexion.php';
+
+            $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+            $accion         = "CITA_FALLIDA_EXCEPTION";
+            $modulo         = "citas/agendar_cita";
+            $ip             = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+            $user_agent     = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+            $detalles       = "Exception: " . $e->getMessage();
+
+            $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+            if ($stmtLog) {
+                $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+                $stmtLog->execute();
+                $stmtLog->close();
+            }
+        } catch (Throwable $t) { /* Silent fail */ }
     }
 }
 

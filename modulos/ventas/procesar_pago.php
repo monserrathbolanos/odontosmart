@@ -4,14 +4,20 @@ require '../../config/conexion.php';
 
 // Verificar que el usuario esté logueado
 if (!isset($_SESSION['user']['id_usuario'])) {
-    die("Error: Usuario no autenticado.");
+    // Error fatal si no hay usuario, redirigir
+    header("Location: ../../auth/login.php");
+    exit;
 }
 
 $id_usuario = $_SESSION['user']['id_usuario'];
 
 // Verificar si el usuario ya existe como cliente, si no, crearlo
 $sql_cliente = "SELECT id_cliente FROM clientes WHERE id_usuario = ?";
-$stmt = $conn->prepare($sql_cliente);
+
+try {
+    $conn->begin_transaction();
+
+    $stmt = $conn->prepare($sql_cliente);
 $stmt->bind_param("i", $id_usuario);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -26,7 +32,9 @@ if ($result->num_rows === 0) {
     $stmt3->bind_param("i", $id_usuario);
 
     if (!$stmt3->execute()) {
-        die("Error al insertar cliente: " . $stmt3->error);
+    if (!$stmt3->execute()) {
+        throw new Exception("Error al insertar cliente: " . $stmt3->error);
+    }
     }
 
     // id_cliente que acaba de crearse
@@ -52,7 +60,9 @@ $stmt->execute();
 $result_carrito = $stmt->get_result();
 
 if ($result_carrito->num_rows === 0) {
-    die("No se encontró carrito para este usuario.");
+if ($result_carrito->num_rows === 0) {
+    throw new Exception("No se encontró carrito para este usuario.");
+}
 }
 
 $carrito = $result_carrito->fetch_assoc();
@@ -75,7 +85,9 @@ $result_detalle = $stmt2->get_result();
 
 // Validación de carrito
 if ($result_detalle->num_rows === 0) {
-    die("El carrito está vacío. No se puede procesar la venta.");
+if ($result_detalle->num_rows === 0) {
+    throw new Exception("El carrito está vacío. No se puede procesar la venta.");
+}
 }
 
 $productos = [];
@@ -87,7 +99,9 @@ while ($row = $result_detalle->fetch_assoc()) {
 
     // Validar stock disponible
     if ($row['stock_total'] < $row['cantidad']) {
-        die("No hay suficiente stock para el producto ID {$row['id_producto']}.");
+    if ($row['stock_total'] < $row['cantidad']) {
+        throw new Exception("No hay suficiente stock para el producto ID {$row['id_producto']}.");
+    }
     }
 
     // Determinar el precio a usar (con o sin promoción)
@@ -145,7 +159,9 @@ $stmt3 = $conn->prepare($sql_venta);
 $stmt3->bind_param("iidddsi", $id_usuario, $id_cliente, $subtotal, $impuestos, $total, $metodo_pago, $estado);
 
 if (!$stmt3->execute()) {
-    die("Error al registrar la venta: " . $stmt3->error);
+if (!$stmt3->execute()) {
+    throw new Exception("Error al registrar la venta: " . $stmt3->error);
+}
 }
 
 $id_venta = $stmt3->insert_id;
@@ -231,7 +247,9 @@ $stmtPago = $conn->prepare($sql_pago);
 $stmtPago->bind_param("idss", $id_venta, $total, $tarjeta_4, $vencimiento);
 
 if (!$stmtPago->execute()) {
-    die("Error al registrar el pago: " . $stmtPago->error);
+if (!$stmtPago->execute()) {
+    throw new Exception("Error al registrar el pago: " . $stmtPago->error);
+}
 }
 
 $stmt3->close();
@@ -316,7 +334,41 @@ if ($stmtLog) {
 }
 
 // Redirigir a factura
-header("Location: factura.php?id_venta=" . $id_venta);
-exit;
+    $conn->commit();
+    header("Location: factura.php?id_venta=" . $id_venta);
+    exit;
 
+} catch (Throwable $t) {
+    // Revertir transacción
+    if (isset($conn) && $conn instanceof mysqli) { 
+        try { $conn->rollback(); } catch (Throwable $e) {}
+    }
+
+    // LOGGING CON NUEVO ESTÁNDAR Y CONEXIÓN LIMPIA
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        include '../../config/conexion.php'; 
+
+        $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+        $accion         = "VENTA_FALLIDA";
+        $modulo         = "ventas/procesar_pago";
+        $ip             = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $user_agent     = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+        $detalles       = "Error: " . $t->getMessage();
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+    } catch (Throwable $logError) {
+        error_log("Fallo crítico en logging: " . $logError->getMessage());
+    }
+
+    // Redirigir con mensaje de error
+    $msg = "Error al procesar el pago: " . $t->getMessage();
+    header("Location: pagar.php?error=" . urlencode($msg));
+    exit;
+}
 ?>
