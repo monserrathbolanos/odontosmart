@@ -341,7 +341,9 @@ if ($stmtLog) {
 } catch (Throwable $t) {
     // Revertir transacción
     if (isset($conn) && $conn instanceof mysqli) { 
-        try { $conn->rollback(); } catch (Throwable $e) {}
+        if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+            try { $conn->rollback(); } catch (Throwable $e) {}
+        }
     }
 
     // LOGGING CON NUEVO ESTÁNDAR Y CONEXIÓN LIMPIA

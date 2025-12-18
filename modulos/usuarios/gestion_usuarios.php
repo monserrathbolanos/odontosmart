@@ -17,150 +17,187 @@ if (!in_array($rol, $rolesPermitidos)) {
     exit;
 }
 
-// ==============================
-// 1) Buscar usuario por cédula
-// ==============================
-if (isset($_POST["buscar"])) {
-    $identificacion = trim($_POST["identificacion"] ?? '');
+try {
+    // ==============================
+    // 1) Buscar usuario por cédula
+    // ==============================
+    if (isset($_POST["buscar"])) {
+        $identificacion = trim($_POST["identificacion"] ?? '');
 
-    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE identificacion = ?");
-    if ($stmt) {
-        $stmt->bind_param("s", $identificacion);
-        $stmt->execute();
-        $resultado = $stmt->get_result();
-        
-        if ($resultado && $resultado->num_rows > 0) {
-            $usuario = $resultado->fetch_assoc();
-        } else {
-            $mensaje = "No se encontró usuario con esa identificación.";
-        }
-
-        $stmt->close();
-    } else {
-        $mensaje = "Error al preparar la consulta de búsqueda: " . $conn->error;
-    }
-}
-
-// ==============================
-// 2) Actualizar usuario (vía SP)
-// ==============================
-if (isset($_POST["actualizar"])) {
-
-    $id_usuario      = intval($_POST["id_usuario"]);
-    $nombre          = trim($_POST["nombre"] ?? '');
-    $apellido1       = trim($_POST["apellido1"] ?? '');
-    $apellido2       = trim($_POST["apellido2"] ?? '');
-    $email           = trim($_POST["email"] ?? '');
-    $telefono        = trim($_POST["telefono"] ?? '');
-    $identificacion  = trim($_POST["identificacion"] ?? '');
-    $id_rol          = intval($_POST["rol"] ?? 0);
-
-    $ip       = $_SERVER['REMOTE_ADDR']      ?? 'DESCONOCIDA';
-    $modulo   = 'gestion_usuarios';
-    $ua       = $_SERVER['HTTP_USER_AGENT']  ?? 'DESCONOCIDO';
-
-    // Validaciones básicas
-    if ($nombre === '' || $apellido1 === '' || $email === '' || $identificacion === '') {
-        $mensaje = "Todos los campos obligatorios deben estar completos.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $mensaje = "Correo electrónico inválido.";
-    } else {
-
-        // 2.1) Llamar al SP sp_actualizar_usuario
-        $stmtSp = $conn->prepare("
-            CALL sp_actualizar_usuario(?,?,?,?,?,?,?,?,?,?,?, @p_resultado)
-        ");
-
-        if (!$stmtSp) {
-            $mensaje = "Error al preparar el procedimiento almacenado: " . $conn->error;
-        } else {
-            // Tipos: i (id_usuario), s,s,s,s,s,s, i (id_rol), s,s,s
-            $stmtSp->bind_param(
-                "issssssisss",
-                $id_usuario,     // p_id_usuario
-                $nombre,         // p_nombre
-                $apellido1,      // p_apellido1
-                $apellido2,      // p_apellido2
-                $email,          // p_email
-                $telefono,       // p_telefono
-                $identificacion, // p_identificacion
-                $id_rol,         // p_id_rol
-                $ip,             // p_ip
-                $modulo,         // p_modulo
-                $ua              // p_user_agent
-            );
-
-            if (!$stmtSp->execute()) {
-                $mensaje = "Error al ejecutar el procedimiento almacenado: " . $stmtSp->error;
+        $stmt = $conn->prepare("SELECT * FROM usuarios WHERE identificacion = ?");
+        if ($stmt) {
+            $stmt->bind_param("s", $identificacion);
+            $stmt->execute();
+            $resultado = $stmt->get_result();
+            
+            if ($resultado && $resultado->num_rows > 0) {
+                $usuario = $resultado->fetch_assoc();
+            } else {
+                $mensaje = "No se encontró usuario con esa identificación.";
             }
 
-            $stmtSp->close();
-            // Limpiar posibles resultados del CALL
-            $conn->next_result();
+            $stmt->close();
+        } else {
+            $mensaje = "Error al preparar la consulta de búsqueda: " . $conn->error;
+        }
+    }
 
-            // Leer valor OUT @p_resultado
-            if (empty($mensaje)) {
-                $res = $conn->query("SELECT @p_resultado AS resultado");
-                if ($res) {
-                    $row          = $res->fetch_assoc();
-                    $resultado_sp = $row['resultado'] ?? null;
-                } else {
-                    $resultado_sp = null;
+    // ==============================
+    // 2) Actualizar usuario (vía SP)
+    // ==============================
+    if (isset($_POST["actualizar"])) {
+
+        $id_usuario      = intval($_POST["id_usuario"]);
+        $nombre          = trim($_POST["nombre"] ?? '');
+        $apellido1       = trim($_POST["apellido1"] ?? '');
+        $apellido2       = trim($_POST["apellido2"] ?? '');
+        $email           = trim($_POST["email"] ?? '');
+        $telefono        = trim($_POST["telefono"] ?? '');
+        $identificacion  = trim($_POST["identificacion"] ?? '');
+        $id_rol          = intval($_POST["rol"] ?? 0);
+
+        $ip       = $_SERVER['REMOTE_ADDR']      ?? 'DESCONOCIDA';
+        $modulo   = 'gestion_usuarios';
+        $ua       = $_SERVER['HTTP_USER_AGENT']  ?? 'DESCONOCIDO';
+
+        // Validaciones básicas
+        if ($nombre === '' || $apellido1 === '' || $email === '' || $identificacion === '') {
+            $mensaje = "Todos los campos obligatorios deben estar completos.";
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $mensaje = "Correo electrónico inválido.";
+        } else {
+
+            // 2.1) Llamar al SP sp_actualizar_usuario
+            $stmtSp = $conn->prepare("
+                CALL sp_actualizar_usuario(?,?,?,?,?,?,?,?,?,?,?, @p_resultado)
+            ");
+
+            if (!$stmtSp) {
+                $mensaje = "Error al preparar el procedimiento almacenado: " . $conn->error;
+            } else {
+                // Tipos: i (id_usuario), s,s,s,s,s,s, i (id_rol), s,s,s
+                $stmtSp->bind_param(
+                    "issssssisss",
+                    $id_usuario,     // p_id_usuario
+                    $nombre,         // p_nombre
+                    $apellido1,      // p_apellido1
+                    $apellido2,      // p_apellido2
+                    $email,          // p_email
+                    $telefono,       // p_telefono
+                    $identificacion, // p_identificacion
+                    $id_rol,         // p_id_rol
+                    $ip,             // p_ip
+                    $modulo,         // p_modulo
+                    $ua              // p_user_agent
+                );
+
+                if (!$stmtSp->execute()) {
+                    $mensaje = "Error al ejecutar el procedimiento almacenado: " . $stmtSp->error;
                 }
 
-                if ($resultado_sp === 'DUPLICADO') {
-                    $mensaje = "Correo o identificación ya está en uso por otro usuario.";
-                } elseif ($resultado_sp === 'OK') {
+                $stmtSp->close();
+                // Limpiar posibles resultados del CALL
+                $conn->next_result();
 
-                    // ================================
-                    // 2.2) Lógica especial de CLIENTES
-                    // (la de ODONTOLOGOS ya la hace el SP)
-                    // ================================
-                    if (intval($id_rol) === 3) {
-                        // Ver si ya existe cliente para ese usuario
-                        $stmtChkCli = $conn->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = ?");
-                        if ($stmtChkCli) {
-                            $stmtChkCli->bind_param("i", $id_usuario);
-                            $stmtChkCli->execute();
-                            $resChkCli = $stmtChkCli->get_result();
+                // Leer valor OUT @p_resultado
+                if (empty($mensaje)) {
+                    $res = $conn->query("SELECT @p_resultado AS resultado");
+                    if ($res) {
+                        $row          = $res->fetch_assoc();
+                        $resultado_sp = $row['resultado'] ?? null;
+                    } else {
+                        $resultado_sp = null;
+                    }
 
-                            if ($resChkCli && $resChkCli->num_rows === 0) {
-                                // No existe -> insertar nuevo cliente (solo id_usuario; fecha_registro la pone la DB)
-                                $stmtCliIns = $conn->prepare("
-                                    INSERT INTO clientes (id_usuario)
-                                    VALUES (?)
-                                ");
-                                if ($stmtCliIns) {
-                                    $stmtCliIns->bind_param("i", $id_usuario);
-                                    $stmtCliIns->execute();
-                                    $stmtCliIns->close();
+                    if ($resultado_sp === 'DUPLICADO') {
+                        $mensaje = "Correo o identificación ya está en uso por otro usuario.";
+                    } elseif ($resultado_sp === 'OK') {
+
+                        // ================================
+                        // 2.2) Lógica especial de CLIENTES
+                        // (la de ODONTOLOGOS ya la hace el SP)
+                        // ================================
+                        if (intval($id_rol) === 3) {
+                            // Ver si ya existe cliente para ese usuario
+                            $stmtChkCli = $conn->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = ?");
+                            if ($stmtChkCli) {
+                                $stmtChkCli->bind_param("i", $id_usuario);
+                                $stmtChkCli->execute();
+                                $resChkCli = $stmtChkCli->get_result();
+
+                                if ($resChkCli && $resChkCli->num_rows === 0) {
+                                    // No existe -> insertar nuevo cliente (solo id_usuario; fecha_registro la pone la DB)
+                                    $stmtCliIns = $conn->prepare("
+                                        INSERT INTO clientes (id_usuario)
+                                        VALUES (?)
+                                    ");
+                                    if ($stmtCliIns) {
+                                        $stmtCliIns->bind_param("i", $id_usuario);
+                                        $stmtCliIns->execute();
+                                        $stmtCliIns->close();
+                                    }
                                 }
+                                $stmtChkCli->close();
                             }
-                            $stmtChkCli->close();
                         }
-                    }
 
-                    // Mensaje final
-                    $mensaje = "Usuario actualizado correctamente.";
+                        // Mensaje final
+                        $mensaje = "Usuario actualizado correctamente.";
 
-                    // Recargar datos del usuario actualizado para mostrarlos
-                    $stmtReload = $conn->prepare("SELECT * FROM usuarios WHERE id_usuario = ?");
-                    if ($stmtReload) {
-                        $stmtReload->bind_param("i", $id_usuario);
-                        $stmtReload->execute();
-                        $resReload = $stmtReload->get_result();
-                        if ($resReload && $resReload->num_rows > 0) {
-                            $usuario = $resReload->fetch_assoc();
+                        // Recargar datos del usuario actualizado para mostrarlos
+                        $stmtReload = $conn->prepare("SELECT * FROM usuarios WHERE id_usuario = ?");
+                        if ($stmtReload) {
+                            $stmtReload->bind_param("i", $id_usuario);
+                            $stmtReload->execute();
+                            $resReload = $stmtReload->get_result();
+                            if ($resReload && $resReload->num_rows > 0) {
+                                $usuario = $resReload->fetch_assoc();
+                            }
+                            $stmtReload->close();
                         }
-                        $stmtReload->close();
-                    }
 
-                } else {
-                    $mensaje = "Error inesperado al actualizar el usuario. Código: " . ($resultado_sp ?? 'NULL');
+                    } else {
+                        $mensaje = "Error inesperado al actualizar el usuario. Código: " . ($resultado_sp ?? 'NULL');
+                    }
                 }
             }
         }
     }
+
+} catch (Throwable $e) {
+    // Intentar rollback
+    try {
+        if (isset($conn) && $conn instanceof mysqli) {
+            if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                try { $conn->rollback(); } catch (Throwable $__ignore) {}
+            }
+        }
+    } catch (Throwable $__ignored) {}
+
+    // Registrar en bitácora
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        include_once '../../config/conexion.php';
+
+        $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+        $accion = 'GESTION_USUARIOS_ERROR';
+        $modulo = 'usuarios/gestion_usuarios';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+        $detalles = 'Error técnico: ' . $e->getMessage();
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+        if (isset($conn)) { @$conn->close(); }
+    } catch (Throwable $logError) {
+        error_log("Fallo al escribir en bitácora (gestion_usuarios): " . $logError->getMessage());
+    }
+
+    $mensaje = "Ocurrió un error técnico. Por favor intente nuevamente.";
 }
 ?>
 <!DOCTYPE html>

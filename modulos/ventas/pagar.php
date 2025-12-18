@@ -35,31 +35,38 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
             background: #f5f5f5;
         }
 
-        .navbar { 
-            width: 220px; 
-            background-color: #69B7BF; 
-            height: 100vh; 
-            padding-top: 20px; 
-            position: fixed; 
+        .navbar {
+        width: 220px;
+        background-color: #69B7BF;
+        height: 100vh;
+        padding-top: 20px;
+        position: fixed;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        transition: width 0.3s ease;
         }
 
-        .navbar a { 
-            display: block; 
-            color: #ecf0f1; 
-            padding: 12px; 
-            text-decoration: none; 
-            margin: 5px 0; 
-            border-radius: 4px; 
+        .navbar a{
+        display: block;
+        color: #fff;
+        padding: 14px 20px;
+        text-decoration: none;
+        margin: 10px;
+        border-radius: 8px;
+        transition: background 0.3s, transform 0.2s;
+        text-align: left; /* importante para que no se centre */
         }
-        .navbar a:hover { 
-            background-color: #264cbf; 
+
+        .navbar a:hover{
+        background-color: #264cbf;
+        transform: scale(1.05);
         }
+
         .logo-navbar {
             position: absolute;
-            bottom: 80px;
+            bottom: 40px;   /* ajustar para subirlo o bajarlo */
             left: 50%;
             transform: translateX(-50%);
-            width: 140px;
+            width: 140px;   /* tamaño del logo */
             opacity: 0.9;
         }
 
@@ -120,12 +127,12 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
             background: #218838;
         }
 
-        a {
-            display: block;
-            margin-top: 15px;
-            color: #152fbf;
-            text-decoration: none;
-            text-align: center;
+        .seccion a{
+        display: block;
+        margin-top: 15px;
+        color: #152fbf;
+        text-decoration: none;
+        text-align: center;
         }
     </style>
 </head>
@@ -135,6 +142,7 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
     <!-- Menú lateral -->
     <div class="navbar">
         <?php include('../../views/navbar.php'); ?>
+         <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
     </div>
 
     <div class="content">
@@ -174,7 +182,7 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
                 <button type="submit">Procesar pago</button>
             </form>
 
-            <a href="carrito.php">← Volver al carrito</a>
+            <a href="carrito.php">Volver al carrito</a>
         </div>
 
     </div>

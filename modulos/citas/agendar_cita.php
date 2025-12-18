@@ -249,10 +249,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Throwable $e) {
         $mensaje_error = "Error inesperado: " . $e->getMessage();
         
+        // Intentar rollback si hay transacción activa
+        try {
+            if (isset($conn) && $conn instanceof mysqli) {
+                if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                    try { $conn->rollback(); } catch (Throwable $__ignore) {}
+                }
+            }
+        } catch (Throwable $__ignored) {}
+
         // --- LOGGING FALLBACK (Fresh Connection) ---
         try {
-            if (isset($conn) && $conn instanceof mysqli) { @$conn->close(); }
-            include '../../config/conexion.php';
+            if (isset($conn)) { @$conn->close(); }
+            include_once '../../config/conexion.php';
 
             $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
             $accion         = "CITA_FALLIDA_EXCEPTION";
@@ -267,7 +276,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtLog->execute();
                 $stmtLog->close();
             }
-        } catch (Throwable $t) { /* Silent fail */ }
+            if (isset($conn)) { @$conn->close(); }
+        } catch (Throwable $t) { error_log("Fallo al escribir en bitácora (agendar): " . $t->getMessage()); }
     }
 }
 

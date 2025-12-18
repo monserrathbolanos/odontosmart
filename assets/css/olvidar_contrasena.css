@@ -1,0 +1,65 @@
+/* Estilos para la página de olvidar contraseña */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      color: #fff;
+      background: linear-gradient(270deg, #D5E7F2, #69B7BF, #d5e7f2);
+      background-size: 300% 300%;
+      animation: rgbFlow 100s ease infinite;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Animación del fondo en gradiente */
+    @keyframes rgbFlow {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Tarjeta que contiene el formulario */
+     .card {
+    position: relative;
+    background: #ffffffaf; /* fondo semitransparente */
+    color: #000;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 400px;
+    
+    width: 100%;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+  }
+    
+
+    /* Estilo del texto de las etiquetas del formulario */
+    label {
+      color: #020202ff;
+    }
+
+    /* Botón principal personalizado "Enviar enlace de recuperación" */
+    .btn-custom {
+      background-color: #ffffff;
+      color: #152fbf;
+      font-weight: bold;
+    }
+
+    /* Efecto hover sobre el botón principal */
+    .btn-custom:hover {
+      background-color: #69B7BF;
+    }
+
+    @media (max-width: 500px) {
+    .card {
+        padding: 20px;
+    }
+  }

@@ -18,8 +18,9 @@ if (!in_array($rol, $rolesPermitidos)) {
 }
 include('../../config/conexion.php');
 
-// Obtener historial de ventas
-$sql_ventas = "SELECT 
+try {
+    // Obtener historial de ventas
+    $sql_ventas = "SELECT 
                     v.id_venta,
                     v.fecha_venta,
                     v.id_cliente,
@@ -61,6 +62,39 @@ $sql_bottom = "
     LIMIT 5
 ";
 $menos_vendidos = $conn->query($sql_bottom);
+} catch (Throwable $e) {
+    try {
+        if (isset($conn) && $conn instanceof mysqli) {
+            if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                try { $conn->rollback(); } catch (Throwable $__ignore) {}
+            }
+        }
+    } catch (Throwable $__ignored) {}
+
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        include_once ('../../config/conexion.php');
+
+        $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+        $accion = 'SALES_HISTORY_ERROR';
+        $modulo = 'modulos/ventas/historial_ventas';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+        $detalles = 'Error técnico: ' . $e->getMessage();
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+        if (isset($conn)) { @$conn->close(); }
+    } catch (Throwable $logError) {
+        error_log("Fallo al escribir en bitácora (historial_ventas.php): " . $logError->getMessage());
+    }
+    // Show error message later in HTML
+    $historial_error = true;
+}
 
 ?>
 

@@ -214,10 +214,19 @@ if (intval($role_id) === 3 && $new_user_id > 0) {
     } catch (Throwable $e) {
         $error = "Error inesperado: " . $e->getMessage();
 
-        // --- LOGGING FALLBACK (Fresh Connection) ---
+        // Intentar rollback si hay transacción activa
         try {
-            if (isset($conn) && $conn instanceof mysqli) { @$conn->close(); }
-            include '../../config/conexion.php';
+            if (isset($conn) && $conn instanceof mysqli) {
+                if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                    try { $conn->rollback(); } catch (Throwable $__ignore) {}
+                }
+            }
+        } catch (Throwable $__ignored) {}
+
+        // --- LOGGING FALLBACK (Fresh Connection) ---
+        try { 
+            if (isset($conn)) { @$conn->close(); }
+            include_once '../../config/conexion.php';
 
             $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
             $accion         = "CREAR_USUARIO_FAIL";
@@ -232,7 +241,8 @@ if (intval($role_id) === 3 && $new_user_id > 0) {
                 $stmtLog->execute();
                 $stmtLog->close();
             }
-        } catch (Throwable $t) { /* Silent fail */ }
+            if (isset($conn)) { @$conn->close(); }
+        } catch (Throwable $t) { error_log("Fallo al escribir en bitácora (admin_crear): " . $t->getMessage()); }
     }
 }
 
@@ -411,12 +421,14 @@ input:focus, select:focus {
             </div>
 
             <div class="mb-3">
+                <label for="password" class="form-label">Contraseña</label>
                 <input type="password" name="password" id="password" class="form-control"
                        placeholder="Ej: Odonto*2025" required>
                 <small id="msgPassword" style="font-size:12px;"></small>
             </div>
 
             <div class="mb-3">
+                <label for="confirm_password" class="form-label">Confirmar Contraseña</label>
                 <input type="password" name="confirm_password" id="confirm_password" class="form-control mt-2"
                        placeholder="Repita la contraseña" required>
                 <small id="msgConfirmPassword" style="font-size:12px;"></small>

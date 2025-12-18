@@ -1,0 +1,194 @@
+/* Estilos CSS para la pagina de index.php de OdontoSmart */
+
+/* Variables de color */
+:root {
+    --primary-color: #139BA5;
+    --secondary-color: #69B7BF;
+    --accent-color: #264CBF;
+}
+
+/* Estilos base */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(
+        135deg,
+        var(--secondary-color),
+        var(--primary-color)
+    );
+    background-attachment: fixed;
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* Navbar */
+.navbar {
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 12px 0;
+    border-bottom: 2px solid var(--secondary-color);
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-logo {
+    height: 40px;
+    width: auto;
+}
+
+.nav-link {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1a1a1a;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background-color: rgba(19, 155, 165, 0.1);
+    color: var(--accent-color);
+}
+
+.navbar-toggler {
+    border: none;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none;
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* Hero */
+.hero-section {
+    padding: 80px 20px 60px;
+    color: #ffffff;
+}
+
+.hero-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+}
+
+.hero-text h1 {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.hero-text .subtitle {
+    font-size: 1.3rem;
+    font-weight: 500;
+    margin-bottom: 30px;
+}
+
+.hero-text p {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    opacity: 0.85;
+    margin: 12px 0;
+}
+
+/* Carrusel */
+.carousel-container {
+    max-width: 900px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-item img {
+    height: 400px;
+    width: 100%;
+    object-fit: cover;
+}
+
+.carousel-caption {
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.8),
+        transparent
+    );
+    padding: 40px 20px 20px;
+}
+
+.carousel-caption h6 {
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.carousel-caption p {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* Tarjetas */
+.cards-section {
+    padding: 60px 20px;
+}
+
+.service-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(14px);
+    border-radius: 16px;
+    padding: 32px 28px;
+    color: #ffffff;
+    height: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.25);
+}
+
+.service-card h5 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.service-card p {
+    font-size: 1rem;
+    line-height: 1.7;
+    opacity: 0.85;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .carousel-item img {
+        height: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-section {
+        padding: 50px 16px 30px;
+    }
+
+    .hero-text h1 {
+        font-size: 1.75rem;
+    }
+
+    .carousel-item img {
+        height: 250px;
+    }
+}

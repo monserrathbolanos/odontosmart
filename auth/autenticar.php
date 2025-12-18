@@ -19,12 +19,15 @@ session_start(); // Inicia la sesión para manejar variables de usuario
 
 // Importa la conexión a la base de datos y funciones de protección CSRF
 include('../config/conexion.php');
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT); 
+
 require '../config/csrf.php';
 
 // Datos comunes para la bitácora (los vamos a usar varias veces)
 $ip         = $_SERVER['REMOTE_ADDR']     ?? null;
 $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
 
+try {
 /*
   1) Verifica que la solicitud sea POST y que el token CSRF sea válido.
      Si no lo es, registramos el intento y devolvemos error.
@@ -247,3 +250,38 @@ $conn->close();
 // Redirige al home principal tras inicio de sesión exitoso
 header('Location: ../public/home.php');
 exit;
+} catch (Throwable $e) {
+    // Intentar rollback si hay transacción activa
+    try {
+        if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+            try { $conn->rollback(); } catch (Throwable $__ignore) {}
+        }
+    } catch (Throwable $__ignored) {}
+
+    // Preparar datos de bitácora
+    $id_usuario_log = null;
+    $accion = 'LOGIN_ERROR';
+    $modulo = 'login';
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+    $detalles = 'Error de autenticación: ' . $e->getMessage();
+
+    // Registrar en bitácora usando conexión limpia, protegida en su propio try
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        include_once __DIR__ . '/../config/conexion.php';
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+        if (isset($conn)) { @$conn->close(); }
+    } catch (Throwable $logError) {
+        error_log("Fallo al escribir en bitácora (login): " . $logError->getMessage());
+    }
+
+    header('Location: iniciar_sesion.php?error=' . urlencode('Ocurrió un error inesperado. Intente de nuevo.'));
+    exit;
+}

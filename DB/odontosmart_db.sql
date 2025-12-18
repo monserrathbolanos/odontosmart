@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 12, 2025 at 05:16 AM
+-- Generation Time: Dec 18, 2025 at 02:58 AM
 -- Server version: 8.4.3
 -- PHP Version: 8.4.13
 
@@ -296,7 +296,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre` VA
 
     ELSE
         
-        -- 2) Crear usuario (ya normalizado)
+        -- 2) Crear usuario
         INSERT INTO usuarios (
             nombre,
             apellido1,
@@ -320,7 +320,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre` VA
             p_id_rol
         );
 
-        -- Guardamos el id del usuario recién creado
+        -- Guardar ID del usuario recién creado
         SET v_nuevo_id_usuario = LAST_INSERT_ID();
         SET p_resultado        = 'OK';
 
@@ -332,6 +332,15 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombre` VA
             ) VALUES (
                 v_nuevo_id_usuario,
                 'ACTIVO'
+            );
+        END IF;
+
+        -- 3.1) Si el rol es CLIENTE (id_rol = 3), crear registro en CLIENTES
+        IF p_id_rol = 3 THEN
+            INSERT INTO clientes (
+                id_usuario
+            ) VALUES (
+                v_nuevo_id_usuario
             );
         END IF;
 
@@ -551,7 +560,9 @@ CREATE TABLE `atencion_cita` (
 
 INSERT INTO `atencion_cita` (`id_atencion`, `id_cita`, `hora_llegada`, `hora_inicio_atencion`, `hora_fin_atencion`, `observaciones`, `requiere_control`) VALUES
 (7, 24, '2025-12-11 22:02:11', '2025-12-11 22:02:31', '2025-12-11 22:02:38', NULL, 0),
-(8, 22, NULL, NULL, NULL, 'Se realiza extraccion satisfactoriamente.', 1);
+(8, 22, NULL, NULL, NULL, 'Se realiza extraccion satisfactoriamente.', 1),
+(9, 27, '2025-12-17 15:23:34', '2025-12-17 15:23:38', NULL, 'Se calzó el diente molar A3.', 1),
+(10, 28, '2025-12-17 15:28:12', '2025-12-17 15:28:17', '2025-12-17 15:28:27', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -668,7 +679,116 @@ INSERT INTO `bitacoras` (`id_bitacora`, `id_usuario`, `accion`, `modulo`, `fecha
 (74, 47, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-11 23:07:11', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: cliente8@cr.com (rol 3)'),
 (75, 47, 'Usuario actualizado', 'gestion_usuarios', '2025-12-11 23:08:59', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario actualizado: cliente8@cr.com'),
 (76, 47, 'Usuario actualizado', 'gestion_usuarios', '2025-12-11 23:09:04', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario actualizado: cliente8@cr.com'),
-(77, 34, 'LOGOUT', 'login', '2025-12-11 23:09:20', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.');
+(77, 34, 'LOGOUT', 'login', '2025-12-11 23:09:20', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(78, 32, 'LOGIN_FAIL', 'login', '2025-12-15 18:57:11', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(79, 32, 'LOGIN_FAIL', 'login', '2025-12-15 18:57:59', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(80, 48, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-15 19:00:39', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: viquezisaac373@gmail.com (rol 3)'),
+(81, 48, 'LOGIN', 'login', '2025-12-15 19:01:12', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(82, 48, 'Venta registrada', NULL, '2025-12-15 19:04:01', '::1', NULL, 'Venta ID 76 por 1695.00'),
+(83, 48, 'Cita agendada', 'agendar_cita', '2025-12-15 19:06:44', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cita ID 25 para fecha 2025-12-18 09:30:00'),
+(84, 48, 'LOGOUT', 'login', '2025-12-15 19:08:52', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(85, 48, 'LOGIN', 'login', '2025-12-15 19:09:15', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(86, 48, 'LOGIN', 'login', '2025-12-16 10:03:54', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(87, 48, 'LOGOUT', 'login', '2025-12-16 10:44:52', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(88, 49, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-16 10:45:45', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: david373@gmail.com (rol 3)'),
+(89, 49, 'LOGIN', 'login', '2025-12-16 10:46:01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(90, 49, 'Venta registrada', NULL, '2025-12-16 10:47:10', '::1', NULL, 'Venta ID 77 por 1695.00'),
+(91, 49, 'Cita agendada', 'agendar_cita', '2025-12-16 10:47:31', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cita ID 26 para fecha 2025-12-24 09:30:00'),
+(92, 49, 'LOGOUT', 'login', '2025-12-16 10:47:42', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(93, 32, 'LOGIN_FAIL', 'login', '2025-12-17 13:06:11', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(94, 32, 'LOGIN_FAIL', 'login', '2025-12-17 14:01:14', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(95, 48, 'LOGIN', 'login', '2025-12-17 14:01:35', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(96, 48, 'LOGOUT', 'login', '2025-12-17 14:01:59', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(97, 49, 'LOGIN_FAIL', 'login', '2025-12-17 15:12:03', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(98, 49, 'LOGIN', 'login', '2025-12-17 15:12:10', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(99, 49, 'LOGOUT', 'login', '2025-12-17 15:12:16', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(100, 50, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-17 15:13:29', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: enrique373@gmail.com (rol 3)'),
+(101, 50, 'LOGIN', 'login', '2025-12-17 15:13:41', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(102, 50, 'LOGOUT', 'login', '2025-12-17 15:13:53', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(103, 48, 'LOGIN', 'login', '2025-12-17 15:14:04', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(104, 48, 'Venta registrada', NULL, '2025-12-17 15:14:40', '::1', NULL, 'Venta ID 79 por 1695.00'),
+(105, 48, 'Venta registrada', NULL, '2025-12-17 15:15:53', '::1', NULL, 'Venta ID 80 por 10170.00'),
+(106, 48, 'Producto creado', 'Inventario - Crear producto', '2025-12-17 15:19:44', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto: Producto_prueba1* (cat 5)'),
+(107, 48, 'LOGOUT', 'login', '2025-12-17 15:21:37', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(108, 50, 'LOGIN', 'login', '2025-12-17 15:21:57', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(109, 50, 'Venta registrada', NULL, '2025-12-17 15:22:18', '::1', NULL, 'Venta ID 81 por 2825.00'),
+(110, 50, 'Cita agendada', 'agendar_cita', '2025-12-17 15:23:00', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cita ID 27 para fecha 2025-12-27 08:00:00'),
+(111, 50, 'LOGOUT', 'login', '2025-12-17 15:23:15', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(112, 48, 'LOGIN', 'login', '2025-12-17 15:23:21', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(113, 48, 'Gestión cita: registrar_llegada', NULL, '2025-12-17 15:23:34', '::1', NULL, 'Cita ID 27. Hora de llegada registrada'),
+(114, 48, 'Gestión cita: iniciar_atencion', NULL, '2025-12-17 15:23:38', '::1', NULL, 'Cita ID 27. Hora de inicio registrada'),
+(115, 48, 'Gestión cita: guardar_atencion', NULL, '2025-12-17 15:24:22', '::1', NULL, 'Cita ID 27. Atención guardada'),
+(116, 48, 'LOGOUT', 'login', '2025-12-17 15:24:31', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(117, 50, 'LOGIN', 'login', '2025-12-17 15:24:40', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(118, 50, 'LOGOUT', 'login', '2025-12-17 15:25:02', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(119, 48, 'LOGIN', 'login', '2025-12-17 15:25:45', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(120, 51, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-17 15:26:48', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: medico@gmail.com (rol 2)'),
+(121, 48, 'LOGOUT', 'login', '2025-12-17 15:26:53', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(122, 51, 'LOGIN_FAIL', 'login', '2025-12-17 15:27:06', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(123, 51, 'LOGIN', 'login', '2025-12-17 15:27:15', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(124, 51, 'LOGOUT', 'login', '2025-12-17 15:27:23', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(125, 50, 'LOGIN', 'login', '2025-12-17 15:27:30', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(126, 50, 'Cita agendada', 'agendar_cita', '2025-12-17 15:27:45', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cita ID 28 para fecha 2025-12-18 08:30:00'),
+(127, 50, 'LOGOUT', 'login', '2025-12-17 15:27:49', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(128, 51, 'LOGIN', 'login', '2025-12-17 15:27:56', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(129, 51, 'Gestión cita: registrar_llegada', NULL, '2025-12-17 15:28:12', '::1', NULL, 'Cita ID 28. Hora de llegada registrada'),
+(130, 51, 'Gestión cita: iniciar_atencion', NULL, '2025-12-17 15:28:15', '::1', NULL, 'Cita ID 28. Hora de inicio registrada'),
+(131, 51, 'Gestión cita: iniciar_atencion', NULL, '2025-12-17 15:28:17', '::1', NULL, 'Cita ID 28. Hora de inicio registrada'),
+(132, 51, 'Gestión cita: finalizar_atencion', NULL, '2025-12-17 15:28:27', '::1', NULL, 'Cita ID 28. Hora de fin registrada'),
+(133, 51, 'LOGOUT', 'login', '2025-12-17 15:28:31', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(134, 48, 'LOGIN', 'login', '2025-12-17 15:28:40', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(135, NULL, 'Intento fallido de creación de usuario', 'Gestión de usuarios - Crear usuario', '2025-12-17 15:33:38', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(136, NULL, 'Intento fallido de creación de usuario', 'Gestión de usuarios - Crear usuario', '2025-12-17 15:34:03', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(137, NULL, 'Intento fallido de creación de usuario', 'Gestión de usuarios - Crear usuario', '2025-12-17 15:34:52', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(138, 52, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-17 15:35:41', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: recepcionistaprueba@gmail.com (rol 4)'),
+(139, 48, 'LOGOUT', 'login', '2025-12-17 15:35:54', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(140, 52, 'LOGIN', 'login', '2025-12-17 15:36:04', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(141, 52, 'LOGOUT', 'login', '2025-12-17 15:36:21', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(142, 48, 'LOGIN', 'login', '2025-12-17 15:36:30', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(143, 48, 'LOGOUT', 'login', '2025-12-17 15:47:28', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(144, NULL, 'Intento fallido de creación de usuario', 'Registro público - Crear usuario', '2025-12-17 17:35:37', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(145, 53, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-17 17:35:45', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: medicsadfo@gmail.com (rol 3)'),
+(146, NULL, 'LOGIN_FAIL', 'login', '2025-12-17 17:45:59', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con correo no registrado: viquezisaac373@gmail.com1'),
+(147, 48, 'LOGIN', 'login', '2025-12-17 17:46:02', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(148, 48, 'LOGOUT', 'login', '2025-12-17 18:00:54', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(149, 48, 'LOGIN', 'login', '2025-12-17 18:03:57', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(150, 48, 'LOGOUT', 'login', '2025-12-17 18:12:53', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(151, NULL, 'Intento fallido de creación de usuario', 'Registro público - Crear usuario', '2025-12-17 18:44:55', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(152, NULL, 'Intento fallido de creación de usuario', 'Registro público - Crear usuario', '2025-12-17 18:45:09', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(153, NULL, 'Intento fallido de creación de usuario', 'Registro público - Crear usuario', '2025-12-17 18:45:49', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(154, 54, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-17 18:46:06', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: pruebas@gmail.com (rol 3)'),
+(155, 32, 'LOGIN_FAIL', 'login', '2025-12-17 18:46:50', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(156, NULL, 'LOGIN_FAIL', 'login', '2025-12-17 18:46:57', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con correo no registrado: admian@gmail.com'),
+(157, 32, 'LOGIN_FAIL', 'login', '2025-12-17 18:46:59', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(158, 32, 'RECOVERY_REQUEST', 'login', '2025-12-17 19:12:05', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(159, 48, 'RECOVERY_REQUEST', 'login', '2025-12-17 19:12:20', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(160, 48, 'LOGIN', 'login', '2025-12-17 19:24:17', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(161, 48, 'Usuario actualizado', 'gestion_usuarios', '2025-12-17 19:26:16', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario actualizado: viquezisaac373@gmail.com'),
+(162, 48, 'LOGOUT', 'login', '2025-12-17 19:26:19', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(163, 48, 'LOGIN_FAIL', 'login', '2025-12-17 19:26:24', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(164, 32, 'LOGIN_FAIL', 'login', '2025-12-17 19:26:43', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(165, 32, 'RECOVERY_REQUEST', 'login', '2025-12-17 19:27:07', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(166, 32, 'PASSWORD_RESET', 'login', '2025-12-17 19:27:15', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(167, 32, 'RECOVERY_REQUEST', 'login', '2025-12-17 19:27:47', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(168, 32, 'PASSWORD_RESET', 'login', '2025-12-17 19:28:11', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(169, 32, 'LOGIN', 'login', '2025-12-17 19:28:16', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(170, 32, 'LOGOUT', 'login', '2025-12-17 19:28:42', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(171, 32, 'LOGIN', 'login', '2025-12-17 19:28:46', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(172, 48, 'Usuario actualizado', 'gestion_usuarios', '2025-12-17 19:29:06', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario actualizado: viquezisaac373@gmail.com'),
+(173, 32, 'LOGOUT', 'login', '2025-12-17 19:29:22', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(174, 48, 'LOGIN_FAIL', 'login', '2025-12-17 19:29:27', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(175, 33, 'RECOVERY_REQUEST', 'login', '2025-12-17 19:29:53', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(176, 33, 'PASSWORD_RESET', 'login', '2025-12-17 19:30:07', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(177, 33, 'LOGIN', 'login', '2025-12-17 19:30:12', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(178, 33, 'LOGOUT', 'login', '2025-12-17 19:30:36', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(179, 55, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-17 19:31:44', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: carlosmora@gmail.com (rol 3)'),
+(180, 55, 'LOGIN', 'login', '2025-12-17 19:31:50', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(181, 55, 'LOGOUT', 'login', '2025-12-17 19:36:01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(182, 48, 'LOGIN', 'login', '2025-12-17 19:36:15', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(183, 48, 'Venta registrada', NULL, '2025-12-17 19:36:58', '::1', NULL, 'Venta ID 82 por 1695.00'),
+(184, 48, 'Venta registrada', NULL, '2025-12-17 20:06:07', '::1', NULL, 'Venta ID 83 por 4181.00'),
+(185, 48, 'Intento fallido de creación de producto', 'Inventario - Crear producto', '2025-12-17 20:06:25', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto duplicado: Producto_prueba1*'),
+(186, 48, 'Producto creado', 'Inventario - Crear producto', '2025-12-17 20:06:50', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto: Producto_prueba2* (cat 1)');
 
 -- --------------------------------------------------------
 
@@ -740,7 +860,10 @@ CREATE TABLE `citas` (
 INSERT INTO `citas` (`id_cita`, `id_cliente`, `id_odontologo`, `fecha_cita`, `estado`, `motivo`) VALUES
 (22, 16, 9, '2025-12-27 09:00:00', 'atendida', 'Revision General'),
 (23, 16, 9, '2025-12-31 12:30:00', 'cancelada', 'REvision'),
-(24, 16, 10, '2025-12-29 11:30:00', 'atendida', 'Extracción');
+(24, 16, 10, '2025-12-29 11:30:00', 'atendida', 'Extracción'),
+(26, 27, 10, '2025-12-24 09:30:00', 'cancelada', 'Prueba1'),
+(27, 28, 10, '2025-12-27 08:00:00', 'atendida', 'Dolor general de muelas.'),
+(28, 28, 13, '2025-12-18 08:30:00', 'atendida', 'Prueba2.');
 
 -- --------------------------------------------------------
 
@@ -766,7 +889,13 @@ INSERT INTO `clientes` (`id_cliente`, `id_usuario`, `fecha_registro`) VALUES
 (20, 42, '2025-12-11 22:37:51'),
 (21, 44, '2025-12-11 22:45:02'),
 (22, 46, '2025-12-11 22:53:10'),
-(23, 47, '2025-12-11 23:07:11');
+(23, 47, '2025-12-11 23:07:11'),
+(26, 48, '2025-12-15 19:04:01'),
+(27, 49, '2025-12-16 10:45:45'),
+(28, 50, '2025-12-17 15:13:29'),
+(29, 53, '2025-12-17 17:35:45'),
+(30, 54, '2025-12-17 18:46:06'),
+(31, 55, '2025-12-17 19:31:44');
 
 -- --------------------------------------------------------
 
@@ -793,7 +922,15 @@ INSERT INTO `detalle_venta` (`id_detalle`, `id_venta`, `id_producto`, `id_lote`,
 (52, 68, 41, NULL, 2, 1200.00, 2400.00, 0.00),
 (53, 70, 33, NULL, 1, 9000.00, 9000.00, 0.00),
 (54, 72, 41, NULL, 1, 1200.00, 1200.00, 0.00),
-(55, 73, 33, NULL, 1, 9000.00, 9000.00, 0.00);
+(55, 73, 33, NULL, 1, 9000.00, 9000.00, 0.00),
+(56, 76, 40, NULL, 1, 1500.00, 1500.00, 0.00),
+(57, 77, 40, NULL, 1, 1500.00, 1500.00, 0.00),
+(58, 79, 40, NULL, 1, 1500.00, 1500.00, 0.00),
+(59, 80, 42, NULL, 1, 9000.00, 9000.00, 0.00),
+(60, 81, 45, NULL, 1, 2500.00, 2500.00, 0.00),
+(61, 82, 40, NULL, 1, 1500.00, 1500.00, 0.00),
+(62, 83, 45, NULL, 1, 2500.00, 2500.00, 0.00),
+(63, 83, 41, NULL, 1, 1200.00, 1200.00, 0.00);
 
 -- --------------------------------------------------------
 
@@ -843,9 +980,11 @@ CREATE TABLE `lote_producto` (
 --
 
 INSERT INTO `lote_producto` (`id_lote`, `id_producto`, `numero_lote`, `fecha_caducidad`, `cantidad`) VALUES
-(4, 42, '123456', '2026-06-30', 100),
+(4, 42, '123456', '2026-06-30', 99),
 (5, 43, '123455', '2026-01-30', 500),
-(6, 44, '32131564', '2026-01-30', 500);
+(6, 44, '32131564', '2026-01-30', 500),
+(7, 45, '1', '2026-01-31', 18),
+(8, 46, '2', '2026-01-31', 20);
 
 -- --------------------------------------------------------
 
@@ -867,7 +1006,9 @@ INSERT INTO `odontologos` (`id_odontologo`, `id_usuario`, `estado`) VALUES
 (9, 36, 'INACTIVO'),
 (10, 37, 'ACTIVO'),
 (11, 46, 'INACTIVO'),
-(12, 47, 'INACTIVO');
+(12, 47, 'INACTIVO'),
+(13, 51, 'ACTIVO'),
+(14, 48, 'INACTIVO');
 
 -- --------------------------------------------------------
 
@@ -893,7 +1034,14 @@ INSERT INTO `pagos` (`id_pago`, `id_venta`, `monto`, `fecha_pago`, `metodo`, `di
 (7, 68, 2712.00, '2025-12-11 19:59:09', 'Tarjeta', '5498', '2025-12'),
 (8, 70, 10170.00, '2025-12-11 20:06:41', 'Tarjeta', '1351', '2025-12'),
 (9, 72, 1356.00, '2025-12-11 20:09:59', 'Tarjeta', '9879', '2025-12'),
-(10, 73, 10170.00, '2025-12-11 20:15:16', 'Tarjeta', '4684', '2025-12');
+(10, 73, 10170.00, '2025-12-11 20:15:16', 'Tarjeta', '4684', '2025-12'),
+(11, 76, 1695.00, '2025-12-15 19:04:01', 'Tarjeta', '4566', '2025-12'),
+(12, 77, 1695.00, '2025-12-16 10:47:10', 'Tarjeta', '5646', '2025-12'),
+(13, 79, 1695.00, '2025-12-17 15:14:40', 'Tarjeta', '1616', '2025-12'),
+(14, 80, 10170.00, '2025-12-17 15:15:53', 'Tarjeta', '4624', '2025-12'),
+(15, 81, 2825.00, '2025-12-17 15:22:18', 'Tarjeta', '4451', '2025-12'),
+(16, 82, 1695.00, '2025-12-17 19:36:58', 'Tarjeta', '8973', '2025-12'),
+(17, 83, 4181.00, '2025-12-17 20:06:07', 'Tarjeta', '3454', '2025-12');
 
 -- --------------------------------------------------------
 
@@ -958,11 +1106,13 @@ INSERT INTO `productos` (`id_producto`, `nombre`, `descripcion`, `unidad`, `id_c
 (37, 'Compresor odontológico silencioso', 'Compresor de aire silencioso para consultorio odontológico.', 'unidad', 3, 600000.00, 420000.00, 1, 0, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
 (38, 'Espejo bucal #4', 'Espejo bucal metálico #4, reutilizable y esterilizable.', 'unidad', 4, 2500.00, 1200.00, 30, 10, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
 (39, 'Fórceps 151 para inferiores', 'Fórceps dental 151 para extracciones de piezas inferiores.', 'unidad', 4, 38000.00, 22000.00, 4, 1, '2025-12-11 19:48:36', '2025-12-12 01:48:36', NULL, 'activo', 0.00),
-(40, 'Cepillo dental adulto suave', 'Cepillo dental de cerdas suaves para uso domiciliario.', 'unidad', 5, 1500.00, 700.00, 60, 15, '2025-12-11 19:48:36', '2025-12-12 01:48:36', '2027-12-31', 'activo', 0.00),
-(41, 'Hilo dental con cera', 'Hilo dental con cera, presentación individual.', 'unidad', 5, 1200.00, 600.00, 77, 20, '2025-12-11 19:48:36', '2025-12-12 02:09:59', '2027-12-31', 'activo', 0.00),
-(42, 'Ibuprofeno 200 mg', 'Tabletas de ibuprofeno 600 mg para manejo del dolor postoperatorio.', 'caja (30 tabletas)', 1, 9000.00, 5500.00, 100, 4, '2025-12-11 20:21:07', '2025-12-12 02:21:07', '2026-06-30', 'activo', 0.00),
+(40, 'Cepillo dental adulto suave', 'Cepillo dental de cerdas suaves para uso domiciliario.', 'unidad', 5, 1500.00, 700.00, 56, 15, '2025-12-11 19:48:36', '2025-12-18 01:36:58', '2027-12-31', 'activo', 0.00),
+(41, 'Hilo dental con cera', 'Hilo dental con cera, presentación individual.', 'unidad', 5, 1200.00, 600.00, 76, 20, '2025-12-11 19:48:36', '2025-12-18 02:06:07', '2027-12-31', 'activo', 0.00),
+(42, 'Ibuprofeno 200 mg', 'Tabletas de ibuprofeno 600 mg para manejo del dolor postoperatorio.', 'caja (30 tabletas)', 1, 9000.00, 5500.00, 99, 4, '2025-12-11 20:21:07', '2025-12-17 21:15:53', '2026-06-30', 'activo', 0.00),
 (43, 'Paracetamol 200 mg', 'Tabletas de paracetamol 200mg para manejo del dolor postoperatorio.', 'caja (30 tabletas)', 1, 800.00, 500.00, 500, 100, '2025-12-11 20:24:11', '2025-12-12 02:24:11', '2026-01-30', 'activo', 0.00),
-(44, 'Anestesia Lidocaína 2%', 'Carpules de lidocaína al 2% con epinefrina 1:100,000', 'caja', 1, 8500.00, 6000.00, 500, 10, '2025-12-11 20:55:34', '2025-12-12 02:55:34', '2026-01-30', 'activo', 0.00);
+(44, 'Anestesia Lidocaína 2%', 'Carpules de lidocaína al 2% con epinefrina 1:100,000', 'caja', 1, 8500.00, 6000.00, 500, 10, '2025-12-11 20:55:34', '2025-12-12 02:55:34', '2026-01-30', 'activo', 0.00),
+(45, 'Producto_prueba1*', 'Producto_de_prueba1*', 'Unidades*', 5, 2500.00, 300.00, 18, 2, '2025-12-17 15:19:44', '2025-12-18 02:06:07', '2026-01-31', 'activo', 0.00),
+(46, 'Producto_prueba2*', 'Producto_de_prueba2*', 'Unidades*', 1, 2500.00, 300.00, 20, 2, '2025-12-17 20:06:50', '2025-12-18 02:06:50', '2026-01-31', 'activo', 0.00);
 
 -- --------------------------------------------------------
 
@@ -1008,6 +1158,13 @@ CREATE TABLE `restablecer_contrasenas` (
   `token` varchar(255) NOT NULL,
   `expira` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `restablecer_contrasenas`
+--
+
+INSERT INTO `restablecer_contrasenas` (`id`, `id_usuario`, `token`, `expira`) VALUES
+(38, 48, 'bddb3cc8fe1e9fb7e02027a3fd6fa16c450b4c2b85dd6c2f4231f9e8008e8fc0', '2025-12-18 02:12:20');
 
 -- --------------------------------------------------------
 
@@ -1068,8 +1225,8 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id_usuario`, `nombre`, `apellido1`, `apellido2`, `email`, `telefono`, `identificacion`, `tipo_doc`, `password`, `id_rol`, `fecha_creacion`) VALUES
-(32, 'Admin', 'test', 'test', 'admin@gmail.com', '+50688888888', '1-1111-1111', 'CEDULA', '$2y$12$0Zqkrl1EY35XuvG0ff96Ae/dG65io6/dIIdhVI27AAkLTX4oHQ2pO', 3, '2025-12-11 19:31:05'),
-(33, 'Josue', 'Acuna', 'Flores', 'josueacunaflores@gmail.com', '+50662043116', '2-0782-0616', 'CEDULA', '$2y$12$nw6VWZpk/tJln6ZRDfATuuxI/O34QJpVn7P2qMmWYbybfY/CYSkhe', 3, '2025-12-11 19:33:34'),
+(32, 'Admin', 'test', 'test', 'admin@gmail.com', '+50688888888', '1-1111-1111', 'CEDULA', '$2y$12$ifU5eobcZAy2ffEqw0P6wuTyhH/fRoVYs1uNCMWnx5cTQu2/jVR4m', 1, '2025-12-11 19:31:05'),
+(33, 'Josue', 'Acuna', 'Flores', 'josueacunaflores@gmail.com', '+50662043116', '2-0782-0616', 'CEDULA', '$2y$12$ddRLcWtXUyD.g10L6guxT.2i5BPrWlqQJSjnjE.nHlhJDnUOL.Qd6', 3, '2025-12-11 19:33:34'),
 (34, 'Administrador', 'admin', 'admin', 'administrador@gmail.com', '+50688899999', '1-2345-6789', 'CEDULA', '$2y$12$xOjruwCFYZAbspE8kclipuH541ugXJqRQ6MVUdbEYkn8hnbXKWB0q', 1, '2025-12-11 19:36:54'),
 (36, 'Mariana', 'Flores', 'Lara', 'Marianaflores@gmail.com', '+506656565651', '1-0253-7986', 'CEDULA', '$2y$12$KzlkRZSL6fDFobeASkdKxeIWkFzgvOp8NyBD6lvJXjI0JSPexxEwC', 3, '2025-12-11 21:08:43'),
 (37, 'Zoraida', 'Flores', 'Mena', 'Zoraidaflores@gmail.com', '+506656565653', '1-0253-7987', 'CEDULA', '$2y$12$9Aazxb856f/T/EvLLB2LtehoJipFR058LYyczxKJHTL7ioxn6Vgjm', 2, '2025-12-11 21:14:18'),
@@ -1081,7 +1238,15 @@ INSERT INTO `usuarios` (`id_usuario`, `nombre`, `apellido1`, `apellido2`, `email
 (44, 'Cliente5', 'test', 'test', 'cliente5@gmail.com', '+50602020365', '13213513A', 'DIMEX', '$2y$12$SgYOFiGEgivuM.wVSPFLkuvdNpV7WLaxNUw4aykj6ozCYvE1IF9zC', 3, '2025-12-11 22:45:02'),
 (45, 'cliente6', 'test', 'test', 'cliente6@cr.com', '+5061223545', '6543135', 'PASAPORTE', '$2y$12$Spf/89nWyHZT5q88F7Ns3e.SuyxbE0.h36iy9f0AZKDhe02dDz32u', 3, '2025-12-11 22:47:12'),
 (46, 'cliente7', 'test', 'test', 'cliente7@cr.com', '+5061223543', '6543134', 'PASAPORTE', '$2y$12$JhBzSD0TKswbvAYhPJxwWO/9DnUqIazeUwAXrrONrFrCDy4AFG28u', 4, '2025-12-11 22:53:10'),
-(47, 'cliente8', 'test', 'test', 'cliente8@cr.com', '+5061223543', 'a3213513', 'PASAPORTE', '$2y$12$YFRzrFfAwFpFen.SreDrfez2YYUc9Qlp.Kccg9F0Ysf626HrnWl9i', 3, '2025-12-11 23:07:11');
+(47, 'cliente8', 'test', 'test', 'cliente8@cr.com', '+5061223543', 'a3213513', 'PASAPORTE', '$2y$12$YFRzrFfAwFpFen.SreDrfez2YYUc9Qlp.Kccg9F0Ysf626HrnWl9i', 3, '2025-12-11 23:07:11'),
+(48, 'isaac', 'Rodríguez', 'Víquez', 'viquezisaac373@gmail.com', '+50685102283', '3-101-345857', 'RUC', '$2y$12$M.NFasT0Ws1e//42T9.tBOHBeytRadnNfNnlZ4IJ2ZVECq4we6sK2', 1, '2025-12-15 19:00:39'),
+(49, 'David', 'Rodríguez', 'Víquez', 'david373@gmail.com', '+50685102282', '1-5123-5621', 'CEDULA', '$2y$12$UY802PO94PpznCj7zE2yieBWE9alfU8bZDOt9ryQEQ9MTFmb9KKMy', 3, '2025-12-16 10:45:45'),
+(50, 'Enrique', 'Rojas', 'Rojas', 'enrique373@gmail.com', '+50685102283', '1-0000-0000', 'CEDULA', '$2y$12$WbPNWkyc5QwDeVIkrpmxieHvAF66YSP5iHtnOn.b37Qc6utmDS/WS', 3, '2025-12-17 15:13:29'),
+(51, 'medico', 'prueba', 'prueba', 'medico@gmail.com', '+50685102283', '1000000A', 'PASAPORTE', '$2y$12$AJh55edvDnm0wPghWVNS/OIjNtQHAtkxnQ/EZFeRqPdGDEMSEg1kG', 2, '2025-12-17 15:26:48'),
+(52, 'Recepcion', 'prueba3', 'prueba3', 'recepcionistaprueba@gmail.com', '+50685102281', '10000000Z', 'DIMEX', '$2y$12$xFipEsCwAmESHrnaZlCkz.6oplY.wynWXjSsZxU5iBRtekuOOhHf.', 4, '2025-12-17 15:35:41'),
+(53, 'medico', 'prueba', 'prueba', 'medicsadfo@gmail.com', '+50685102283', '12345678A', 'PASAPORTE', '$2y$12$OmFpxD5La4WfKHitrJ9H4eSQzfvpP/SG8PvSSV9Km94t1NPXIALyC', 3, '2025-12-17 17:35:45'),
+(54, 'Prueba', 'prueba', 'prueba', 'pruebas@gmail.com', '+50685102283', '12345678D', 'PASAPORTE', '$2y$12$9IcvA802uFED9PrbISJ83ej7htnb9bCSLmxfF7S6I7zftP5uqXW2a', 3, '2025-12-17 18:46:06'),
+(55, 'Carlos', 'Morales', 'Mora', 'carlosmora@gmail.com', '+50685102283', '3-101-345851', 'RUC', '$2y$12$Qv1yftNWr8vtVeVA4qoh9O6fp5OQ7pMfqJuM1UbRs.TJA9QlJsOoC', 3, '2025-12-17 19:31:44');
 
 -- --------------------------------------------------------
 
@@ -1112,7 +1277,14 @@ INSERT INTO `ventas` (`id_venta`, `id_usuario`, `id_cliente`, `fecha_venta`, `su
 (70, 34, 16, '2025-12-11 20:06:41', 9000.00, 1170.00, 10170.00, 'Tarjeta', 1),
 (71, 34, 16, '2025-12-11 20:09:54', 1200.00, 156.00, 1356.00, 'Tarjeta', 1),
 (72, 34, 16, '2025-12-11 20:09:59', 1200.00, 156.00, 1356.00, 'Tarjeta', 1),
-(73, 34, 16, '2025-12-11 20:15:16', 9000.00, 1170.00, 10170.00, 'Tarjeta', 1);
+(73, 34, 16, '2025-12-11 20:15:16', 9000.00, 1170.00, 10170.00, 'Tarjeta', 1),
+(76, 48, 26, '2025-12-15 19:04:01', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
+(77, 49, 27, '2025-12-16 10:47:10', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
+(79, 48, 26, '2025-12-17 15:14:40', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
+(80, 48, 26, '2025-12-17 15:15:53', 9000.00, 1170.00, 10170.00, 'Tarjeta', 1),
+(81, 50, 28, '2025-12-17 15:22:18', 2500.00, 325.00, 2825.00, 'Tarjeta', 1),
+(82, 48, 26, '2025-12-17 19:36:58', 1500.00, 195.00, 1695.00, 'Tarjeta', 1),
+(83, 48, 26, '2025-12-17 20:06:07', 3700.00, 481.00, 4181.00, 'Tarjeta', 1);
 
 -- --------------------------------------------------------
 
@@ -1372,7 +1544,7 @@ ALTER TABLE `agendar_medico`
 -- AUTO_INCREMENT for table `atencion_cita`
 --
 ALTER TABLE `atencion_cita`
-  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `auditoria_stock`
@@ -1384,19 +1556,19 @@ ALTER TABLE `auditoria_stock`
 -- AUTO_INCREMENT for table `bitacoras`
 --
 ALTER TABLE `bitacoras`
-  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
+  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=187;
 
 --
 -- AUTO_INCREMENT for table `carrito`
 --
 ALTER TABLE `carrito`
-  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT for table `carrito_detalle`
 --
 ALTER TABLE `carrito_detalle`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=77;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
 
 --
 -- AUTO_INCREMENT for table `categoria_productos`
@@ -1408,19 +1580,19 @@ ALTER TABLE `categoria_productos`
 -- AUTO_INCREMENT for table `citas`
 --
 ALTER TABLE `citas`
-  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
 
 --
 -- AUTO_INCREMENT for table `historial_clinico`
@@ -1438,19 +1610,19 @@ ALTER TABLE `inventario_ingresos`
 -- AUTO_INCREMENT for table `lote_producto`
 --
 ALTER TABLE `lote_producto`
-  MODIFY `id_lote` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_lote` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `odontologos`
 --
 ALTER TABLE `odontologos`
-  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `id_pago` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id_pago` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `permisos`
@@ -1462,7 +1634,7 @@ ALTER TABLE `permisos`
 -- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `promociones`
@@ -1480,7 +1652,7 @@ ALTER TABLE `promocion_productos`
 -- AUTO_INCREMENT for table `restablecer_contrasenas`
 --
 ALTER TABLE `restablecer_contrasenas`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -1498,13 +1670,13 @@ ALTER TABLE `rol_permisos`
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
 
 --
 -- AUTO_INCREMENT for table `ventas_promociones`

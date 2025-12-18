@@ -3,375 +3,248 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-
-
-/* Validar rol permitido */
+// validar rol
 $rol = $_SESSION['user']['role'] ?? null;
-$rolesPermitidos = ['Administrador','Cliente']; // ej.
+$rolesPermitidos = ['Administrador', 'Cliente'];
 
 if (!in_array($rol, $rolesPermitidos)) {
-    // Aquí decides a dónde mandarlo: login, home o protegido.
-    // Si quieres mandarlo al login:
-    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    header(
+        'Location: ../../auth/iniciar_sesion.php?error=' .
+        urlencode('Debes iniciar sesión o registrarte.')
+    );
     exit;
 }
-// Nuevo código servicios.php (Basado en total_inventario.php), trabaja con las tablas Productos, Categoria Productos.
-include('../../config/conexion.php');
 
-// Se definen las categorías permitidas para compras de cliente:
-$categorias_permitidas = ["Servicios", "Productos de higiene", "Medicamentos"];
+// conexión
+include '../../config/conexion.php';
 
-// Función para mostrar tabla por categoría (usada en total_inventario.php)
-function mostrarCategoria($conn, $categoriaNombre) {
-    echo "<div class='categoria-titulo'> $categoriaNombre</div>";
-        // Consulta que trae los productos junto con su categoría
-    $sql = "SELECT   p.id_producto, p.nombre, p.descripcion, p.unidad,
-                     p.id_categoria, p.precio, p.stock_total,
-                     p.stock_minimo, p.fecha_creacion, p.actualizado_en, p.estado, c.nombre AS categoria
-            FROM productos p
-            JOIN categoria_productos c ON p.id_categoria = c.id_categoria
-            WHERE c.nombre = ?";
+// mostrar productos por categoría
+function mostrarCategoria($conn, $categoriaNombre)
+{
+    echo "<div class='categoria-titulo'>{$categoriaNombre}</div>";
 
-   // Prepara la consulta para usar parámetros seguros
+    $sql = "
+        SELECT
+            p.id_producto,
+            p.nombre,
+            p.descripcion,
+            p.unidad,
+            p.id_categoria,
+            p.precio,
+            p.stock_total,
+            p.stock_minimo,
+            p.fecha_creacion,
+            p.actualizado_en,
+            p.estado,
+            c.nombre AS categoria
+        FROM productos p
+        JOIN categoria_productos c
+            ON p.id_categoria = c.id_categoria
+        WHERE c.nombre = ?
+    ";
+
     $stmt = $conn->prepare($sql);
-
-    // Asigna la categoría enviada a la consulta
     $stmt->bind_param("s", $categoriaNombre);
-
-    // Ejecuta la consulta
     $stmt->execute();
-
-    // Obtiene los resultados
     $result = $stmt->get_result();
 
-     // Crear arreglo para alertas
     $productosAgotados = [];
 
-    if ($result->num_rows > 0) {
-        echo "<table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
-                        <th>Unidad</th>
-                        <th>Precio</th>
-                        <th>Stock Mínimo</th>
-                        <th>Stock Actual</th>
-                        <th>Categoría</th>
-                      
-                       
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody>";
-
-        // Recorre cada producto y lo imprime en una fila
-while ($row = $result->fetch_assoc()) {
-
-    // Validación de stock por producto
-    if ($row['stock_total'] <= $row['stock_minimo']) {
-        $productosAgotados[] = $row['nombre'];
+    if ($result->num_rows === 0) {
+        echo "<p class='sin-productos'>No hay productos disponibles.</p>";
+        return;
     }
 
-    // --- LÓGICA DE PROMOCIONES ---
-    $tiene_promocion = !empty($row['id_promocion']);
-    $precio_mostrar = $tiene_promocion ? $row['precio_con_descuento'] : $row['precio'];
+    echo "
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Unidad</th>
+                <th>Precio</th>
+                <th>Stock Mínimo</th>
+                <th>Stock Actual</th>
+                <th>Categoría</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+    ";
 
-    echo "<tr>
+    while ($row = $result->fetch_assoc()) {
+
+        if ($row['stock_total'] <= $row['stock_minimo']) {
+            $productosAgotados[] = $row['nombre'];
+        }
+
+        $tiene_promocion = !empty($row['id_promocion']);
+        $precio_mostrar  = $tiene_promocion
+            ? $row['precio_con_descuento']
+            : $row['precio'];
+
+        echo "
+        <tr>
             <td>{$row['id_producto']}</td>
-            <td><strong>{$row['nombre']}</strong>";
+            <td>
+                <strong>{$row['nombre']}</strong>";
 
-            // Badge OFERTA
-            if ($tiene_promocion) {
-                echo " <span class='promo-badge'>¡OFERTA!</span>";
-            }
+        if ($tiene_promocion) {
+            echo " <span class='promo-badge'>¡OFERTA!</span>";
+        }
 
-    echo "</td>
+        echo "
+            </td>
             <td>{$row['descripcion']}</td>
             <td>{$row['unidad']}</td>
             <td class='precio-cell'>";
 
-                // Si tiene promoción: mostrar precio original + rebajado
-                if ($tiene_promocion) {
+        if ($tiene_promocion) {
 
-                    // Precio original tachado
-                    echo "<span class='precio-original'>₡" . number_format($row['precio'], 2) . "</span><br>";
+            echo "
+                <span class='precio-original'>₡" . number_format($row['precio'], 2) . "</span><br>
+                <span class='precio-promo'>₡" . number_format($precio_mostrar, 2) . "</span>
+            ";
 
-                    // Precio final con descuento
-                    echo "<span class='precio-promo'>₡" . number_format($precio_mostrar, 2) . "</span>";
+            if ($row['tipo_descuento'] === 'porcentaje') {
+                echo " <span class='descuento-badge'>-{$row['valor_descuento']}%</span>";
+            } else {
+                echo " <span class='descuento-badge'>-₡" .
+                     number_format($row['valor_descuento'], 0) .
+                     "</span>";
+            }
 
-                    // Mostrar porcentaje o monto
-                    if ($row['tipo_descuento'] == 'porcentaje') {
-                        echo " <span class='descuento-badge'>-{$row['valor_descuento']}%</span>";
-                    } else {
-                        echo " <span class='descuento-badge'>-₡" . number_format($row['valor_descuento'], 0) . "</span>";
-                    }
+        } else {
+            echo "₡" . number_format($row['precio'], 2);
+        }
 
-                } else {
-                    // Sin promoción
-                    echo "₡" . number_format($row['precio'], 2);
-                }
-
-    echo "</td>
+        echo "
+            </td>
             <td>{$row['stock_minimo']}</td>
             <td>{$row['stock_total']}</td>
             <td>{$row['categoria']}</td>
-            
-            
-
             <td>
-                <form action='agregar_carrito.php' method='POST' style='display:flex; gap:8px; align-items:center;'>
-
-                    <!-- ID del producto -->
-                    <input type='hidden' name='id_producto' value='{$row['id_producto']}'>
-
-                    <!-- Cantidad -->
-                    <input type='number' 
-                           name='cantidad' 
-                           value='1' 
-                           min='1' 
-                           max='{$row['stock_total']}' 
-                           required
-                           style='width:60px; padding:5px; border:1px solid #ccc; border-radius:4px;'>
-
-                    <!-- Botón -->
-                    <button 
-                        type='submit'
-                        class='agregar-btn'
-                        style='padding:8px 15px; background:#152fbf; color:white; border:none; border-radius:4px; cursor:pointer;'>
+                <form action='agregar_carrito.php'
+                      method='POST'
+                      style='display:flex; gap:8px; align-items:center;'>
+                    <input type='hidden'
+                           name='id_producto'
+                           value='{$row['id_producto']}'>
+                    <input type='number'
+                           name='cantidad'
+                           value='1'
+                           min='1'
+                           max='{$row['stock_total']}'
+                           required>
+                    <button type='submit' class='agregar-btn'>
                         Agregar
                     </button>
-
                 </form>
             </td>
-        </tr>";
-}
-
-echo "</tbody></table>";
-
-// Mostrar alerta si existen productos con bajo stock
-if (!empty($productosAgotados)) {
-    echo "<p style='color:red; font-weight:bold;'>Productos casi agotados o sin stock:</p>";
-    echo "<ul>";
-    foreach ($productosAgotados as $p) {
-        echo "<li>$p</li>";
+        </tr>
+        ";
     }
-    echo "</ul>";
-}
+
+    echo "</tbody></table>";
+
+    if (!empty($productosAgotados)) {
+        echo "<p class='stock-alert'>Productos casi agotados o sin stock:</p><ul>";
+        foreach ($productosAgotados as $p) {
+            echo "<li>{$p}</li>";
+        }
+        echo "</ul>";
     }
+
+    $stmt->close();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Servicios y Productos - OdontoSmart</title>
 
-    <!-- FAVICON -->
     <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
-
-<!-- Estilos de la página -->
-   <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
-        /* Contenedor de la barra de navegación lateral */
-        .navbar {
-            width: 220px;                      /* Ancho fijo del menú vertical */
-            background-color: #69B7BF;         /* Color corporativo OdontoSmart */
-            height: 100vh;                     /* Altura completa de la ventana */
-            padding-top: 20px;
-            position: fixed;                   /* Se mantiene fijo al hacer scroll */
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: width 0.3s ease;
-        }
-        .navbar a {
-              display: block;
-              color: #fff;
-            padding: 14px 20px;
-            text-decoration: none;
-            margin: 10px;
-            border-radius: 8px;
-            transition: background 0.3s, transform 0.2s;
-        }
-        .navbar a:hover {
-             background-color: #264cbf;
-             transform: scale(1.05);
-        }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
-            
-        }
-        .seccion {
-            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 15px 0;
-        }
-        th, td { 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid #ddd; 
-        }
-        th { 
-            background: #69B7BF; 
-            color: white; 
-             }
-        tr:hover {
-            background: #f9f9f9;
-            
-        }
-        .categoria-titulo {
-            background: #D5E7F2;
-            padding: 15px;
-            margin: 25px 0 10px 0;
-            border-radius: 5px;
-            font-size: 18px;
-            font-weight: bold;
-            border-left: 4px solid #69B7BF;
-        }
-        .sin-productos {
-            padding: 20px;
-            text-align: center;
-            color: #6c757d;
-            font-style: italic;
-        }
-        .precio {
-            color: #28a745;
-            font-weight: bold;
-        }
-         /* Logo institucional ubicado en la parte inferior del menú lateral */
-        .logo-navbar {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);       /* Centrado horizontal */
-            width: 140px;
-            opacity: 0.9;
-            transition: transform 0.3s;
-        }
-
-        .logo-navbar:hover {
-            transform: translateX(-50%) scale(1.1); /* Efecto de zoom al pasar el cursor */
-        }
-        .agregar-btn {
-            background-color: #152fbf;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-        .agregar-btn:hover {
-            background-color: #0d1e80;
-        }
-
-        .btn-ver-carrito {
-            background-color: #152FBF;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 20px;
-            display: inline-block;
-            transition: background 0.3s;
-        }
-        .btn-ver-carrito:hover {
-            background-color: #152FBF;
-            transform: scale(1.05);
-        }
-
-          /* Estilos para promociones */
-        .promo-badge {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 8px;
-            text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
-        }
-
-        .precio-cell {
-            min-width: 150px;
-        }
-
-        .precio-original {
-            text-decoration: line-through;
-            color: #999;
-            font-size: 13px;
-        }
-
-        .precio-promo {
-            color: #28a745;
-            font-weight: bold;
-            font-size: 16px;
-        }
-
-        .descuento-badge {
-            background: #ffc107;
-            color: #000;
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 5px;
-        }
-    </style>
+    <link rel="stylesheet" href="../../assets/css/servicios.css">
 </head>
 <body>
-    
-    <div class="navbar">
-    <!-- Logo inferior del menú -->
-    <?php include('../../views/navbar.php'); ?>
-    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+
+<div class="navbar">
+    <?php include '../../views/navbar.php'; ?>
+    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="OdontoSmart">
 </div>
 
+<div class="content">
+    <div class="seccion">
 
-    <div class="content">
-        <div class="seccion">
-            <h1 style="color: #69B7BF;"> Servicios y Productos</h1>
-            <p>En esta sección se muestra el catálogo de productos y servicios disponibles en la clínica dental OdontoSmart.</p>
+        <h1>Servicios y Productos</h1>
 
-            <?php
-            if (isset($_GET['agregado'])) {
-            echo "<p style='color:green; font-weight:bold;'>Producto agregado correctamente.</p>";
+        <p>
+            Catálogo de productos y servicios disponibles en la clínica OdontoSmart.
+        </p>
+
+        <?php
+        if (isset($_GET['agregado'])) {
+            echo "<p class='success-msg'>Producto agregado correctamente.</p>";
+        }
+
+        try {
+            mostrarCategoria($conn, 'Servicios');
+            mostrarCategoria($conn, 'Productos de higiene');
+            mostrarCategoria($conn, 'Medicamentos');
+        } catch (Throwable $e) {
+
+            try {
+                if ($conn && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                    $conn->rollback();
+                }
+            } catch (Throwable $ignore) {}
+
+            try {
+                $conn->close();
+                include '../../config/conexion.php';
+
+                $id_usuario = $_SESSION['user']['id_usuario'] ?? null;
+                $accion = 'SERVICE_ERROR';
+                $modulo = 'servicios';
+                $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+                $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+                $detalle = $e->getMessage();
+
+                $log = $conn->prepare(
+                    "CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)"
+                );
+
+                if ($log) {
+                    $log->bind_param(
+                        "isssss",
+                        $id_usuario,
+                        $accion,
+                        $modulo,
+                        $ip,
+                        $ua,
+                        $detalle
+                    );
+                    $log->execute();
+                    $log->close();
+                }
+
+                $conn->close();
+            } catch (Throwable $logError) {
+                error_log($logError->getMessage());
             }
 
-            // Mostrar las 3 categorías disponibles
-            mostrarCategoria($conn, "Servicios");
-            mostrarCategoria($conn, "Productos de higiene");
-            mostrarCategoria($conn, "Medicamentos");
+            echo "<p class='error-msg'>Error al cargar los servicios.</p>";
+        }
+        ?>
 
-            ?>
-            
-            <!-- Botón para ver el carrito -->
-            <a href="carrito.php">
-                <button class="btn-ver-carrito"> Ver Carrito</button>
-            </a>
-        </div>
+        <a href="carrito.php">
+            <button class='btn-ver-carrito'>Ver Carrito</button>
+        </a>
+
     </div>
+</div>
+
 </body>
 </html>
-
-
-

@@ -3,81 +3,124 @@ session_start();
 require '../../config/conexion.php';
 require_once __DIR__ . '/../../config/alerts.php';
 
-// Verificar que se recibió un id_venta por URL
-if (!isset($_GET['id_venta'])) {
-    stopWithAlert('No se indicó la venta.', 'Venta no indicada', 'error');
-}
-
-$id_venta = (int)$_GET['id_venta'];
-
-// Obtener datos generales de la venta junto con los datos del cliente
-// Ahora tomamos los datos del cliente desde usuarios (uc), no desde clientes (c)
-$sql_venta = "
-    SELECT 
-        v.id_venta,
-        v.fecha_venta,
-        v.subtotal,
-        v.impuestos,
-        v.total, 
-        v.metodo_pago,
-
-        CONCAT(uc.nombre, ' ', uc.apellido1, ' ', IFNULL(uc.apellido2, '')) AS cliente_nombre,
-        uc.telefono AS cliente_telefono,
-        uc.email    AS cliente_correo
-
-    FROM ventas v
-    JOIN clientes c   ON v.id_cliente = c.id_cliente
-    JOIN usuarios uc  ON c.id_usuario = uc.id_usuario
-    WHERE v.id_venta = ?
-";
-
-$stmt = $conn->prepare($sql_venta);
-$stmt->bind_param("i", $id_venta);
-$stmt->execute();
-$venta = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-
-// Verificar si la venta existe
-if (!$venta) {
-    stopWithAlert('Venta no encontrada.', 'Venta no encontrada', 'error');
-}
-
-// Consultar detalle de productos comprados
-$sql_detalle = "SELECT dv.id_producto, p.nombre, dv.cantidad, dv.precio_unitario, dv.total, dv.descuento
-                FROM detalle_venta dv
-                JOIN productos p ON dv.id_producto = p.id_producto
-                WHERE dv.id_venta = ?";
-
-$stmt2 = $conn->prepare($sql_detalle);
-$stmt2->bind_param("i", $id_venta);
-$stmt2->execute();
-$result_detalle = $stmt2->get_result();
-
-// Arreglo para almacenar los productos de la factura
+// Inicializar variables
+$venta = null;
 $productos = [];
-while ($row = $result_detalle->fetch_assoc()) {
-    $productos[] = $row;
-}
-$stmt2->close();
-
-// Consultar promociones aplicadas a esta venta
-$sql_promociones = "SELECT vp.descuento_aplicado, p.nombre as nombre_promocion, p.tipo_descuento, p.valor_descuento
-                    FROM ventas_promociones vp
-                    JOIN promociones p ON vp.id_promocion = p.id_promocion
-                    WHERE vp.id_venta = ?";
-
-$stmt3 = $conn->prepare($sql_promociones);
-$stmt3->bind_param("i", $id_venta);
-$stmt3->execute();
-$result_promociones = $stmt3->get_result();
-
 $promociones = [];
 $descuento_total = 0;
-while ($row = $result_promociones->fetch_assoc()) {
-    $promociones[] = $row;
-    $descuento_total += $row['descuento_aplicado'];
+
+try {
+    // Verificar que se recibió un id_venta por URL
+    if (!isset($_GET['id_venta'])) {
+        stopWithAlert('No se indicó la venta.', 'Venta no indicada', 'error');
+    }
+
+    $id_venta = (int)$_GET['id_venta'];
+
+    // Obtener datos generales de la venta junto con los datos del cliente
+    // Ahora tomamos los datos del cliente desde usuarios (uc), no desde clientes (c)
+    $sql_venta = "
+        SELECT 
+            v.id_venta,
+            v.fecha_venta,
+            v.subtotal,
+            v.impuestos,
+            v.total, 
+            v.metodo_pago,
+
+            CONCAT(uc.nombre, ' ', uc.apellido1, ' ', IFNULL(uc.apellido2, '')) AS cliente_nombre,
+            uc.telefono AS cliente_telefono,
+            uc.email    AS cliente_correo
+
+        FROM ventas v
+        JOIN clientes c   ON v.id_cliente = c.id_cliente
+        JOIN usuarios uc  ON c.id_usuario = uc.id_usuario
+        WHERE v.id_venta = ?
+    ";
+
+    $stmt = $conn->prepare($sql_venta);
+    $stmt->bind_param("i", $id_venta);
+    $stmt->execute();
+    $venta = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    // Verificar si la venta existe
+    if (!$venta) {
+        stopWithAlert('Venta no encontrada.', 'Venta no encontrada', 'error');
+    }
+
+    // Consultar detalle de productos comprados
+    $sql_detalle = "SELECT dv.id_producto, p.nombre, dv.cantidad, dv.precio_unitario, dv.total, dv.descuento
+                    FROM detalle_venta dv
+                    JOIN productos p ON dv.id_producto = p.id_producto
+                    WHERE dv.id_venta = ?";
+
+    $stmt2 = $conn->prepare($sql_detalle);
+    $stmt2->bind_param("i", $id_venta);
+    $stmt2->execute();
+    $result_detalle = $stmt2->get_result();
+
+    // Arreglo para almacenar los productos de la factura
+    $productos = [];
+    while ($row = $result_detalle->fetch_assoc()) {
+        $productos[] = $row;
+    }
+    $stmt2->close();
+
+    // Consultar promociones aplicadas a esta venta
+    $sql_promociones = "SELECT vp.descuento_aplicado, p.nombre as nombre_promocion, p.tipo_descuento, p.valor_descuento
+                        FROM ventas_promociones vp
+                        JOIN promociones p ON vp.id_promocion = p.id_promocion
+                        WHERE vp.id_venta = ?";
+
+    $stmt3 = $conn->prepare($sql_promociones);
+    $stmt3->bind_param("i", $id_venta);
+    $stmt3->execute();
+    $result_promociones = $stmt3->get_result();
+
+    $promociones = [];
+    $descuento_total = 0;
+    while ($row = $result_promociones->fetch_assoc()) {
+        $promociones[] = $row;
+        $descuento_total += $row['descuento_aplicado'];
+    }
+    $stmt3->close();
+
+} catch (Throwable $e) {
+    // Intentar rollback
+    try {
+        if (isset($conn) && $conn instanceof mysqli) {
+            if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                try { $conn->rollback(); } catch (Throwable $__ignore) {}
+            }
+        }
+    } catch (Throwable $__ignored) {}
+
+    // Registrar en bitácora
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        include_once '../../config/conexion.php';
+
+        $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+        $accion = 'FACTURA_ERROR';
+        $modulo = 'ventas/admin_factura';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+        $detalles = 'Error técnico: ' . $e->getMessage();
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+        if (isset($conn)) { @$conn->close(); }
+    } catch (Throwable $logError) {
+        error_log("Fallo al escribir en bitácora (admin_factura): " . $logError->getMessage());
+    }
+
+    stopWithAlert('Ocurrió un error al cargar la factura.', 'Error', 'error');
 }
-$stmt3->close();
 
 ?>
 

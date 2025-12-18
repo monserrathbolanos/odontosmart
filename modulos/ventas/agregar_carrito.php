@@ -17,8 +17,9 @@ if (!in_array($rol, $rolesPermitidos)) {
 include('../../config/conexion.php');
 require_once __DIR__ . '/../../config/alerts.php';
 
-// obtener id_usuario
-$id_usuario = $_SESSION['user']['id_usuario'];
+try {
+    // obtener id_usuario
+    $id_usuario = $_SESSION['user']['id_usuario'];
 
 // obtener id_producto desde POST
 $id_producto = $_POST['id_producto'] ?? null;
@@ -74,17 +75,39 @@ if ($result_detalle->num_rows > 0) {
     $stmt->bind_param("iii", $id_carrito, $id_producto, $cantidad_agregada);
     $stmt->execute();
 }
-//  else {
-//     // insertar nuevo registro
-//     $cantidad = 1;
-//     $sql_insert_detalle = "INSERT INTO carrito_detalle (id_carrito, id_producto, cantidad) VALUES (?, ?, ?)";
-//     $stmt = $conn->prepare($sql_insert_detalle);
-//     $stmt->bind_param("iii", $id_carrito, $id_producto, $cantidad);
-//     $stmt->execute();
-// }
 
-header("Location: servicios.php?agregado=1");
-exit;
+    header("Location: servicios.php?agregado=1");
+    exit;
+} catch (Throwable $e) {
+    try {
+        if (isset($conn) && $conn instanceof mysqli) {
+            if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                try { $conn->rollback(); } catch (Throwable $__ignore) {}
+            }
+        }
+    } catch (Throwable $__ignored) {}
 
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        include_once ('../../config/conexion.php');
 
-?>
+        $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+        $accion = 'CART_ADD_ERROR';
+        $modulo = 'modulos/ventas/agregar_carrito';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+        $detalles = 'Error técnico: ' . $e->getMessage();
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+        if (isset($conn)) { @$conn->close(); }
+    } catch (Throwable $logError) {
+        error_log("Fallo al escribir en bitácora (agregar_carrito.php): " . $logError->getMessage());
+    }
+
+    stopWithAlert('Error al agregar producto al carrito.', 'Error', 'error');
+}

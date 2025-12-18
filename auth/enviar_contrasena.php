@@ -1,97 +1,142 @@
 <?php
-
 /*
   enviar_contrasena.php
-  ---------------------
-  Script que procesa la solicitud de recuperación de contraseña.
-
-  Flujo:
-   1. Recibe el correo electrónico desde el formulario (POST).
-   2. Verifica que exista un usuario con ese correo en la tabla `usuarios`.
-   3. Genera un token seguro y una fecha/hora de expiración.
-   4. Inserta el registro de recuperación en la tabla `restablecer_contrasenas`
-      (solo id_usuario, token, expira).
-   5. Construye un enlace de recuperación apuntando a `restablecer_contrasena.php`.
-   6. Muestra en pantalla el enlace generado (modo local / demo).
-
-  NOTA: En un entorno productivo, este enlace se enviaría por correo electrónico.
+  Procesa la solicitud de recuperación de contraseña
+  MODO ESTRICTO: no adapta el código a BD vieja, solo captura errores
 */
 
-require '../config/conexion.php'; // Conexión a la base de datos 
+require '../config/conexion.php';
+
+// Forzar a mysqli a lanzar excepciones
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 require_once __DIR__ . '/../config/alerts.php';
 
-// 1) Verificar que venga el correo desde el formulario
-if (!isset($_POST['email'])) {
-    stopWithAlert('Solicitud inválida.', 'Solicitud inválida', 'error');
-}
+try {
 
-$emailForm = trim($_POST['email']); // correo que envía el usuario
+    // 1) Validar que venga el correo
+    if (!isset($_POST['email'])) {
+        stopWithAlert('Solicitud inválida.', 'Solicitud inválida', 'error');
+    }
 
-// 2) Buscar el usuario por email y obtener id_usuario
-$stmtUser = $conn->prepare("
-    SELECT id_usuario, email 
-    FROM usuarios 
-    WHERE email = ?
-");
-$stmtUser->bind_param("s", $emailForm);
-$stmtUser->execute();
-$resultUser = $stmtUser->get_result();
+    $emailForm = trim($_POST['email']);
 
-// Si no existe ninguna cuenta con ese correo, se detiene el proceso
-if ($resultUser->num_rows === 0) {
+    // 2) Buscar usuario por email
+    $stmtUser = $conn->prepare("
+        SELECT id_usuario, email
+        FROM usuarios
+        WHERE email = ?
+    ");
+    $stmtUser->bind_param("s", $emailForm);
+    $stmtUser->execute();
+    $resultUser = $stmtUser->get_result();
+
+    if ($resultUser->num_rows === 0) {
+        $stmtUser->close();
+        stopWithAlert('No existe una cuenta con ese correo.', 'No existe cuenta', 'error');
+    }
+
+    $data       = $resultUser->fetch_assoc();
+    $id_usuario = (int)$data['id_usuario'];
     $stmtUser->close();
-    stopWithAlert('No existe una cuenta con ese correo.', 'No existe cuenta', 'error');
+
+    // 3) Limpiar tokens anteriores
+    $del = $conn->prepare("DELETE FROM restablecer_contrasenas WHERE id_usuario = ?");
+    $del->bind_param("i", $id_usuario);
+    $del->execute();
+    $del->close();
+
+    // 4) Generar token y expiración
+    $token  = bin2hex(random_bytes(32));
+    $expira = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+    // 5) INSERT ORIGINAL (DEBE FALLAR EN BD VIEJA)
+    $stmt = $conn->prepare("
+        INSERT INTO restablecer_contrasenas (id_usuario, token, expira)
+        VALUES (?, ?, ?)
+    ");
+    $stmt->bind_param("iss", $id_usuario, $token, $expira);
+
+    // Aquí ocurre el error y salta al catch
+    $stmt->execute();
+
+    // Si llegara a pasar (BD correcta), no es error
+    $stmt->close();
+
+    // 6) Registrar bitácora SOLO si el INSERT funcionó
+    $ip         = $_SERVER['REMOTE_ADDR']     ?? null;
+    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+    $accion   = 'RECOVERY_REQUEST';
+    $modulo   = 'login';
+    $detalles = 'Usuario solicitó enlace de recuperación de contraseña.';
+
+    $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+    $stmtLog->bind_param(
+        "isssss",
+        $id_usuario,
+        $accion,
+        $modulo,
+        $ip,
+        $user_agent,
+        $detalles
+    );
+    $stmtLog->execute();
+    $stmtLog->close();
+
+    // 7) Generar link (SOLO SI TODO SALIÓ BIEN)
+    $link = "http://localhost/odontosmart/auth/restablecer_contrasena.php?token=$token";
+
+} catch (Throwable $e) {
+
+    // Intentar rollback si hay transacción activa
+    try {
+        if (isset($conn) && $conn instanceof mysqli) {
+            if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                try { $conn->rollback(); } catch (Throwable $__ignore) {}
+            }
+        }
+    } catch (Throwable $__ignored) {}
+
+    // Preparar datos de bitácora
+    $id_usuario_log = $id_usuario ?? null;
+    $accion         = 'RECOVERY_ERROR';
+    $modulo         = 'login';
+    $ip             = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+    $user_agent     = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+    $detalles       = 'Error técnico: ' . $e->getMessage();
+
+    // Registrar en bitácora usando conexión limpia, protegida en su propio try
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        include_once __DIR__ . '/../config/conexion.php';
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param(
+                "isssss",
+                $id_usuario_log,
+                $accion,
+                $modulo,
+                $ip,
+                $user_agent,
+                $detalles
+            );
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+        if (isset($conn)) { @$conn->close(); }
+    } catch (Throwable $logError) {
+        error_log("Fallo al escribir en bitácora (recovery): " . $logError->getMessage());
+    }
+
+    // Mensaje limpio al usuario y detener flujo
+    stopWithAlert(
+        'Ocurrió un error inesperado al procesar la solicitud. Intente más tarde.',
+        'Error',
+        'error'
+    );
 }
-
-// Se obtiene el id_usuario asociado a ese email
-$data       = $resultUser->fetch_assoc();
-$id_usuario = (int)$data['id_usuario'];
-$emailBD    = $data['email']; // por si querés usar el correo “oficial” de la BD
-$stmtUser->close();
-
-// 3) (Opcional) limpiar tokens anteriores de este usuario
-// Esto evita acumular muchos tokens antiguos para la misma cuenta.
-$del = $conn->prepare("DELETE FROM restablecer_contrasenas WHERE id_usuario = ?");
-$del->bind_param("i", $id_usuario);
-$del->execute();
-$del->close();
-
-// 4) Generar token y vencimiento
-$token  = bin2hex(random_bytes(32));
-$expira = date('Y-m-d H:i:s', strtotime('+1 hour'));
-
-// 5) Insertar en restablecer_contrasenas (SIN campo email)
-$stmt = $conn->prepare("
-    INSERT INTO restablecer_contrasenas (id_usuario, token, expira) 
-    VALUES (?, ?, ?)
-");
-$stmt->bind_param("iss", $id_usuario, $token, $expira);
-$stmt->execute();
-$stmt->close();
-
-// 5.1 Registrar en bitácora la solicitud de recuperación
-$ip         = $_SERVER['REMOTE_ADDR']     ?? null;
-$user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
-
-$accion   = 'RECOVERY_REQUEST';
-$modulo   = 'login';
-$detalles = 'Usuario solicitó enlace de recuperación de contraseña.';
-
-$stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
-$stmtLog->bind_param(
-    "isssss",
-    $id_usuario,
-    $accion,
-    $modulo,
-    $ip,
-    $user_agent,
-    $detalles
-);
-$stmtLog->execute();
-$stmtLog->close();
-
-// 6) Generar link local para restablecer la contraseña
-$link = "http://localhost/odontosmart/auth/restablecer_contrasena.php?token=$token";
 ?>
 
 <!DOCTYPE html>

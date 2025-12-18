@@ -16,6 +16,8 @@ if (!in_array($rol, $rolesPermitidos)) {
     exit;
 }
 
+try {
+
 
 // Función para mostrar tabla por categoría
 function mostrarCategoria($conn, $categoriaNombre) {
@@ -88,6 +90,38 @@ function mostrarCategoria($conn, $categoriaNombre) {
     } else {
         echo "<p class='sin-productos'>No hay productos en esta categoría.</p>";
     }
+}
+} catch (Throwable $e) {
+    try {
+        if (isset($conn) && $conn instanceof mysqli) {
+            if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                try { $conn->rollback(); } catch (Throwable $__ignore) {}
+            }
+        }
+    } catch (Throwable $__ignored) {}
+
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        include_once ('../../config/conexion.php');
+
+        $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+        $accion = 'INVENTORY_QUERY_ERROR';
+        $modulo = 'modulos/inventario/total_inventario';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+        $detalles = 'Error técnico: ' . $e->getMessage();
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+        if (isset($conn)) { @$conn->close(); }
+    } catch (Throwable $logError) {
+        error_log("Fallo al escribir en bitácora (total_inventario.php): " . $logError->getMessage());
+    }
+    $inventario_error = true;
 }
 ?>
 
@@ -199,12 +233,16 @@ function mostrarCategoria($conn, $categoriaNombre) {
             <p>En esta sección se muestra el inventario completo de productos disponibles en la clínica dental OdontoSmart. Aquí podrás ver detalles como el nombre del producto, descripción, unidad, precio, stock mínimo, categoría, fecha de caducidad y costo por unidad.</p>
 
             <?php
+            if (isset($inventario_error) && $inventario_error) {
+                echo "<p style='color:red; font-weight:bold;'>Error al cargar el inventario. Por favor, intente más tarde.</p>";
+            } else {
             // Mostrar las 4 categorías
             mostrarCategoria($conn, "Medicamentos");
             mostrarCategoria($conn, "Servicios");
             mostrarCategoria($conn, "Equipo médico complejo");
             mostrarCategoria($conn, "Instrumento dental");
             mostrarCategoria($conn, "Productos de higiene");
+            }
             ?>
         </div>
     </div>

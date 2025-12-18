@@ -1,24 +1,10 @@
-<?php 
+<?php
+// index.php
+// Página de inicio pública del sistema OdontoSmart.
+// No requiere sesión ni conexión a base de datos.
 
-//   index.php
-//   ---------
-//   Página de inicio pública del sistema OdontoSmart.
- 
-//   Responsabilidades:
-//   - Detectar la página actual para resaltar el enlace activo en la barra de navegación.
-//   - Presentar una landing page informativa para usuarios no autenticados.
-//   - Proveer accesos directos a:
-//        - Iniciar sesión (auth/iniciar_sesion.php)
-//        - Registrar usuario (modulos/usuarios/crear_usuarios.php)
- 
-//   Esta vista NO requiere sesión ni conexión a base de datos.
- 
-
- // Obtiene el nombre del script actual (archivo PHP ejecutado).
- // Se utiliza para asignar la clase "active" al enlace correspondiente en la navbar.
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -26,590 +12,202 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OdontoSmart - Bienvenido</title>
 
-    <!--
-        FAVICON UNIFICADO
-        -----------------
-        Ícono global de la aplicación OdontoSmart.
-        Ruta absoluta dentro del proyecto.
-    -->
-    <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
+    <!-- Favicon -->
+    <link rel="icon" href="assets/img/odonto1.png">
 
-    <!--
-        Bootstrap 5 CSS
-        ----------------
-        Framework CSS para diseño responsivo profesional.
-    -->
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!--
-        Fuente tipográfica principal para esta landing page.
-        Poppins se utiliza aquí para darle un estilo moderno al inicio.
-    -->
+    <!-- Fuente principal -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!--
-        HOJA DE ESTILOS PERSONALIZADA
-        -----------------------
-        Estilos personalizados que complementan Bootstrap.
-    -->
-    <style>
-        :root {
-            --primary-color: #139BA5;
-            --secondary-color: #69B7BF;
-            --accent-color: #264CBF;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #69B7BF 0%, #139BA5 100%);
-            background-attachment: fixed;
-            min-height: 100vh;
-        }
-
-        /* ----------- NAVBAR PERSONALIZADA ----------- */
-        .navbar {
-            background: white !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            padding: 12px 0 !important;
-            border-bottom: 2px solid var(--secondary-color);
-        }
-
-        .navbar-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            color: var(--accent-color) !important;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.3s ease;
-            margin-right: 40px;
-        }
-
-        .navbar-brand:hover {
-            transform: scale(1.05);
-        }
-
-        .navbar-logo {
-            height: 60px;
-            width: auto;
-            transition: all 0.3s ease;
-        }
-
-        .navbar-logo:hover {
-            transform: scale(1.1);
-        }
-
-        .navbar-nav {
-            gap: 5px;
-        }
-
-        .nav-link {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #1a1a1a !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            padding: 8px 16px !important;
-            border-radius: 8px;
-            margin: 0 5px;
-        }
-
-        .nav-link::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 0;
-            height: 3px;
-            background-color: var(--accent-color);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            transform: translateX(-50%);
-            border-radius: 3px 3px 0 0;
-        }
-
-        .nav-link:hover {
-            background-color: rgba(19, 155, 165, 0.08);
-            color: var(--accent-color) !important;
-        }
-
-        .nav-link:hover::before,
-        .nav-link.active::before {
-            width: 100%;
-        }
-
-        .nav-link.active {
-            background-color: rgba(19, 155, 165, 0.1);
-            color: var(--accent-color) !important;
-        }
-
-        .navbar-toggler {
-            border: none;
-            padding: 5px 10px;
-            transition: all 0.3s ease;
-        }
-
-        .navbar-toggler:focus {
-            box-shadow: none;
-            outline: 2px solid var(--accent-color);
-            outline-offset: 2px;
-        }
-
-        /* ----------- HERO SECTION ----------- */
-        .hero-section {
-            padding: 80px 20px 60px 20px;
-            color: white;
-        }
-
-        .hero-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .hero-text {
-            text-align: left;
-        }
-
-        .hero-text h1 {
-            font-size: clamp(2.5rem, 5vw, 3.5rem);
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-            margin-bottom: 20px;
-        }
-
-        .hero-text .subtitle {
-            font-size: 1.3rem;
-            font-weight: 500;
-            margin-bottom: 30px;
-            opacity: 0.95;
-        }
-
-        .hero-text p {
-            font-size: 1.05rem;
-            line-height: 1.8;
-            margin: 12px 0;
-            opacity: 0.85;
-            font-weight: 400;
-        }
-
-        .hero-carousel {
-            text-align: center;
-        }
-
-        /* ----------- CARDS SECTION ----------- */
-        .cards-section {
-            padding: 60px 20px;
-        }
-
-        .service-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            border-radius: 16px;
-            padding: 32px 28px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            color: white;
-            height: 100%;
-            position: relative;
-        }
-
-        .service-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            border-radius: 16px 16px 0 0;
-        }
-
-        .service-card:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.25) !important;
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .service-card h5 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            letter-spacing: -0.3px;
-        }
-
-        .service-card p {
-            font-size: 1rem;
-            line-height: 1.7;
-            margin-bottom: 0;
-            opacity: 0.85;
-        }
-
-        /* ----------- CAROUSEL SECTION ----------- */
-        .carousel-section {
-            padding: 60px 20px;
-        }
-
-        .carousel-container {
-            max-width: 900px;
-            margin: 0 auto;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .carousel-inner {
-            border-radius: 16px;
-        }
-
-        .carousel-item img {
-            height: 400px;
-            object-fit: cover;
-            width: 100%;
-        }
-
-        .carousel-caption {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-            padding: 40px 20px 20px 20px;
-            color: white;
-            text-align: center;
-        }
-
-        .carousel-caption h6 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin: 0;
-            letter-spacing: -0.3px;
-        }
-
-        .carousel-caption p {
-            font-size: 0.95rem;
-            margin: 8px 0 0 0;
-            opacity: 0.9;
-        }
-
-        .carousel-control-prev,
-        .carousel-control-next {
-            width: 50px;
-            height: 50px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .carousel-control-prev:hover,
-        .carousel-control-next:hover {
-            background: rgba(0, 0, 0, 0.6);
-        }
-
-        .carousel-indicators {
-            bottom: 15px;
-        }
-
-        .carousel-indicators button {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.5);
-            transition: all 0.3s ease;
-        }
-
-        .carousel-indicators button.active {
-            background-color: white;
-        }
-
-        /* ----------- NAVBAR LOGO ----------- */
-        .navbar-logo {
-            height: 40px;
-            width: auto;
-            transition: all 0.3s ease;
-        }
-
-        .navbar-logo:hover {
-            transform: scale(1.05);
-        }
-
-        /* ----------- RESPONSIVE DESIGN ----------- */
-        @media (max-width: 768px) {
-            .hero-content {
-                grid-template-columns: 1fr;
-                gap: 30px;
-            }
-
-            .hero-text {
-                text-align: center;
-            }
-
-            .hero-text h1 {
-                font-size: 2rem;
-            }
-
-            .hero-text .subtitle {
-                font-size: 1.1rem;
-            }
-
-            .carousel-container {
-                max-width: 100%;
-            }
-
-            .carousel-item img {
-                height: 300px;
-            }
-
-            .cards-section {
-                padding: 40px 20px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hero-section {
-                padding: 50px 16px 30px 16px;
-            }
-
-            .hero-content {
-                gap: 20px;
-            }
-
-            .hero-text h1 {
-                font-size: 1.75rem;
-            }
-
-            .hero-text p {
-                font-size: 0.95rem;
-            }
-
-            .carousel-item img {
-                height: 250px;
-            }
-
-            .carousel-caption h6 {
-                font-size: 1.1rem;
-            }
-
-            .carousel-caption p {
-                font-size: 0.85rem;
-            }
-
-            .service-card h5 {
-                font-size: 1.2rem;
-            }
-        }
-    </style>
+    <!-- Estilos propios -->
+    <link rel="stylesheet" href="assets/css/index.css">
 </head>
 <body>
 
-    <!--
-        BARRA DE NAVEGACIÓN PÚBLICA
-        ---------------------------
-        Ofrece acceso directo a:
-        - Iniciar sesión (para usuarios ya registrados).
-        - Registrarse (para nuevos usuarios).
-        Usamos $currentPage para marcar el enlace activo según la URL.
-    -->
-    <nav class="navbar navbar-expand-lg sticky-top">
-        <div class="container-fluid px-lg-4 px-3">
-            <a class="navbar-brand" href="#">
-                <img src="assets/img/odonto.png" alt="Logo OdontoSmart" class="navbar-logo">
-                <span class="d-lg-inline d-none">OdontoSmart</span>
+    <!-- Barra de navegación -->
+    <nav class="navbar sticky-top">
+        <div class="container-fluid px-4">
+
+            <!-- Logo y nombre del sistema -->
+            <a class="navbar-brand" href="index.php">
+                <img src="assets/img/odonto.png" alt="OdontoSmart" class="navbar-logo">
+                <span>OdontoSmart</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link <?= $currentPage == 'iniciar_sesion.php' ? 'active' : '' ?>" href="auth/iniciar_sesion.php">
-                            <i class="bi bi-box-arrow-in-right"></i>
-                            Ingresar
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $currentPage == 'crear_usuarios.php' ? 'active' : '' ?>" href="modulos/usuarios/crear_usuarios.php">
-                            <i class="bi bi-person-plus"></i>
-                            Registrarse
-                        </a>
-                    </li>
-                </ul>
-            </div>
+
+            <!-- Enlaces principales -->
+            <ul class="navbar-nav flex-row gap-2">
+                <li class="nav-item">
+                    <a class="nav-link <?= $currentPage === 'iniciar_sesion.php' ? 'active' : '' ?>"
+                       href="auth/iniciar_sesion.php">
+                        Ingresar
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link"
+                       href="modulos/usuarios/crear_usuarios.php">
+                        Registrarse
+                    </a>
+                </li>
+            </ul>
+
         </div>
     </nav>
 
-    <!--
-        SECCIÓN HERO CON CARRUSEL
-        -------------------------
-        Mensaje principal de bienvenida con galería de servicios lado a lado.
-        Presenta texto informativo y visualización profesional del trabajo realizado.
-    -->
+    <!-- Sección principal -->
     <section class="hero-section">
         <div class="hero-content">
+
+            <!-- Texto principal -->
             <div class="hero-text">
                 <h1>Bienvenido(a) a OdontoSmart</h1>
                 <p class="subtitle">Inicie sesión con su usuario y contraseña</p>
+
                 <p>
-                    En OdontoSmart nos dedicamos a transformar tu salud bucal con tecnología
-                    de vanguardia, atención personalizada y un enfoque humano en cada tratamiento.
+                    En OdontoSmart nos enfocamos en brindar atención dental de calidad,
+                    apoyándonos en tecnología moderna y un trato cercano al paciente.
                 </p>
+
                 <p>
-                    Nuestro compromiso es brindarte una experiencia cómoda, segura y transparente,
-                    desde tu primera consulta hasta el seguimiento final.
+                    Nuestro objetivo es facilitar la gestión de citas, tratamientos
+                    y seguimiento clínico en un solo lugar.
                 </p>
+
                 <p>
-                    Aquí encontrarás un equipo de especialistas que combina conocimiento,
-                    innovación y calidez para cuidar de tu sonrisa.
-                </p>
-                <p>
-                    Explora nuestros servicios, agenda tu cita y descubre por qué somos
-                    la opción inteligente para tu bienestar dental.
+                    Contamos con un equipo profesional comprometido con tu bienestar
+                    y la salud de tu sonrisa.
                 </p>
             </div>
-            
+
+            <!-- Carrusel de servicios -->
             <div class="hero-carousel">
                 <div class="carousel-container">
-                    <div id="serviceCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="6000">
+                    <div id="serviceCarousel"
+                         class="carousel slide"
+                         data-bs-ride="carousel"
+                         data-bs-interval="6000">
+
+                        <!-- Indicadores -->
                         <div class="carousel-indicators">
-                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
-                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="3" aria-label="Slide 4"></button>
-                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="4" aria-label="Slide 5"></button>
-                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="5" aria-label="Slide 6"></button>
+                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="0" class="active"></button>
+                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="1"></button>
+                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="2"></button>
+                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="3"></button>
+                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="4"></button>
+                            <button type="button" data-bs-target="#serviceCarousel" data-bs-slide-to="5"></button>
                         </div>
+
+                        <!-- Imágenes -->
                         <div class="carousel-inner">
                             <div class="carousel-item active">
-                                <img src="assets/img/odonto2.png" class="d-block w-100" alt="Servicio Dental 1">
+                                <img src="assets/img/odonto2.png" class="d-block w-100" alt="Consulta general">
                                 <div class="carousel-caption">
                                     <h6>Consulta General</h6>
                                     <p>Evaluación completa de tu salud bucal</p>
                                 </div>
                             </div>
+
                             <div class="carousel-item">
-                                <img src="assets/img/odonto3.png" class="d-block w-100" alt="Servicio Dental 2">
+                                <img src="assets/img/odonto3.png" class="d-block w-100" alt="Ortodoncia">
                                 <div class="carousel-caption">
                                     <h6>Ortodoncia</h6>
-                                    <p>Alineación perfecta de tus dientes</p>
+                                    <p>Alineación dental personalizada</p>
                                 </div>
                             </div>
+
                             <div class="carousel-item">
-                                <img src="assets/img/odonto4.png" class="d-block w-100" alt="Servicio Dental 3">
+                                <img src="assets/img/odonto4.png" class="d-block w-100" alt="Estética dental">
                                 <div class="carousel-caption">
                                     <h6>Estética Dental</h6>
-                                    <p>Mejora el aspecto de tu sonrisa</p>
+                                    <p>Mejora la apariencia de tu sonrisa</p>
                                 </div>
                             </div>
+
                             <div class="carousel-item">
-                                <img src="assets/img/odonto5.png" class="d-block w-100" alt="Servicio Dental 4">
+                                <img src="assets/img/odonto5.png" class="d-block w-100" alt="Limpieza">
                                 <div class="carousel-caption">
                                     <h6>Limpieza Profesional</h6>
-                                    <p>Higiene bucal profunda y efectiva</p>
+                                    <p>Higiene profunda y preventiva</p>
                                 </div>
                             </div>
+
                             <div class="carousel-item">
-                                <img src="assets/img/odonto6.png" class="d-block w-100" alt="Servicio Dental 5">
+                                <img src="assets/img/odonto6.png" class="d-block w-100" alt="Encías">
                                 <div class="carousel-caption">
-                                    <h6>Tratamiento de Encías</h6>
-                                    <p>Cuidado especializado de tu salud gingival</p>
+                                    <h6>Salud de Encías</h6>
+                                    <p>Cuidado especializado gingival</p>
                                 </div>
                             </div>
+
                             <div class="carousel-item">
-                                <img src="assets/img/odonto7.png" class="d-block w-100" alt="Servicio Dental 6">
+                                <img src="assets/img/odonto7.png" class="d-block w-100" alt="Endodoncia">
                                 <div class="carousel-caption">
                                     <h6>Endodoncia</h6>
-                                    <p>Tratamiento de conducto especializado</p>
+                                    <p>Tratamiento de conducto seguro</p>
                                 </div>
                             </div>
                         </div>
-                        <button class="carousel-control-prev" type="button" data-bs-target="#serviceCarousel" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Previous</span>
+
+                        <!-- Controles -->
+                        <button class="carousel-control-prev" type="button"
+                                data-bs-target="#serviceCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
                         </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#serviceCarousel" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Next</span>
+
+                        <button class="carousel-control-next" type="button"
+                                data-bs-target="#serviceCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
                         </button>
+
                     </div>
                 </div>
             </div>
+
         </div>
     </section>
-        
-        <!-- Sección que resume servicios, funcionalidades y enfoque de atención.
-        Estas tarjetas son estáticas y sirven como contenido de marketing y orientación. -->
-    
+
+    <!-- Sección de tarjetas -->
     <section class="cards-section">
         <div class="container">
             <div class="row g-4">
+
                 <div class="col-lg-4 col-md-6">
                     <div class="card service-card border-0">
-                        <div class="card-body">
-                            <h5 class="card-title">Nuestros Servicios</h5>
-                            <p class="card-text">
-                                Consulta general, ortodoncia, estética dental, limpiezas y mucho más.
-                                Atención profesional con tecnología avanzada.
-                            </p>
-                        </div>
+                        <h5>Nuestros Servicios</h5>
+                        <p>
+                            Consulta general, ortodoncia, estética dental y otros
+                            tratamientos enfocados en tu salud bucal.
+                        </p>
                     </div>
                 </div>
+
                 <div class="col-lg-4 col-md-6">
                     <div class="card service-card border-0">
-                        <div class="card-body">
-                            <h5 class="card-title">Agenda tu Cita</h5>
-                            <p class="card-text">
-                                Reserva tu cita de manera fácil y rápida desde nuestra plataforma
-                                y recibe recordatorios personalizados.
-                            </p>
-                        </div>
+                        <h5>Agenda tu Cita</h5>
+                        <p>
+                            Reserva tu cita de manera sencilla desde la plataforma
+                            y mantén un mejor control de tu atención.
+                        </p>
                     </div>
                 </div>
+
                 <div class="col-lg-4 col-md-6">
                     <div class="card service-card border-0">
-                        <div class="card-body">
-                            <h5 class="card-title">Atención Personalizada</h5>
-                            <p class="card-text">
-                                Cada paciente recibe un plan de tratamiento adaptado a sus necesidades
-                                y seguimiento continuo por nuestros especialistas.
-                            </p>
-                        </div>
+                        <h5>Atención Personalizada</h5>
+                        <p>
+                            Cada paciente recibe un plan de tratamiento adaptado
+                            a sus necesidades específicas.
+                        </p>
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
 
-
-
-    <!--
-        Bootstrap 5 JavaScript
-        ----------------------
-        Necesario para funcionalidad interactiva (navbar toggle en móviles, etc.)
-    -->
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Configurar el carrusel para cambiar cada 6 segundos
-        document.addEventListener('DOMContentLoaded', function() {
-            const carousel = document.getElementById('serviceCarousel');
-            if (carousel) {
-                const bootstrapCarousel = new bootstrap.Carousel(carousel, {
-                    interval: 6000,
-                    wrap: true
-                });
-            }
-        });
-    </script>
 
 </body>
 </html>

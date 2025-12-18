@@ -4,14 +4,16 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// inventario.php // Trabaja con las tablas categoria_productos y productos
+// Para que mysqli lance excepciones y el try-catch sirva de verdad
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 session_start();
 include('../../config/conexion.php');
 
 $rol = $_SESSION['user']['role'] ?? null;
-$rolesPermitidos = ['Administrador', 'Médico', 'Recepcionista']; // ej.
- 
-if (!in_array($rol, $rolesPermitidos)) {
+$rolesPermitidos = ['Administrador', 'Médico', 'Recepcionista'];
+
+if (!in_array($rol, $rolesPermitidos, true)) {
     header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
     exit;
 }
@@ -19,165 +21,213 @@ if (!in_array($rol, $rolesPermitidos)) {
 $mensaje = "";
 
 // Formulario para agregar un producto y lote
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $nombre          = $_POST["nombre"] ?? '';
-    $descripcion     = $_POST["descripcion"] ?? '';
-    $unidad          = $_POST["unidad"] ?? '';
-    $precio          = floatval($_POST["precio"] ?? 0);
-    $stock_minimo    = intval($_POST["stock_minimo"] ?? 0);
-    $stock_total     = intval($_POST["stock_total"] ?? 0);
-    $id_categoria    = intval($_POST["id_categoria"] ?? 0);
-    $fecha_caducidad = $_POST["fecha_caducidad"] ?? null;
-    // Validar que la fecha de caducidad no sea en el pasado
-    if ($fecha_caducidad) {
-        $hoy = new DateTime('today'); // solo fecha, sin hora
-        $fechaCad = DateTime::createFromFormat('Y-m-d', $fecha_caducidad);
+    try {
 
-        if (!$fechaCad) {
-            // Formato inválido
-            $mensaje = " Error: la fecha de caducidad no tiene un formato válido.";
-        } elseif ($fechaCad < $hoy) {
-            // Fecha en el pasado
-            $mensaje = " Error: la fecha de caducidad no puede estar en el pasado.";
-        }
-    }
+        // =========================
+        // 1) RECUPERAR DATOS
+        // =========================
+        $nombre          = trim($_POST["nombre"] ?? '');
+        $descripcion     = trim($_POST["descripcion"] ?? '');
+        $unidad          = trim($_POST["unidad"] ?? '');
+        $precio          = (float)($_POST["precio"] ?? 0);
+        $stock_minimo    = (int)($_POST["stock_minimo"] ?? 0);
+        $stock_total     = (int)($_POST["stock_total"] ?? 0);
+        $id_categoria    = (int)($_POST["id_categoria"] ?? 0);
+        $fecha_caducidad = $_POST["fecha_caducidad"] ?? null;
+        $costo_unidad    = (float)($_POST["costo_unidad"] ?? 0);
 
-    // Solo continuar si no hay errores de fecha
-    if (empty($mensaje)) {
-
-        $costo_unidad = floatval($_POST["costo_unidad"] ?? 0);
-
-        // Para la tabla de lote_producto
+        // Para lote
         $cantidad_lote = $stock_total;
-        $fecha_lote    = $fecha_caducidad;
-        $numero_lote   = $_POST['numero_lote'] ?? 0;
+        $fecha_lote    = $fecha_caducidad; // puede ser null
+        $numero_lote   = (int)($_POST['numero_lote'] ?? 0);
 
-            // Validaciones de campos obligatorios
-            $nombre = trim($nombre);
-            if ($nombre === '') {
-                $mensaje = " Error: el nombre del producto es obligatorio.";
-            } elseif ($id_categoria <= 0) {
-                $mensaje = " Error: la categoría es obligatoria.";
+        // =========================
+        // 2) VALIDACIONES
+        // =========================
+        if ($nombre === '') {
+            $mensaje = "Error: el nombre del producto es obligatorio.";
+        } elseif ($unidad === '') {
+            $mensaje = "Error: la unidad de medida es obligatoria.";
+        } elseif ($id_categoria <= 0) {
+            $mensaje = "Error: la categoría es obligatoria.";
+        } elseif ($precio <= 0) {
+            $mensaje = "Error: el precio debe ser mayor a 0.";
+        } elseif ($stock_total <= 0) {
+            $mensaje = "Error: la cantidad a ingresar debe ser mayor a 0.";
+        } elseif ($stock_minimo < 0) {
+            $mensaje = "Error: el stock mínimo no puede ser negativo.";
+        } elseif ($costo_unidad <= 0) {
+            $mensaje = "Error: el costo por unidad debe ser mayor a 0.";
+        }
+
+        // Validar fecha (solo si viene)
+        if ($mensaje === "" && $fecha_caducidad) {
+            $hoy = new DateTime('today');
+            $fechaCad = DateTime::createFromFormat('Y-m-d', $fecha_caducidad);
+
+            if (!$fechaCad) {
+                $mensaje = "Error: la fecha de caducidad no tiene un formato válido.";
+            } elseif ($fechaCad < $hoy) {
+                $mensaje = "Error: la fecha de caducidad no puede estar en el pasado.";
             }
+        }
 
-        $idUsuarioSesion = intval($_SESSION['user']['id_usuario'] ?? 0);
-        $ip_cliente      = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
-        $modulo          = 'Inventario - Crear producto';
-        $userAgent       = $_SERVER['HTTP_USER_AGENT'] ?? 'DESCONOCIDO';
+        // Si hay error, no seguimos
+        if ($mensaje !== "") {
+            // no tiramos excepción, solo mostramos mensaje
+        } else {
 
-        // Llamar al SP que crea producto y registra en bitácora
-        // Detectar firma del SP en la base de datos (para soportar parámetros adicionales como p_modulo y p_user_agent)
-        $procName = 'sp_productos_crear';
-        $procParams = [];
-        $resParams = $conn->query("SELECT PARAMETER_NAME FROM information_schema.parameters WHERE SPECIFIC_SCHEMA = DATABASE() AND SPECIFIC_NAME = '" . $procName . "' AND PARAMETER_MODE <> 'OUT' ORDER BY ORDINAL_POSITION");
-        if ($resParams) {
+            // =========================
+            // 3) DATA PARA BITÁCORA (SP)
+            // =========================
+            $idUsuarioSesion = (int)($_SESSION['user']['id_usuario'] ?? 0);
+            $ip_cliente      = $_SERVER['REMOTE_ADDR'] ?? 'DESCONOCIDA';
+            $modulo          = 'Inventario - Crear producto';
+            $userAgent       = $_SERVER['HTTP_USER_AGENT'] ?? 'DESCONOCIDO';
+
+            // =========================
+            // 4) LLAMAR SP (firma dinámica)
+            // =========================
+            $procName = 'sp_productos_crear';
+            $procParams = [];
+
+            $sqlParams = "
+                SELECT PARAMETER_NAME
+                FROM information_schema.parameters
+                WHERE SPECIFIC_SCHEMA = DATABASE()
+                  AND SPECIFIC_NAME = ?
+                  AND PARAMETER_MODE <> 'OUT'
+                ORDER BY ORDINAL_POSITION
+            ";
+
+            $stmtParams = $conn->prepare($sqlParams);
+            $stmtParams->bind_param("s", $procName);
+            $stmtParams->execute();
+            $resParams = $stmtParams->get_result();
+
             while ($rowP = $resParams->fetch_assoc()) {
                 $procParams[] = $rowP['PARAMETER_NAME'];
             }
-        }
+            $stmtParams->close();
 
-        if (empty($procParams)) {
-            $mensaje = " Error: no se pudo detectar la firma del procedimiento almacenado '$procName' en la base de datos.";
-        } else {
-            $placeholders = [];
-            $bindTypes = '';
-            $bindValues = [];
-            foreach ($procParams as $pname) {
-                $placeholders[] = '?';
-                switch ($pname) {
-                    case 'p_id_categoria': $bindTypes .= 'i'; $bindValues[] = $id_categoria; break;
-                    case 'p_nombre': $bindTypes .= 's'; $bindValues[] = $nombre; break;
-                    case 'p_descripcion': $bindTypes .= 's'; $bindValues[] = $descripcion; break;
-                    case 'p_unidad': $bindTypes .= 's'; $bindValues[] = $unidad; break;
-                    case 'p_precio': $bindTypes .= 'd'; $bindValues[] = $precio; break;
-                    case 'p_costo_unidad': $bindTypes .= 'd'; $bindValues[] = $costo_unidad; break;
-                    case 'p_stock_total': $bindTypes .= 'i'; $bindValues[] = $stock_total; break;
-                    case 'p_stock_minimo': $bindTypes .= 'i'; $bindValues[] = $stock_minimo; break;
-                    case 'p_fecha_caducidad': $bindTypes .= 's'; $bindValues[] = $fecha_caducidad; break;
-                    case 'p_id_usuario': $bindTypes .= 'i'; $bindValues[] = $idUsuarioSesion; break;
-                    case 'p_ip': $bindTypes .= 's'; $bindValues[] = $ip_cliente; break;
-                    case 'p_modulo': $bindTypes .= 's'; $bindValues[] = $modulo; break;
-                    case 'p_user_agent': $bindTypes .= 's'; $bindValues[] = $userAgent; break;
-                    default: $bindTypes .= 's'; $bindValues[] = ''; break;
-                }
-            }
+            if (empty($procParams)) {
+                $mensaje = "Error: no se pudo detectar la firma del procedimiento almacenado '$procName'.";
+            } else {
 
-            $callSql = "CALL " . $procName . "(" . implode(',', $placeholders) . ", @resultado)";
-            $stmt = $conn->prepare($callSql);
+                $placeholders = [];
+                $bindTypes = '';
+                $bindValues = [];
 
-            if ($stmt) {
-                // bind_param requires references
-                $refValues = [];
-                foreach ($bindValues as $k => $v) { $refValues[$k] = &$bindValues[$k]; }
-                array_unshift($refValues, $bindTypes);
-                call_user_func_array([$stmt, 'bind_param'], $refValues);
+                foreach ($procParams as $pname) {
+                    $placeholders[] = '?';
 
-                try {
-                    $ok = $stmt->execute();
-                } catch (mysqli_sql_exception $ex) {
-                    $ok = false;
-                    $mensaje = " Error de base de datos: " . $ex->getMessage();
+                    switch ($pname) {
+                        case 'p_id_categoria':      $bindTypes .= 'i'; $bindValues[] = $id_categoria; break;
+                        case 'p_nombre':           $bindTypes .= 's'; $bindValues[] = $nombre; break;
+                        case 'p_descripcion':      $bindTypes .= 's'; $bindValues[] = $descripcion; break;
+                        case 'p_unidad':           $bindTypes .= 's'; $bindValues[] = $unidad; break;
+                        case 'p_precio':           $bindTypes .= 'd'; $bindValues[] = $precio; break;
+                        case 'p_costo_unidad':     $bindTypes .= 'd'; $bindValues[] = $costo_unidad; break;
+                        case 'p_stock_total':      $bindTypes .= 'i'; $bindValues[] = $stock_total; break;
+                        case 'p_stock_minimo':     $bindTypes .= 'i'; $bindValues[] = $stock_minimo; break;
+                        case 'p_fecha_caducidad':  $bindTypes .= 's'; $bindValues[] = $fecha_caducidad; break;
+                        case 'p_id_usuario':       $bindTypes .= 'i'; $bindValues[] = $idUsuarioSesion; break;
+                        case 'p_ip':               $bindTypes .= 's'; $bindValues[] = $ip_cliente; break;
+                        case 'p_modulo':           $bindTypes .= 's'; $bindValues[] = $modulo; break;
+                        case 'p_user_agent':       $bindTypes .= 's'; $bindValues[] = $userAgent; break;
+                        default:
+                            // Si hay parámetros desconocidos, enviamos string vacío para no romper
+                            $bindTypes .= 's';
+                            $bindValues[] = '';
+                            break;
+                    }
                 }
 
-                if ($ok) {
-                    $stmt->close();
-                    $conn->next_result(); // Limpia resultados del CALL
+                $callSql = "CALL $procName(" . implode(',', $placeholders) . ", @resultado)";
+                $stmt = $conn->prepare($callSql);
 
-                // Leer el valor OUT del SP
+                // bind_param con call_user_func_array: requiere referencias
+                $params = [];
+                $params[] = $bindTypes;
+                foreach ($bindValues as $k => &$v) {
+                    $params[] = &$v;
+                }
+                unset($v); // buena práctica al usar referencias en foreach
+
+                call_user_func_array([$stmt, 'bind_param'], $params);
+
+                // Ejecutar SP (si falla, lanza excepción y cae en catch)
+                $stmt->execute();
+                $stmt->close();
+                $conn->next_result();
+
+                // Leer OUT @resultado
                 $res = $conn->query("SELECT @resultado AS res");
                 $row = $res->fetch_assoc();
                 $resultado = $row['res'] ?? null;
 
                 if ($resultado === 'OK') {
-                    // Obtener el ID del último producto insertado
+
+                    // ⚠️ OJO: MAX(id_producto) no es 100% seguro en concurrencia,
+                    // pero lo dejamos si tu SP no devuelve el id.
                     $res2 = $conn->query("SELECT MAX(id_producto) AS id FROM productos");
-                    $id_producto = $res2->fetch_assoc()['id'];
+                    $id_producto = (int)($res2->fetch_assoc()['id'] ?? 0);
 
-                    // Insertar lote
-                    $stmt2 = $conn->prepare("
-                        INSERT INTO lote_producto (id_producto, cantidad, numero_lote, fecha_caducidad)
-                        VALUES (?, ?, ?, ?)
-                    ");
+                    if ($id_producto <= 0) {
+                        $mensaje = "Error: el producto se creó, pero no se pudo obtener el id del producto.";
+                    } else {
 
-                    $stmt2->bind_param(
-                        "iiis",
-                        $id_producto,
-                        $cantidad_lote,
-                        $numero_lote,
-                        $fecha_lote
-                    );
+                        // Insertar lote
+                        $stmt2 = $conn->prepare("
+                            INSERT INTO lote_producto (id_producto, cantidad, numero_lote, fecha_caducidad)
+                            VALUES (?, ?, ?, ?)
+                        ");
 
-                    try {
+                        // Si tu columna fecha_caducidad permite NULL, esto está bien.
+                        $stmt2->bind_param("iiis", $id_producto, $cantidad_lote, $numero_lote, $fecha_lote);
                         $stmt2->execute();
-                    } catch (mysqli_sql_exception $ex) {
-                        $mensaje = " Error al insertar lote: " . $ex->getMessage();
-                    }
-                    $stmt2->close();
+                        $stmt2->close();
 
-                    $mensaje = " El producto fue agregado correctamente.";
+                        $mensaje = "El producto fue agregado correctamente.";
+                    }
+
                 } elseif ($resultado === 'DUPLICADO') {
-                    $mensaje = " Error: ya existe un producto con ese nombre en la misma categoría.";
+                    $mensaje = "Error: ya existe un producto con ese nombre en la misma categoría.";
                 } elseif ($resultado === 'CADUCADO') {
-                    // Por si el SP también valida fecha y devuelve esto
-                    $mensaje = " Error: la fecha de caducidad no puede estar en el pasado.";
+                    $mensaje = "Error: la fecha de caducidad no puede estar en el pasado.";
                 } else {
-                    $mensaje = " Error inesperado al agregar el producto.";
+                    $mensaje = "Error inesperado al agregar el producto.";
                 }
-            } else {
-                $mensaje = " Error al ejecutar el procedimiento almacenado.";
-                $stmt->close();
             }
-        } else {
-            $mensaje = " Error al preparar el procedimiento almacenado.";
         }
+
+    } catch (Throwable $e) {
+
+        // Log en bitácora (sin cerrar la conexión principal, para que la página pueda seguir cargando)
+        try {
+            $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+            $accion         = 'PRODUCT_CREATE_ERROR';
+            $moduloLog      = 'modulos/inventario/inventario';
+            $ip             = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+            $user_agent     = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+            $detalles       = 'Error técnico: ' . $e->getMessage();
+
+            $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $moduloLog, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        } catch (Throwable $logError) {
+            error_log("Fallo al escribir en bitácora (inventario.php): " . $logError->getMessage());
+        }
+
+        $mensaje = "Error al procesar el producto. Por favor, intente más tarde.";
     }
 }
-}
-// Obtener categorías
-// Obtener categorías
-$categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos");
 
+// Obtener categorías (siempre al final, con $conn vivo)
+$categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos");
 ?>
 
 <!DOCTYPE html>

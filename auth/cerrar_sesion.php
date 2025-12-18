@@ -6,51 +6,92 @@ session_start(); // Inicia o reanuda la sesión para poder destruirla
 
 require '../config/conexion.php'; // Conexión a la BD para registrar en bitácora
 
-// Datos para bitácora ANTES de borrar la sesión
-$id_usuario = $_SESSION['user']['id_usuario'] ?? null;
-$ip         = $_SERVER['REMOTE_ADDR']     ?? null;
-$user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+try {
+    // Datos para bitácora ANTES de borrar la sesión
+    $id_usuario = $_SESSION['user']['id_usuario'] ?? null;
+    $ip         = $_SERVER['REMOTE_ADDR']     ?? null;
+    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
 
-if ($id_usuario !== null) {
-    $accion   = 'LOGOUT';
-    $modulo   = 'login';
-    $detalles = 'Cierre de sesión del usuario.';
+    if ($id_usuario !== null) {
+        $accion   = 'LOGOUT';
+        $modulo   = 'login';
+        $detalles = 'Cierre de sesión del usuario.';
 
-    $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
-    $stmtLog->bind_param(
-        "isssss",
-        $id_usuario,
-        $accion,
-        $modulo,
-        $ip,
-        $user_agent,
-        $detalles
-    );
-    $stmtLog->execute();
-    $stmtLog->close();
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        $stmtLog->bind_param(
+            "isssss",
+            $id_usuario,
+            $accion,
+            $modulo,
+            $ip,
+            $user_agent,
+            $detalles
+        );
+        $stmtLog->execute();
+        $stmtLog->close();
+    }
+
+    // 1) Limpiar todas las variables de sesión
+    $_SESSION = [];
+
+    // 2) Eliminar la cookie de sesión (si existe)
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params['path'],
+            $params['domain'],
+            $params['secure'],
+            $params['httponly']
+        );
+    }
+
+    // 3) Destruir la sesión completamente en el servidor
+    session_destroy();
+
+    // 4) Redirigir al login con mensaje de confirmación
+    header('Location: iniciar_sesion.php?info=' . urlencode('Sesión cerrada correctamente.'));
+    exit;
+
+} catch (Throwable $e) {
+    // Intentar rollback
+    try {
+        if (isset($conn) && $conn instanceof mysqli) {
+            if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                try { $conn->rollback(); } catch (Throwable $__ignore) {}
+            }
+        }
+    } catch (Throwable $__ignored) {}
+
+    // Registrar en bitácora
+    try {
+        if (isset($conn)) { @$conn->close(); }
+        require_once '../config/conexion.php';
+
+        $id_usuario_log = null;
+        $accion = 'LOGOUT_ERROR';
+        $modulo = 'login';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+        $detalles = 'Error al cerrar sesión: ' . $e->getMessage();
+
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+        if (isset($conn)) { @$conn->close(); }
+    } catch (Throwable $logError) {
+        error_log("Fallo al escribir en bitácora (cerrar_sesion): " . $logError->getMessage());
+    }
+
+    // Cerrar sesión de todas formas
+    $_SESSION = [];
+    session_destroy();
+    header('Location: iniciar_sesion.php?error=' . urlencode('Hubo un error al cerrar sesión.'));
+    exit;
 }
-
-// 1) Limpiar todas las variables de sesión
-$_SESSION = [];
-
-// 2) Eliminar la cookie de sesión (si existe)
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(
-        session_name(),
-        '',
-        time() - 42000,
-        $params['path'],
-        $params['domain'],
-        $params['secure'],
-        $params['httponly']
-    );
-}
-
-// 3) Destruir la sesión completamente en el servidor
-session_destroy();
-
-// 4) Redirigir al login con mensaje de confirmación
-header('Location: iniciar_sesion.php?info=' . urlencode('Sesión cerrada correctamente.'));
-exit;
 ?>
