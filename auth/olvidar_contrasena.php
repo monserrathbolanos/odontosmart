@@ -1,8 +1,6 @@
 <?php
-// olvidar_contrasena.php
-// Pantalla para iniciar el proceso de recuperación de contraseña.
-// El usuario ingresa su correo y se envía a enviar_contrasena.php.
-// Esta funcionalidad es opcional y no forma parte del flujo principal del sistema.
+
+// Pantalla para que el usuario inicie el proceso de recuperación de contraseña
 ?>
 <!DOCTYPE html>
 <html lang="es">

@@ -4,7 +4,7 @@ require '../../config/conexion.php';
 require_once __DIR__ . '/../../config/alerts.php';
 
 try {
-    // Verificar que viene el id_detalle
+    // Verifica que se haya recibido el id_detalle y el id_carrito
     if (!isset($_POST['id_detalle']) || !isset($_POST['id_carrito'])) {
         stopWithAlert('Datos incompletos', 'Datos incompletos', 'error');
     }
@@ -13,7 +13,7 @@ try {
     $id_carrito = $_POST['id_carrito'];
 
 
-// Ver si la cantidad es > 1
+// Consulta si la cantidad del producto es mayor a 1
 $sql = "SELECT cantidad FROM carrito_detalle WHERE id_detalle = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $id_detalle);
@@ -28,7 +28,7 @@ $row = $result->fetch_assoc();
 $cantidad = $row['cantidad'];
 $stmt->close();
 
-// Si cantidad > 1 restar 1
+// Si la cantidad es mayor a 1, resta uno
 if ($cantidad > 1) {
     $sql_update = "UPDATE carrito_detalle SET cantidad = cantidad - 1 WHERE id_detalle = ?";
     $stmt2 = $conn->prepare($sql_update);
@@ -36,7 +36,7 @@ if ($cantidad > 1) {
     $stmt2->execute();
     $stmt2->close();
     } else {
-        // Si cantidad = 1 eliminar fila
+        // Si la cantidad es 1, elimina la fila del detalle
         $sql_delete = "DELETE FROM carrito_detalle WHERE id_detalle = ?";
         $stmt3 = $conn->prepare($sql_delete);
         $stmt3->bind_param("i", $id_detalle);
@@ -44,7 +44,7 @@ if ($cantidad > 1) {
         $stmt3->close();
     }
 
-    // Redirigir de vuelta al carrito
+    // Redirige de vuelta al carrito después de la operación
     header("Location: carrito.php");
     exit;
 } catch (Throwable $e) {

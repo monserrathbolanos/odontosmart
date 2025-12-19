@@ -1,24 +1,26 @@
 <?php
-// iniciar sesión
-session_start();
+// carrito.php
+// Muestra los productos del carrito del usuario autenticado.
+// Maneja validaciones de stock, promociones y totales.
 
+session_start();
 require '../../config/conexion.php';
 
-
-
-/* Validar rol permitido */
+/* Validación de rol */
 $rol = $_SESSION['user']['role'] ?? null;
-$rolesPermitidos = ['Administrador','Cliente']; // ej.
+$rolesPermitidos = ['Administrador', 'Cliente'];
 
 if (!in_array($rol, $rolesPermitidos)) {
-    // Aquí decides a dónde mandarlo: login, home o protegido.
-    // Si quieres mandarlo al login:
-    header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
+    header(
+        'Location: ../../auth/iniciar_sesion.php?error=' .
+        urlencode('Debes iniciar sesión o registrarte.')
+    );
     exit;
 }
+
 $id_usuario = $_SESSION['user']['id_usuario'];
 
-// mostrar los productos del carrito
+// Mostrar los productos del carrito
 function mostrarCarrito($conn, $id_usuario) {
     try {
 
@@ -300,100 +302,16 @@ $stmt2->close();
      <!-- FAVICON -->
     <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
 
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
-        .navbar {
-            width: 220px;
-            background-color: #69B7BF;
-            height: 100vh;
-            padding-top: 20px;
-            position: fixed;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: width 0.3s ease;
-          }
-        .navbar a {
-              display: block;
-              color: #fff;
-            padding: 14px 20px;
-            text-decoration: none;
-            margin: 10px;
-            border-radius: 8px;
-            transition: background 0.3s, transform 0.2s;
-        }
-        .navbar a:hover {
-             background-color: #264cbf;
-             transform: scale(1.05);
-        }
-         /* Logo institucional ubicado en la parte inferior del menú lateral */
-        .logo-navbar {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);       /* Centrado horizontal */
-            width: 140px;
-            opacity: 0.9;
-            transition: transform 0.3s;
-        }
-
-        .logo-navbar:hover {
-            transform: translateX(-50%) scale(1.1); /* Efecto de zoom al pasar el cursor */
-        }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
-        }
-        .seccion {
-            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 15px 0;
-        }
-        th, td { 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid #ddd; 
-        }
-        th { 
-            background: #69B7BF; 
-            color: white; 
-        }
-        tr:hover {
-            background: #f9f9f9;
-        }
-        .categoria-titulo {
-            background: #D5E7F2;
-            padding: 15px;
-            margin: 25px 0 10px 0;
-            border-radius: 5px;
-            font-size: 18px;
-            font-weight: bold;
-            border-left: 4px solid #69B7BF;
-        }
-        .sin-productos {
-            padding: 20px;
-            text-align: center;
-            color: #6c757d;
-            font-style: italic;
-        }
-    </style>
+    <!-- ESTILOS CSS -->
+    <link rel="stylesheet" href="../../assets/css/sidebar.css">
+    <link rel="stylesheet" href="../../assets/css/carrito.css">
 </head>
 
 <body>
 
-    <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-        <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+    <div class="sidebar">
+        <?php include('../../views/sidebar.php'); ?>
+        <img src="../../assets/img/odonto1.png" class="logo-sidebar" alt="Logo OdontoSmart">
     </div>
 
     <div class="content">

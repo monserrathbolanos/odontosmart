@@ -1,19 +1,19 @@
 <?php
-// crear_usuarios.php
-// Registro público de usuarios (rol Cliente)
+
+// Permite el registro público de usuarios con rol Cliente
 
 session_start();
 
 require '../../config/conexion.php';
 require '../../config/csrf.php';
 
-// Para poder usar try/catch con MySQLi
+// Configura MySQLi para usar try/catch
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// Token CSRF para el formulario
+// Genera un token CSRF para el formulario
 $csrf_token = generate_csrf_token();
 
-// Rol fijo del registro público (Cliente)
+// El rol asignado es Cliente
 $role_id = 3;
 
 try {
@@ -36,12 +36,12 @@ try {
             $identificacion = trim($_POST['identificacion'] ?? '');
             $telefono       = trim($_POST['telefono'] ?? '');
 
-            // Validaciones básicas (server-side)
+            // Validaciones básicas del formulario
             if ($nombre === '' || $apellido1 === '' || $email === '' || $password === '') {
                 $error = 'Todos los campos obligatorios deben estar completos.';
             }
 
-            // Validación de identificación por tipo
+            // Valida el formato de la identificación según el tipo
             if (!isset($error)) {
                 $patrones = [
                     'cedula'    => '/^[1-9]-\d{4}-\d{4}$/',
@@ -57,7 +57,7 @@ try {
                 }
             }
 
-            // Validar correo
+            // Valida el correo electrónico
             if (!isset($error) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = 'Correo inválido.';
             }

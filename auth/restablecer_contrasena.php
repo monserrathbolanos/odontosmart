@@ -1,30 +1,18 @@
 <?php
-/**
- * restablecer_contrasena.php
- * ---------------------------
- * Vista para que el usuario defina una nueva contraseña
- * a partir de un enlace de recuperación con token.
- *
- * Flujo:
- *  1. Recibe un token por GET (?token=...).
- *  2. Verifica en BD que el token exista y no haya expirado.
- *  3. Si el token es válido, muestra un formulario para ingresar
- *     la nueva contraseña.
- *  4. Envía el token y la nueva contraseña a actualizar_contrasena.php.
- */
+
+// Permite al usuario definir una nueva contraseña usando un enlace de recuperación con token
 
 require '../config/conexion.php';
 require_once __DIR__ . '/../config/alerts.php';
 
-// Verificar que viene el token en la URL (?token=...)
+// Verifica que el token esté presente en la URL
 if (!isset($_GET['token']) || $_GET['token'] === '') {
     stopWithAlert('Token no proporcionado.', 'Token faltante', 'error');
 }
 
 $token = $_GET['token'];
 
-// Consulta para validar que el token existe y no ha expirado
-// y que el usuario asociado sigue existiendo
+// Consulta para validar que el token existe, no ha expirado y el usuario existe
 $stmt = $conn->prepare("
     SELECT rc.id_usuario
     FROM restablecer_contrasenas rc
@@ -41,19 +29,18 @@ $stmt->bind_param("s", $token);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Verificar si el token es válido (existe y no está vencido)
+// Verifica si el token es válido (existe y no está vencido)
 if ($result->num_rows === 0) {
     $stmt->close();
     stopWithAlert('Token inválido o expirado.', 'Token inválido', 'error');
 }
 
-// Opcionalmente podrías guardar el id_usuario en sesión si lo necesitaras
+// Puedes guardar el id_usuario en sesión si lo necesitas
 $row        = $result->fetch_assoc();
 $idUsuario  = (int)$row['id_usuario'];
 $stmt->close();
 
-// A partir de aquí solo mostramos el formulario; el cambio real
-// de contraseña se hará en actualizar_contrasena.php usando el token.
+// A partir de aquí solo se muestra el formulario; el cambio real de contraseña se hace en actualizar_contrasena.php usando el token
 ?>
 <!doctype html>
 <html lang="es">
@@ -70,74 +57,9 @@ $stmt->close();
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: 'Poppins', sans-serif;
-        color: #fff;
-        background: linear-gradient(270deg, #D5E7F2, #69B7BF, #d5e7f2);
-        background-size: 300% 300%;
-        animation: rgbFlow 100s ease infinite;
-        height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
+     <!-- Estilos propios -->
+    <link rel="stylesheet" href="../assets/css/restablecer_contrasena.css">
 
-      @keyframes rgbFlow {
-        0%   { background-position: 0% 50%; }
-        50%  { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-
-      .card {
-        position: relative;
-        background: #ffffffaf;
-        color: #000;
-        border-radius: 16px;
-        padding: 30px;
-        max-width: 400px;
-        width: 100%;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-      }
-
-      .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 28px rgba(0,0,0,0.3);
-      }
-
-      .card h2 {
-        color: #152FBF;
-      }
-
-      label.form-label {
-        color: #182940;
-      }
-
-      .btn-success {
-        background: #69B7BF;
-        border: none;
-        font-weight: bold;
-      }
-
-      .btn-success:hover {
-        background: #264CBF;
-        transform: scale(1.05);
-      }
-
-      .btn-secondary {
-        background: #182940;
-        border: none;
-        font-weight: bold;
-      }
-
-      .btn-secondary:hover {
-        background: #264CBF;
-        transform: scale(1.05);
-      }
-    </style>
 </head>
 
 <body class="d-flex align-items-center justify-content-center vh-100">

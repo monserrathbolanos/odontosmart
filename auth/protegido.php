@@ -1,36 +1,22 @@
 <?php
-/**
- * protegido.php
- * --------------
- * Vista de área protegida intermedia después del inicio de sesión.
- *
- * Responsabilidades:
- *  - Verificar que exista una sesión de usuario activa.
- *  - Aplicar cabeceras de seguridad HTTP básicas.
- *  - Mostrar información básica del usuario autenticado.
- *  - Ofrecer acciones para:
- *      - Cerrar sesión.
- *      - Continuar al panel principal (home.php).
- */
+
+// Vista protegida para usuarios autenticados
 
 session_start();
 
-// 1️⃣ Verificación de sesión
-// Si no hay información de usuario en la sesión, se redirige al login.
+// Verifica que exista una sesión de usuario activa
 if (!isset($_SESSION['user'])) {
     header('Location: iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión.'));
     exit;
 }
 
-// 2️⃣ Cabeceras de seguridad
-// Ayudan a mitigar algunos tipos de ataques del lado del navegador.
+// Cabeceras de seguridad para mitigar ataques comunes
 header('Cache-Control: no-store, no-cache, must-revalidate'); // Evita caché de esta página
 header('X-Frame-Options: DENY');                             // Evita que se cargue en iframes (clickjacking)
 header('X-Content-Type-Options: nosniff');                   // Evita que el navegador "adivine" el tipo de contenido
 header('X-XSS-Protection: 1; mode=block');                   // Activa filtro XSS en navegadores antiguos
 
-// 3️⃣ Datos del usuario
-// Se escapan con htmlspecialchars para evitar inyección de HTML en la vista.
+// Obtiene los datos del usuario autenticado
 $nombre_completo = htmlspecialchars($_SESSION['user']['nombre_completo']);
 $email           = htmlspecialchars($_SESSION['user']['email']);
 $role            = htmlspecialchars($_SESSION['user']['role']);

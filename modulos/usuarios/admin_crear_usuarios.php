@@ -1,13 +1,13 @@
 <?php
-// --- crear_usuarios.php ---
-// Crear usuarios desde el rol Administrador
+
+// Permite al administrador crear usuarios nuevos
 
 require '../../config/conexion.php'; // Conexión a la base de datos
 require '../../config/csrf.php';     // Protección CSRF
 
 session_start();
 
-/* Validar rol permitido: solo Administrador */
+// Verifica que el usuario tenga el rol de Administrador
 $rolUsuario = $_SESSION['user']['role'] ?? null;
 $rolesPermitidos = ['Administrador'];
 
@@ -16,10 +16,10 @@ if (!in_array($rolUsuario, $rolesPermitidos)) {
     exit;
 }
 
-// Genera un token CSRF para proteger el formulario
+// Genera un token CSRF para el formulario
 $csrf_token = generate_csrf_token();
 
-// Obtener roles de la base de datos
+// Obtiene los roles disponibles desde la base de datos
 $roles = [];
 $result = $conn->query("SELECT id_rol, nombre FROM roles");
 while ($row = $result->fetch_assoc()) {
@@ -45,9 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $identificacion = trim($_POST['identificacion'] ?? '');
         $telefono       = trim($_POST['telefono'] ?? '');
 
-        // =========================
-        // VALIDACIONES
-        // =========================
+
+        // Validaciones del formulario
 
         if ($nombre === '' || $apellido1 === '' || $email === '' || $password === '') {
             $error = "Todos los campos obligatorios deben estar completos.";
@@ -182,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                      // Si el rol es Cliente (3), insertamos también en la tabla clientes
-// Tabla clientes: id_cliente (AI), id_usuario, fecha_registro (DEFAULT CURRENT_TIMESTAMP)
+// Tabla clientes: id_cliente, id_usuario, fecha_registro (DEFAULT CURRENT_TIMESTAMP)
 if (intval($role_id) === 3 && $new_user_id > 0) {
     $stmtCliente = $conn->prepare("
         INSERT INTO clientes (id_usuario)

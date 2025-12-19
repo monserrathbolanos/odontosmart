@@ -1,9 +1,7 @@
 <?php
 session_start();
 
-// ==============================
-// 0) Validación de sesión y rol
-// ==============================
+// Verifica que la sesión esté activa y el usuario tenga un rol permitido
 if (!isset($_SESSION['user'])) {
     header('Location: /odontosmart/auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
     exit;
@@ -17,9 +15,7 @@ if (!in_array($rol, $rolesPermitidos, true)) {
     exit;
 }
 
-// ==============================
-// 1) Conexión y helpers
-// ==============================
+// Incluye la conexión y funciones auxiliares
 require_once '../../config/conexion.php';
 require_once __DIR__ . '/../../config/alerts.php';
 
@@ -28,10 +24,10 @@ if ($idUsuarioSesion <= 0) {
     stopWithAlert('No se pudo obtener el ID del usuario desde la sesión.', 'Sesión inválida', 'error');
 }
 
-// id_rol numérico para distinguir médico
+// Obtiene el id_rol numérico para distinguir si es médico
 $idRolSesion = intval($_SESSION['user']['id_rol'] ?? 0);
 
-// Si es médico, obtener su id_odontologo
+// Si el usuario es médico, obtiene su id_odontologo
 $idOdontologoSesion = null;
 if ($idRolSesion === 2) { // 2 = Médico
     $sqlOd = "SELECT id_odontologo 
@@ -54,9 +50,7 @@ if ($idRolSesion === 2) { // 2 = Médico
     $idOdontologoSesion = intval($resOd['id_odontologo']);
 }
 
-// ==============================
-// 2) Inicializar mensajes
-// ==============================
+// Inicializa los mensajes de error y éxito
 $mensaje_error = '';
 $mensaje_ok    = '';
 
@@ -64,9 +58,7 @@ function limpiarInt($v): int {
     return intval($v ?? 0);
 }
 
-// ==============================
-// 3) Procesar acciones POST
-// ==============================
+// Procesar acciones POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accion      = $_POST['accion'] ?? '';
     $id_cita     = limpiarInt($_POST['id_cita'] ?? 0);
@@ -191,9 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ==============================
-// 4) Consultar listado de citas
-// ==============================
+// Consultar listado de citas
 if ($idRolSesion === 2 && $idOdontologoSesion !== null) {
     // El médico sólo ve sus citas
     $sqlCitas = "
@@ -269,9 +259,7 @@ if ($idRolSesion === 2 && $idOdontologoSesion !== null) {
     $resCitas = $conn->query($sqlCitas);
 }
 
-// ==============================
-// 5) Detalle de cita (GET)
-// ==============================
+// Detalle de cita (GET)
 $detalle_cita = null;
 if (isset($_GET['id_cita'])) {
     $id_det = limpiarInt($_GET['id_cita']);
@@ -321,112 +309,15 @@ if (isset($_GET['id_cita'])) {
     <meta charset="UTF-8">
     <title>Gestión de Citas - OdontoSmart</title>
     <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
-        .navbar {
-            width: 220px;
-            background-color: #69B7BF;
-            height: 100vh;
-            padding-top: 20px;
-            position: fixed;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: width 0.3s ease;
-        }
-        .logo-navbar {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 140px;
-            opacity: 0.9;
-        }
-        .navbar a {
-            display: block;
-            color: #fff;
-            padding: 14px 20px;
-            text-decoration: none;
-            margin: 10px;
-            border-radius: 8px;
-            transition: background 0.3s, transform 0.2s;
-        }
-        .navbar a:hover {
-            background-color: #264cbf;
-            transform: scale(1.05);
-        }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px;
-        }
-        .seccion {
-            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 10px;
-        }
-        th, td { 
-            padding: 10px; 
-            text-align: left; 
-            border-bottom: 1px solid #ddd; 
-        }
-        th { 
-            background: #69B7BF; 
-            color: #fff; 
-        }
-        .btn {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .btn-llegada { background: #28a745; color: #fff; }
-        .btn-inicio  { background: #17a2b8; color: #fff; }
-        .btn-fin     { background: #6c757d; color: #fff; }
-        .btn-cancelar{ background: #dc3545; color: #fff; }
-        .btn-atender { background: #264CBF; color: #fff; text-decoration:none; display:inline-block; }
-        .mensaje-ok {
-            color: #28a745;
-            margin-bottom: 10px;
-        }
-        .mensaje-error {
-            color: #dc3545;
-            margin-bottom: 10px;
-        }
-        .badge-alerta {
-            color: #fff;
-            background: #dc3545;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-            display: inline-block;
-            margin-top: 3px;
-        }
-        label { font-weight: bold; }
-        textarea {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0 12px 0;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-    </style>
+
+    <!-- ESTILOS CSS -->
+    <link rel="stylesheet" href="../../assets/css/sidebar.css">
+    <link rel="stylesheet" href="/odontosmart/assets/css/gestion_citas.css">
+    
 </head>
 <body>
-    <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-        <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+    <div class="sidebar">
+        <?php include('../../views/sidebar.php'); ?>
     </div>
 
     <div class="content">
@@ -457,9 +348,7 @@ if (isset($_GET['id_cita'])) {
                 <?php if ($resCitas && $resCitas->num_rows > 0): ?>
                     <?php while ($c = $resCitas->fetch_assoc()): ?>
                         <?php
-                        // =========================
                         // Cálculo de tiempo espera
-                        // =========================
                         $tiempoEsperaTexto = '-';
                         $alertaEspera      = '';
 

@@ -1,0 +1,62 @@
+/* Estilos para sidebar.php */
+  .btn-logout {
+    margin-top: 50px;
+    margin-left: 50px;
+    background: #dc3545;
+    padding: 6px 12px;
+    font-size: 15px;
+    border-radius: 5px;
+    display: inline-block;
+    color: white;
+    text-decoration: none;
+  }
+
+  .btn-logout:hover {
+    background: #bb2d3b;
+  }
+  
+/* Contenedor de la barra de navegación lateral */
+  .sidebar {
+            width: 220px;                      /* Ancho fijo del menú vertical */
+            background-color: #69B7BF;         /* Color corporativo OdontoSmart */
+            height: 100vh;                     /* Altura completa de la ventana */
+            padding-top: 20px;
+            position: fixed;                   /* Se mantiene fijo al hacer scroll */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transition: width 0.3s ease;
+            top: 0;
+            left: 0;
+        }
+  
+        /* Estilo de los enlaces dentro de la barra de navegación */
+  .sidebar a {
+            display: block;
+            color: #fff;
+            padding: 14px 20px;
+            text-decoration: none;
+            margin: 10px;
+            border-radius: 8px;
+            transition: background 0.3s, transform 0.2s;
+        }
+  
+
+  .sidebar a:hover {
+            background-color: #264cbf;         /* Color de realce al pasar el cursor */
+            transform: scale(1.05);            /* Efecto de zoom ligero */
+        }
+  
+  
+             /* Logo institucional ubicado en la parte inferior del menú lateral */
+  .logo-sidebar {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);       /* Centrado horizontal */
+            width: 140px;
+            opacity: 0.9;
+            transition: transform 0.3s;
+        }
+  
+  .logo-sidebar:hover {
+            transform: translateX(-50%) scale(1.1); /* Efecto de zoom al pasar el cursor */
+        }

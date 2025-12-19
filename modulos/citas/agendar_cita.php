@@ -320,131 +320,15 @@ if ($stmtCitas) {
     <title>Agendar Cita - OdontoSmart</title>
        <!-- FAVICON UNIFICADO -->
     <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
-        .navbar {
-            width: 220px;
-            background-color: #69B7BF;
-            height: 100vh;
-            padding-top: 20px;
-            position: fixed;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: width 0.3s ease;
-        }
-        .navbar a {
-            display: block;
-            color: #fff;
-            padding: 14px 20px;
-            text-decoration: none;
-            margin: 10px;
-            border-radius: 8px;
-            transition: background 0.3s, transform 0.2s;
-        }
-        .navbar a:hover {
-            background-color: #264cbf;
-            transform: scale(1.05);
-        }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
-        }
-        .seccion {
-            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .logo-navbar {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 140px;
-            opacity: 0.9;
-        }
-        .mensaje-ok {
-            color: #28a745;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .mensaje-error {
-            color: #dc3545;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        label {
-            font-weight: bold;
-        }
-        input[type="date"],
-        input[type="time"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-        button {
-            padding: 10px 18px;
-            background: #264CBF;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #182940;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            background: #ffffffcc;
-        }
-        table thead {
-            background-color: #69B7BF;
-            color: #fff;
-        }
-        table th, table td {
-            padding: 8px 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-            font-size: 14px;
-        }
-        table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .btn-eliminar {
-            background: #dc3545;
-            color: #fff;
-            padding: 5px 10px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 13px;
-        }
-        .btn-eliminar:hover {
-            background: #a71d2a;
-        }
-        details summary {
-            cursor: pointer;
-            font-weight: bold;
-            color: #264CBF;
-        }
-    </style>
+    
+     <!-- ESTILOS CSS -->
+    <link rel="stylesheet" href="../../assets/css/sidebar.css">
+    <link rel="stylesheet" href="/odontosmart/assets/css/agendar_cita.css">
 </head>
 <body>
-    <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-        <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+    <div class="sidebar">
+        <?php include('../../views/sidebar.php'); ?>
+        <img src="../../assets/img/odonto1.png" class="logo-sidebar" alt="Logo OdontoSmart">
     </div>
 
     <div class="content">

@@ -1,13 +1,13 @@
 <?php
-// iniciar_sesion.php
-// Formulario de inicio de sesión.
+
+// Formulario para que el usuario inicie sesión
 
 session_start();
 require '../config/csrf.php';
 
 $csrf_token = generate_csrf_token();
 
-// Si ya hay sesión, no mostrar el formulario
+// Si ya hay sesión activa, redirige a la vista protegida
 if (!empty($_SESSION['user'])) {
     header('Location: protegido.php');
     exit;

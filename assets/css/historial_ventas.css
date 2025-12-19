@@ -1,0 +1,57 @@
+/* Estilos para la página de historial de ventas */
+        body { 
+            font-family: 'Roboto', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background: #f5f5f5;
+        }
+        .content { 
+            margin-left: 240px; 
+            padding: 20px; 
+        }
+        .seccion {
+            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 15px 0;
+        }
+        th, td { 
+            padding: 12px; 
+            text-align: left; 
+            border-bottom: 1px solid #ddd; 
+        }
+        th { 
+            background: #69B7BF; 
+            color: white; 
+        }
+        tr:hover {
+            background: #f5f5f5;
+        }
+        .btn-ver {
+            padding: 5px 10px;
+            background: #264CBF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .estadisticas {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .estadistica-card {
+            flex: 1;
+            background: #182940;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+         

@@ -1,0 +1,85 @@
+/* Estilos para la página de inventario */
+        body {
+            font-family: 'Roboto', Arial, sans-serif; 
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .content {
+            margin-left: 240px;
+            padding: 20px;
+        }
+        .seccion {
+            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
+            padding: 30px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        input, select {
+            padding: 12px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 400px;
+            font-size: 14px;
+        }
+        input:focus, select:focus {
+            border-color: #69B7BF;
+            outline: none;
+            box-shadow: 0 0 5px rgba(105, 183, 191, 0.3);
+        }
+        button {
+            padding: 12px 25px;
+            background: #152fbf;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #264cbf;
+        }
+        .mensaje {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .exito {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .form-container {
+            max-width: 500px;
+        }
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+        .form-hint {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+       
+ 
+    

@@ -27,122 +27,18 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
         <!-- FAVICON -->
     <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
 
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
+    <!-- ESTILOS CSS -->
+    <link rel="stylesheet" href="../../assets/css/sidebar.css">
+    <link rel="stylesheet" href="../../assets/css/pagar.css">
 
-        .navbar {
-        width: 220px;
-        background-color: #69B7BF;
-        height: 100vh;
-        padding-top: 20px;
-        position: fixed;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        transition: width 0.3s ease;
-        }
-
-        .navbar a{
-        display: block;
-        color: #fff;
-        padding: 14px 20px;
-        text-decoration: none;
-        margin: 10px;
-        border-radius: 8px;
-        transition: background 0.3s, transform 0.2s;
-        text-align: left; /* importante para que no se centre */
-        }
-
-        .navbar a:hover{
-        background-color: #264cbf;
-        transform: scale(1.05);
-        }
-
-        .logo-navbar {
-            position: absolute;
-            bottom: 40px;   /* ajustar para subirlo o bajarlo */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 140px;   /* tamaño del logo */
-            opacity: 0.9;
-        }
-
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
-        }
-
-        .seccion {
-            background: white;
-            padding: 30px;
-            margin: 15px auto;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 500px;
-        }
-
-        .form-group {
-            margin: 20px 0;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        input {
-            padding: 12px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: 100%;
-            font-size: 14px;
-        }
-
-        input:focus {
-            border-color: #152fbf;
-            outline: none;
-            box-shadow: 0 0 5px rgba(21, 47, 191, 0.3);
-        }
-
-        button {
-            padding: 12px 25px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
-            width: 100%;
-            font-weight: bold;
-        }
-
-        button:hover {
-            background: #218838;
-        }
-
-        .seccion a{
-        display: block;
-        margin-top: 15px;
-        color: #152fbf;
-        text-decoration: none;
-        text-align: center;
-        }
-    </style>
 </head>
 
 <body>
 
     <!-- Menú lateral -->
-    <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-         <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+    <div class="sidebar">
+        <?php include('../../views/sidebar.php'); ?>
+         <img src="../../assets/img/odonto1.png" class="logo-sidebar" alt="Logo OdontoSmart">
     </div>
 
     <div class="content">
@@ -156,14 +52,31 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
                 <!-- Nombre del titular -->
                 <div class="form-group">
                     <label class="required">Nombre en la tarjeta:</label>
-                    <input type="text" name="nombre" required>
+                    <input
+                        type="text"
+                        name="nombre"
+                        required
+                        maxlength="50"
+                        pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ ]+"
+                        title="Solo letras y espacios"
+                    >
                 </div>
 
                 <!-- Número de tarjeta -->
                 <div class="form-group">
                     <label class="required">Número de tarjeta:</label>
-                    <input type="text" name="tarjeta" maxlength="16" minlength="16" 
-                           required placeholder="16 dígitos">
+                    <input
+                        type="text"
+                        name="tarjeta"
+                        required
+                        inputmode="numeric"
+                        pattern="[0-9]{16}"
+                        maxlength="16"
+                        minlength="16"
+                        placeholder="16 dígitos"
+                        title="Debe contener exactamente 16 números"
+                    >
+    
                 </div>
 
                 <!-- Fecha igual a inventario: YYYY-MM-DD -->
@@ -175,8 +88,17 @@ $id_usuario = $_SESSION['user']['id_usuario']; // ID del usuario autenticado
                 <!-- CVV -->
                 <div class="form-group">
                     <label class="required">CVV:</label>
-                    <input type="password" name="cvv" maxlength="3" minlength="3" 
-                           required placeholder="3 dígitos">
+                   <input
+                        type="password"
+                        name="cvv"
+                        required
+                        inputmode="numeric"
+                        pattern="[0-9]{3}"
+                        maxlength="3"
+                        minlength="3"
+                        placeholder="3 dígitos"
+                        title="Debe contener 3 números"
+                    >
                 </div>
 
                 <button type="submit">Procesar pago</button>

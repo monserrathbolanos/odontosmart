@@ -1,0 +1,122 @@
+/* Estilos para la página del carrito de compras */
+body { 
+    font-family: 'Roboto', Arial, sans-serif;
+    margin: 0; 
+    padding: 0; 
+    background: #f5f5f5;
+}
+
+.content { 
+    margin-left: 240px; 
+    padding: 20px; 
+}
+
+.seccion {
+    background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin: 15px 0;
+}
+
+th, td { 
+    padding: 12px; 
+    text-align: left; 
+    border-bottom: 1px solid #ddd; 
+}
+
+th { 
+    background: #69B7BF; 
+    color: white; 
+}
+
+tr:hover {
+    background: #f9f9f9;
+}
+
+.categoria-titulo {
+    background: #D5E7F2;
+    padding: 15px;
+    margin: 25px 0 10px 0;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    border-left: 4px solid #69B7BF;
+}
+
+.sin-productos {
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Precios y promociones */
+
+.precio-original {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 13px;
+}
+
+.precio-promo {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+/* Btn restar */
+
+.btn-restar {
+    background-color: #dc3545; /* rojo Bootstrap */
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-restar:hover {
+    background-color: #bb2d3b;
+}
+
+/* confirmar pago */
+
+.form-pagar {
+    margin-top: 20px;
+    text-align: right;
+}
+
+.btn-confirmar {
+    background-color: #28a745; /* verde confirmación */
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.btn-confirmar:hover {
+    background-color: #218838;
+}
+
+/* filas especiales */
+
+.fila-total {
+    font-weight: bold;
+    background: #eef4ff;
+}
+
+.fila-descuento {
+    background: #fff3cd;
+    font-weight: bold;
+}

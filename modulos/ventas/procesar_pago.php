@@ -2,16 +2,16 @@
 session_start();
 require '../../config/conexion.php';
 
-// Verificar que el usuario esté logueado
+// Verifica que el usuario haya iniciado sesión
 if (!isset($_SESSION['user']['id_usuario'])) {
-    // Error fatal si no hay usuario, redirigir
+    // Si no hay usuario, redirige a la página de inicio de sesión
     header("Location: ../../auth/login.php");
     exit;
 }
 
 $id_usuario = $_SESSION['user']['id_usuario'];
 
-// Verificar si el usuario ya existe como cliente, si no, crearlo
+// Si el usuario no existe como cliente, lo crea
 $sql_cliente = "SELECT id_cliente FROM clientes WHERE id_usuario = ?";
 
 try {
@@ -24,8 +24,8 @@ $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
 
-    // *** NUEVA VERSIÓN ***
-    // La tabla clientes ahora solo tiene: id_cliente (AI), id_usuario, fecha_registro
+
+    // La tabla clientes contiene: id_cliente (AI), id_usuario y fecha_registro
     $sql_insert = "INSERT INTO clientes (id_usuario, fecha_registro)
                    VALUES (?, NOW())";
     $stmt3 = $conn->prepare($sql_insert);
@@ -37,14 +37,14 @@ if ($result->num_rows === 0) {
     }
     }
 
-    // id_cliente que acaba de crearse
+    // Obtiene el id_cliente recién creado
     $id_cliente = $stmt3->insert_id;
 
     $stmt3->close();
 
 } else {
 
-    // Cliente ya existe → sacar id_cliente
+    // Si el cliente ya existe, obtiene su id_cliente
     $rowCliente = $result->fetch_assoc();
     $id_cliente = $rowCliente['id_cliente'];
 }
@@ -52,7 +52,7 @@ if ($result->num_rows === 0) {
 $stmt->close();
 
 
-// Obtener el carrito del usuario
+// Obtiene el carrito del usuario
 $sql_carrito = "SELECT id_carrito FROM carrito WHERE id_usuario = ? LIMIT 1";
 $stmt = $conn->prepare($sql_carrito);
 $stmt->bind_param("i", $id_usuario);
@@ -70,7 +70,7 @@ $id_carrito = $carrito['id_carrito'];
 $stmt->close();
 
 
-// Obtener productos del carrito
+// Obtiene los productos que están en el carrito
 $sql_detalle = "SELECT cd.id_detalle, cd.cantidad, cd.id_producto, p.precio, p.stock_total,
                        vp.id_promocion, vp.precio_con_descuento, vp.monto_descuento
                 FROM carrito_detalle cd
@@ -83,7 +83,7 @@ $stmt2->bind_param("i", $id_carrito);
 $stmt2->execute();
 $result_detalle = $stmt2->get_result();
 
-// Validación de carrito
+// Valida que el carrito tenga productos
 if ($result_detalle->num_rows === 0) {
 if ($result_detalle->num_rows === 0) {
     throw new Exception("El carrito está vacío. No se puede procesar la venta.");
@@ -93,27 +93,27 @@ if ($result_detalle->num_rows === 0) {
 $productos = [];
 $subtotal = 0;
 $descuento_total = 0;
-$promociones_aplicadas = []; // Para rastrear qué promociones se aplicaron
+$promociones_aplicadas = []; // Guarda las promociones aplicadas
 
 while ($row = $result_detalle->fetch_assoc()) {
 
-    // Validar stock disponible
+    // Verifica que haya suficiente stock disponible
     if ($row['stock_total'] < $row['cantidad']) {
     if ($row['stock_total'] < $row['cantidad']) {
         throw new Exception("No hay suficiente stock para el producto ID {$row['id_producto']}.");
     }
     }
 
-    // Determinar el precio a usar (con o sin promoción)
-    $precio_unitario = $row['precio']; // Precio original
+    // Determina el precio a usar, considerando si hay promoción
+    $precio_unitario = $row['precio']; // Precio original del producto
     $tiene_promocion = !empty($row['id_promocion']);
 
     if ($tiene_promocion) {
-        $precio_unitario = $row['precio_con_descuento']; // Precio con descuento
+        $precio_unitario = $row['precio_con_descuento']; // Precio con descuento aplicado
         $descuento_producto = $row['monto_descuento'] * $row['cantidad'];
         $descuento_total += $descuento_producto;
         
-        // Registrar la promoción aplicada
+        // Registra la promoción aplicada para el producto
         if (!isset($promociones_aplicadas[$row['id_promocion']])) {
             $promociones_aplicadas[$row['id_promocion']] = 0;
         }
@@ -126,7 +126,7 @@ while ($row = $result_detalle->fetch_assoc()) {
     $productos[] = [
         "id_producto" => $row['id_producto'],
         "cantidad" => $row['cantidad'],
-        "precio_unitario" => $precio_unitario, // ya tiene el descuento si aplica
+        "precio_unitario" => $precio_unitario, // Incluye descuento si aplica
         "total" => $total_producto,
         "descuento" => $tiene_promocion ? $descuento_producto : 0
     ];
@@ -135,20 +135,20 @@ while ($row = $result_detalle->fetch_assoc()) {
 $stmt2->close();
 
 
-// Calcular subtotal sumando los totales de los productos (ya con descuento aplicado)
+// Calcula el subtotal sumando los totales de los productos (con descuento aplicado)
 $subtotal = 0;
 foreach ($productos as $p) {
     $subtotal += $p['total'];
 }
 
-// Calcular impuestos (IVA 13%)
+// Calcula el impuesto (IVA 13%)
 $impuestos = $subtotal * 0.13;
 
-// Total final
+// Calcula el total final de la compra
 $total = $subtotal + $impuestos;
 
 
-// Registrar venta
+// Registra la venta en la base de datos
 $metodo_pago = "Tarjeta";
 $estado = 1;
 
@@ -167,22 +167,35 @@ if (!$stmt3->execute()) {
 $id_venta = $stmt3->insert_id;
 
 
-// Registro de pago (TARJETA)
+// Registra el pago con tarjeta
 
-// Datos enviados desde pagar.php
+// Obtiene los datos enviados desde el formulario de pago
 $nombre_titular = $_POST['nombre'] ?? null;
 $numero_tarjeta = $_POST['tarjeta'] ?? null;
 $vencimiento = $_POST['vencimiento'] ?? null;
+
+// Valida el formato de los datos de la tarjeta
+if (!preg_match('/^[A-Za-zÁÉÍÓÚáéíóúÑñ ]{2,50}$/', $nombre_titular)) {
+    throw new Exception("Nombre de tarjeta inválido.");
+}
+
+if (!preg_match('/^[0-9]{16}$/', $numero_tarjeta)) {
+    throw new Exception("Número de tarjeta inválido.");
+}
+
+if (!isset($_POST['cvv']) || !preg_match('/^[0-9]{3}$/', $_POST['cvv'])) {
+    throw new Exception("CVV inválido.");
+}
 
 if (!$nombre_titular || !$numero_tarjeta || !$vencimiento) {
     echo "<script>alert('Error: Datos de tarjeta incompletos.'); window.history.back();</script>";
     exit;
 }
 
-// Normalizar formato YYYY-MM desde el input type="month"
+// Normaliza el formato de la fecha de vencimiento
 $vencimiento = trim($vencimiento);
 
-// Validar formato YYYY-MM real del input
+// Valida que la fecha de vencimiento tenga el formato correcto
 if (!preg_match("/^\d{4}-(0[1-9]|1[0-2])$/", $vencimiento)) {
     echo "<script>
         Swal.fire({
@@ -195,19 +208,19 @@ if (!preg_match("/^\d{4}-(0[1-9]|1[0-2])$/", $vencimiento)) {
     exit;
 }
 
-// Separar año y mes
+// Separa el año y el mes de la fecha de vencimiento
 list($anio, $mes) = explode("-", $vencimiento);
 
-// Crear fecha de vencimiento (último día del mes)
+// Crea la fecha de vencimiento usando el último día del mes
 $fecha_vencimiento = DateTime::createFromFormat("Y-m-d", "$anio-$mes-01");
 $fecha_vencimiento->modify("last day of this month");
 $fecha_vencimiento->setTime(23,59,59);
 
-// Fecha actual
+// Obtiene la fecha actual
 $hoy = new DateTime("today");
 $hoy->setTime(0,0,0);
 
-// Validación final
+// Validación final de la fecha de vencimiento
 if ($fecha_vencimiento < $hoy) {
 
     echo "
@@ -236,10 +249,10 @@ Swal.fire({
     exit;
 }
 
-// Solo guardar los últimos 4 dígitos
+// Solo guarda los últimos 4 dígitos de la tarjeta
 $tarjeta_4 = substr($numero_tarjeta, -4);
 
-// Inserción del pago
+// Inserta el registro del pago en la base de datos
 $sql_pago = "INSERT INTO pagos (id_venta, monto, fecha_pago, metodo, digitos_tarjeta, vencimiento)
              VALUES (?, ?, NOW(), 'Tarjeta', ?, ?)";
 
@@ -255,7 +268,7 @@ if (!$stmtPago->execute()) {
 $stmt3->close();
 
 
-// Insertar detalle de venta + actualizar stock
+// Inserta el detalle de la venta y actualiza el stock
 $sql_detalle_venta = "INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario, total)
                       VALUES (?, ?, ?, ?, ?)";
 $stmt4 = $conn->prepare($sql_detalle_venta);
@@ -265,7 +278,7 @@ $stmt_stock = $conn->prepare($sql_update_stock);
 
 foreach ($productos as $p) {
 
-    // Insertar detalle
+    // Inserta el detalle de la venta
     $stmt4->bind_param(
         "iiidd",
         $id_venta,
@@ -276,11 +289,11 @@ foreach ($productos as $p) {
     );
     $stmt4->execute();
 
-    // Actualizar stock
+    // Actualiza el stock del producto
     $stmt_stock->bind_param("ii", $p['cantidad'], $p['id_producto']);
     $stmt_stock->execute();
 
-    // Actualizar cantidad en lote_producto
+    // Actualiza la cantidad en lote_producto
     $sql_update_lote = "UPDATE lote_producto 
                         SET cantidad = cantidad - ? 
                         WHERE id_producto = ?";

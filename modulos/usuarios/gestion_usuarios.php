@@ -18,9 +18,8 @@ if (!in_array($rol, $rolesPermitidos)) {
 }
 
 try {
-    // ==============================
-    // 1) Buscar usuario por cédula
-    // ==============================
+    // Buscar usuario por cédula
+ 
     if (isset($_POST["buscar"])) {
         $identificacion = trim($_POST["identificacion"] ?? '');
 
@@ -42,9 +41,7 @@ try {
         }
     }
 
-    // ==============================
-    // 2) Actualizar usuario (vía SP)
-    // ==============================
+    // Actualizar usuario (vía SP)
     if (isset($_POST["actualizar"])) {
 
         $id_usuario      = intval($_POST["id_usuario"]);
@@ -67,7 +64,7 @@ try {
             $mensaje = "Correo electrónico inválido.";
         } else {
 
-            // 2.1) Llamar al SP sp_actualizar_usuario
+            // Llamar al SP sp_actualizar_usuario
             $stmtSp = $conn->prepare("
                 CALL sp_actualizar_usuario(?,?,?,?,?,?,?,?,?,?,?, @p_resultado)
             ");
@@ -75,7 +72,7 @@ try {
             if (!$stmtSp) {
                 $mensaje = "Error al preparar el procedimiento almacenado: " . $conn->error;
             } else {
-                // Tipos: i (id_usuario), s,s,s,s,s,s, i (id_rol), s,s,s
+                // Tipos de parámetros para el procedimiento almacenado
                 $stmtSp->bind_param(
                     "issssssisss",
                     $id_usuario,     // p_id_usuario
@@ -113,12 +110,9 @@ try {
                         $mensaje = "Correo o identificación ya está en uso por otro usuario.";
                     } elseif ($resultado_sp === 'OK') {
 
-                        // ================================
-                        // 2.2) Lógica especial de CLIENTES
-                        // (la de ODONTOLOGOS ya la hace el SP)
-                        // ================================
+                        // Lógica especial de clientes (la de odontólogos ya la hace el SP)
                         if (intval($id_rol) === 3) {
-                            // Ver si ya existe cliente para ese usuario
+                            // Verificar si ya existe cliente para ese usuario
                             $stmtChkCli = $conn->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = ?");
                             if ($stmtChkCli) {
                                 $stmtChkCli->bind_param("i", $id_usuario);
@@ -126,7 +120,7 @@ try {
                                 $resChkCli = $stmtChkCli->get_result();
 
                                 if ($resChkCli && $resChkCli->num_rows === 0) {
-                                    // No existe -> insertar nuevo cliente (solo id_usuario; fecha_registro la pone la DB)
+                                    // Si no existe, insertar nuevo cliente (solo id_usuario; fecha_registro la pone la DB)
                                     $stmtCliIns = $conn->prepare("
                                         INSERT INTO clientes (id_usuario)
                                         VALUES (?)
@@ -207,118 +201,15 @@ try {
     <title>Gestión de Usuarios</title>
     <!-- FAVICON UNIFICADO -->
     <link rel="icon" href="/odontosmart/assets/img/odonto1.png">
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
-        .navbar {
-            width: 220px;
-            background-color: #69B7BF;
-            height: 100vh;
-            padding-top: 20px;
-            position: fixed;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: width 0.3s ease;
-        }
-        .navbar a {
-            display: block;
-            color: #fff;
-            padding: 14px 20px;
-            text-decoration: none;
-            margin: 10px;
-            border-radius: 8px;
-            transition: background 0.3s, transform 0.2s;
-        }
-        .navbar a:hover {
-            background-color: #264cbf;
-            transform: scale(1.05);
-        }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
-        }
-        .seccion {
-            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        button {
-            padding: 8px 15px;
-            background: #152FBF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px 0;
-            transition: 0.3s ease-in-out;
-        }
-        button:hover {
-            background: #264CBF;
-            transform: scale(1.05);
-        }
-        input, select {
-            padding: 8px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 250px;
-        }
-        .mensaje {
-            padding: 12px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-        .exito {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .form-group {
-            margin: 15px 0;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .logo-navbar {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 140px;
-            opacity: 0.9;
-        }
-        select {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: 250px;
-            transition: all 0.3s ease-in-out;
-            font-size: 1em;
-            cursor: pointer;
-        }
-        select:hover {
-            border-color: #152FBF;
-            transform: scale(1.03);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-    </style>
+
+    <!-- ESTILOS CSS -->
+    <link rel="stylesheet" href="../../assets/css/sidebar.css">
+    <link rel="stylesheet" href="/odontosmart/assets/css/gestion_usuarios.css">
 </head>
 <body>
-    <div class="navbar">
-        <?php include('../../views/navbar.php'); ?>
-        <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+    <div class="sidebar">
+        <?php include('../../views/sidebar.php'); ?>
+        <img src="../../assets/img/odonto1.png" class="logo-sidebar" alt="Logo OdontoSmart">
     </div>
 
     <div class="content">

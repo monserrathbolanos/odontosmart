@@ -1,0 +1,58 @@
+/* Estilos para home.php */
+        /* Estilos base de la página */
+        body {
+            font-family: 'Roboto', Arial, sans-serif; /* Tipografía corporativa */
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom right, #f5f9fc, #e0f7fa);
+            color: #333;
+        }
+
+        /* Área principal de contenido, desplazada para no solaparse con el sidebar */
+        .content {
+            margin-left: 240px;                /* Margen acorde al ancho de la sidebar */
+            padding: 40px;
+        }
+
+        .content h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .content h2 {
+            color: #264CBF;
+            margin-bottom: 20px;
+        }
+
+        .content p {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Contenedor flex para las tarjetas de Misión y Visión */
+        .mision-vision {
+            display: flex;
+            gap: 20px;                         /* Separación entre tarjetas */
+            margin: 30px 0;
+            flex-wrap: wrap;                   /* Permite adaptación en pantallas pequeñas */
+        }
+
+        /* Componente de tarjeta reutilizable (Misión / Visión / otros bloques) */
+        .card {
+            background: #fff;
+            flex: 1 1 45%;                     /* Ancho proporcional dentro del contenedor */
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);        /* Levanta la tarjeta visualmente */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .card h3 {
+            color: #69B7BF;                    /* Color corporativo para títulos de tarjetas */
+            margin-bottom: 15px;
+        }

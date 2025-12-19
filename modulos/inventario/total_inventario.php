@@ -1,25 +1,19 @@
 <?php
-// total_inventario.php, trabaja con las tablas Productos, Categoria Productos
+
+// Muestra el inventario total usando las tablas Productos y Categoria Productos
 session_start();
 include('../../config/conexion.php');
 
-
- 
-/* Validar rol permitido */
+// Verifica que el usuario tenga un rol permitido
 $rol = $_SESSION['user']['role'] ?? null;
 $rolesPermitidos = ['Administrador', 'Médico','Recepcionista']; // ej.
- 
+
 if (!in_array($rol, $rolesPermitidos)) {
-    // Aquí decides a dónde mandarlo: login, home o protegido.
-    // Si quieres mandarlo al login:
     header('Location: ../../auth/iniciar_sesion.php?error=' . urlencode('Debes iniciar sesión o registrarte.'));
     exit;
 }
 
-try {
-
-
-// Función para mostrar tabla por categoría
+// Muestra la tabla de productos por categoría
 function mostrarCategoria($conn, $categoriaNombre) {
     echo "<div class='categoria-titulo'> $categoriaNombre</div>";
     $sql = "SELECT   p.id_producto, p.nombre, p.descripcion, p.unidad,
@@ -34,7 +28,7 @@ function mostrarCategoria($conn, $categoriaNombre) {
     $stmt->execute();
     $result = $stmt->get_result();
 
-     // Crear arreglo para alertas
+    // Crear arreglo para alertas
     $productosAgotados = [];
 
     if ($result->num_rows > 0) {
@@ -49,14 +43,12 @@ function mostrarCategoria($conn, $categoriaNombre) {
                         <th>Stock Mínimo</th>
                         <th>Stock Actual</th>
                         <th>Categoría</th>
-                        
                         <th>Costo</th>
                     </tr>
                 </thead>
                 <tbody>";
         while ($row = $result->fetch_assoc()) {
-
-            // Validación de stock por producto
+            // Valida el stock de cada producto
             if ($row['stock_total'] <= $row['stock_minimo']) {
                 $productosAgotados[] = $row['nombre'];
             }
@@ -70,13 +62,12 @@ function mostrarCategoria($conn, $categoriaNombre) {
                     <td>{$row['stock_minimo']}</td>
                     <td>{$row['stock_total']}</td>
                     <td>{$row['categoria']}</td>
-                    
                     <td>₡" . number_format($row['costo_unidad'], 2) . "</td>
                   </tr>";
         }
         echo "</tbody></table>";
 
-         // Mostrar alerta si existen productos con bajo stock
+        // Mostrar alerta si existen productos con bajo stock
         if (!empty($productosAgotados)) {
             echo "<p style='color:red; font-weight:bold;'>
                     Productos casi agotados o sin stock:
@@ -91,38 +82,8 @@ function mostrarCategoria($conn, $categoriaNombre) {
         echo "<p class='sin-productos'>No hay productos en esta categoría.</p>";
     }
 }
-} catch (Throwable $e) {
-    try {
-        if (isset($conn) && $conn instanceof mysqli) {
-            if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
-                try { $conn->rollback(); } catch (Throwable $__ignore) {}
-            }
-        }
-    } catch (Throwable $__ignored) {}
+$inventario_error = false;
 
-    try {
-        if (isset($conn)) { @$conn->close(); }
-        include_once ('../../config/conexion.php');
-
-        $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
-        $accion = 'INVENTORY_QUERY_ERROR';
-        $modulo = 'modulos/inventario/total_inventario';
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
-        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
-        $detalles = 'Error técnico: ' . $e->getMessage();
-
-        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
-        if ($stmtLog) {
-            $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
-            $stmtLog->execute();
-            $stmtLog->close();
-        }
-        if (isset($conn)) { @$conn->close(); }
-    } catch (Throwable $logError) {
-        error_log("Fallo al escribir en bitácora (total_inventario.php): " . $logError->getMessage());
-    }
-    $inventario_error = true;
-}
 ?>
 
 <!DOCTYPE html>
@@ -133,98 +94,16 @@ function mostrarCategoria($conn, $categoriaNombre) {
     <!-- FAVICON -->
     <link rel="icon" type="image/png" href="../../assets/img/odonto1.png">
 
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
-        .navbar {
-            width: 220px;                      /* Ancho fijo del menú vertical */
-            background-color: #69B7BF;         /* Color corporativo OdontoSmart */
-            height: 100vh;                     /* Altura completa de la ventana */
-            padding-top: 20px;
-            position: fixed;                   /* Se mantiene fijo al hacer scroll */
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: width 0.3s ease;
-        }
-        .navbar a {
-              display: block;
-              color: #fff;
-            padding: 14px 20px;
-            text-decoration: none;
-            margin: 10px;
-            border-radius: 8px;
-            transition: background 0.3s, transform 0.2s;
-        }
-        .navbar a:hover {
-             background-color: #264cbf;
-             transform: scale(1.05);
-        }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
-        }
-        .seccion {
-            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 15px 0;
-        }
-        th, td { 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid #D5E7F2; 
-        }
-        th { 
-            background: #69B7BF; 
-            color: white; 
-        }
-        tr:hover {
-            background: #f9f9f9;
-        }
-        .categoria-titulo {
-            background: #D5E7F2;
-            padding: 15px;
-            margin: 25px 0 10px 0;
-            border-radius: 5px;
-            font-size: 18px;
-            font-weight: bold;
-            border-left: 4px solid #69B7BF;
-        }
-        .sin-productos {
-            padding: 20px;
-            text-align: center;
-            color: #6c757d;
-            font-style: italic;
-        }
-        .precio {
-            color: #28a745;
-            font-weight: bold;
-        }
-        .logo-navbar {
-            position: absolute;
-            bottom: 40px;   /* ajustar para subirlo o bajarlo */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 140px;   /* tamaño del logo */
-            opacity: 0.9;
-        }
-    </style>
+    <!-- ESTILOS CSS -->
+    <link rel="stylesheet" href="../../assets/css/sidebar.css">
+    <link rel="stylesheet" href="../../assets/css/total_inventario.css">
 </head>
 <body>
-    <div class="navbar">
-    <?php include('../../views/navbar.php'); ?>
+    <div class="sidebar">
+    <?php include('../../views/sidebar.php'); ?>
 
     <!-- Logo inferior del menú -->
-    <img src="../../assets/img/odonto1.png" class="logo-navbar" alt="Logo OdontoSmart">
+    <img src="../../assets/img/odonto1.png" class="logo-sidebar" alt="Logo OdontoSmart">
 </div>
 
     <div class="content">
@@ -235,13 +114,48 @@ function mostrarCategoria($conn, $categoriaNombre) {
             <?php
             if (isset($inventario_error) && $inventario_error) {
                 echo "<p style='color:red; font-weight:bold;'>Error al cargar el inventario. Por favor, intente más tarde.</p>";
-            } else {
-            // Mostrar las 4 categorías
+            }
+            ?>
+            <?php
+            // Categorías a mostrar
+            try {
+            // Mostrar las 5 categorías
             mostrarCategoria($conn, "Medicamentos");
             mostrarCategoria($conn, "Servicios");
             mostrarCategoria($conn, "Equipo médico complejo");
             mostrarCategoria($conn, "Instrumento dental");
             mostrarCategoria($conn, "Productos de higiene");
+        } catch (Throwable $e) {
+            try {
+                if (isset($conn) && $conn instanceof mysqli) {
+                    if (isset($conn) && $conn instanceof mysqli && method_exists($conn, 'in_transaction') && $conn->in_transaction()) {
+                        try { $conn->rollback(); } catch (Throwable $__ignore) {}
+                    }
+                }
+            } catch (Throwable $__ignored) {}
+
+            try {
+                if (isset($conn)) { @$conn->close(); }
+                include_once ('../../config/conexion.php');
+
+                $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
+                $accion = 'INVENTORY_QUERY_ERROR';
+                $modulo = 'modulos/inventario/total_inventario';
+                $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+                $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+                $detalles = 'Error técnico: ' . $e->getMessage();
+
+                $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+                if ($stmtLog) {
+                    $stmtLog->bind_param("isssss", $id_usuario_log, $accion, $modulo, $ip, $user_agent, $detalles);
+                    $stmtLog->execute();
+                    $stmtLog->close();
+                }
+                if (isset($conn)) { @$conn->close(); }
+            } catch (Throwable $logError) {
+                error_log("Fallo al escribir en bitácora (total_inventario.php): " . $logError->getMessage());
+            }
+            $inventario_error = true;
             }
             ?>
         </div>

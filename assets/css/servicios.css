@@ -1,164 +1,113 @@
 
 /* Estilos para la página de servicios y productos */
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            background: #f5f5f5;
-        }
-        /* Contenedor de la barra de navegación lateral */
-        .navbar {
-            width: 220px;                      /* Ancho fijo del menú vertical */
-            background-color: #69B7BF;         /* Color corporativo OdontoSmart */
-            height: 100vh;                     /* Altura completa de la ventana */
-            padding-top: 20px;
-            position: fixed;                   /* Se mantiene fijo al hacer scroll */
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: width 0.3s ease;
-        }
-        .navbar a {
-              display: block;
-              color: #fff;
-            padding: 14px 20px;
-            text-decoration: none;
-            margin: 10px;
-            border-radius: 8px;
-            transition: background 0.3s, transform 0.2s;
-        }
-        .navbar a:hover {
-             background-color: #264cbf;
-             transform: scale(1.05);
-        }
-        .content { 
-            margin-left: 240px; 
-            padding: 20px; 
-            
-        }
-        .seccion {
-            background: linear-gradient(to bottom right, #f5f9fc, #8ef2ffff);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 15px 0;
-        }
-        th, td { 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid #ddd; 
-        }
-        th { 
-            background: #69B7BF; 
-            color: white; 
-             }
-        tr:hover {
-            background: #f9f9f9;
-            
-        }
-        .categoria-titulo {
-            background: #D5E7F2;
-            padding: 15px;
-            margin: 25px 0 10px 0;
-            border-radius: 5px;
-            font-size: 18px;
-            font-weight: bold;
-            border-left: 4px solid #69B7BF;
-        }
-        .sin-productos {
-            padding: 20px;
-            text-align: center;
-            color: #6c757d;
-            font-style: italic;
-        }
-        .precio {
-            color: #28a745;
-            font-weight: bold;
-        }
-         /* Logo institucional ubicado en la parte inferior del menú lateral */
-        .logo-navbar {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);       /* Centrado horizontal */
-            width: 140px;
-            opacity: 0.9;
-            transition: transform 0.3s;
-        }
+    /* servicios.css */
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(to bottom right, #f5f9fc, #e0f7fa);
+    color: #333;
+}
 
-        .logo-navbar:hover {
-            transform: translateX(-50%) scale(1.1); /* Efecto de zoom al pasar el cursor */
-        }
-        .agregar-btn {
-            background-color: #152fbf;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-        .agregar-btn:hover {
-            background-color: #0d1e80;
-        }
+.content {
+    margin-left: 220px; /* mismo ancho del sidebar */
+    padding: 20px;
+}
 
-        .btn-ver-carrito {
-            background-color: #152FBF;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 20px;
-            display: inline-block;
-            transition: background 0.3s;
-        }
-        .btn-ver-carrito:hover {
-            background-color: #152FBF;
-            transform: scale(1.05);
-        }
+.seccion {
+    background: linear-gradient(to bottom right, #f5f9fc, #8ef2ff);
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-          /* Estilos para promociones */
-        .promo-badge {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 8px;
-            text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
-        }
+.categoria-titulo {
+    background: #D5E7F2;
+    padding: 15px;
+    margin: 25px 0 10px;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    border-left: 4px solid #69B7BF;
+}
 
-        .precio-cell {
-            min-width: 150px;
-        }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
 
-        .precio-original {
-            text-decoration: line-through;
-            color: #999;
-            font-size: 13px;
-        }
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
 
-        .precio-promo {
-            color: #28a745;
-            font-weight: bold;
-            font-size: 16px;
-        }
+th {
+    background: #69B7BF;
+    color: #fff;
+}
 
-        .descuento-badge {
-            background: #ffc107;
-            color: #000;
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 5px;
-        }
+tr:hover {
+    background: #f9f9f9;
+}
+
+.precio {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.sin-productos {
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.form-agregar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.agregar-btn {
+    background-color: #152FBF;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.agregar-btn:hover {
+    background-color: #0d1e80;
+}
+
+.btn-ver-carrito {
+    background-color: #152FBF;
+    color: #fff;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 20px;
+    display: inline-block;
+    text-decoration: none;
+}
+
+.btn-ver-carrito:hover {
+    transform: scale(1.05);
+}
+
+.success-msg {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.error-msg {
+    color: #dc3545;
+    font-weight: bold;
+}
