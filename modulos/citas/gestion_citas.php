@@ -142,6 +142,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $mensaje_ok = 'La atención fue guardada correctamente.';
                             break;
                     }
+                        // Registrar en bitácora la acción exitosa
+                        $modulo_bitacora = 'modulos/citas/gestion_citas';
+                        $accion_bitacora = strtoupper($accion);
+                        $detalles_bitacora = 'Acción sobre cita ID: ' . $id_cita;
+                        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+                        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+                        if ($stmtLog) {
+                            $stmtLog->bind_param("isssss", $idUsuarioSesion, $accion_bitacora, $modulo_bitacora, $ip_cliente, $user_agent, $detalles_bitacora);
+                            $stmtLog->execute();
+                            $stmtLog->close();
+                        }
                 } elseif ($resultado === 'SIN_CAMBIO') {
                     $mensaje_error = 'No se realizaron cambios sobre la cita.';
                 } else {
@@ -150,9 +161,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             } else {
                 $mensaje_error = 'Error al ejecutar el procedimiento almacenado de gestión de cita.';
+                    // Registrar error en bitácora
+                    $modulo_bitacora = 'modulos/citas/gestion_citas';
+                    $accion_bitacora = 'ERROR';
+                    $detalles_bitacora = 'Error al ejecutar SP: ' . $conn->error;
+                    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+                    $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+                    if ($stmtLog) {
+                        $stmtLog->bind_param("isssss", $idUsuarioSesion, $accion_bitacora, $modulo_bitacora, $ip_cliente, $user_agent, $detalles_bitacora);
+                        $stmtLog->execute();
+                        $stmtLog->close();
+                    }
             }
         } else {
             $mensaje_error = 'Error al preparar el procedimiento almacenado.';
+                // Registrar error en bitácora
+                $modulo_bitacora = 'modulos/citas/gestion_citas';
+                $accion_bitacora = 'ERROR';
+                $detalles_bitacora = 'Error al preparar SP: ' . $conn->error;
+                $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+                $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+                if ($stmtLog) {
+                    $stmtLog->bind_param("isssss", $idUsuarioSesion, $accion_bitacora, $modulo_bitacora, $ip_cliente, $user_agent, $detalles_bitacora);
+                    $stmtLog->execute();
+                    $stmtLog->close();
+                }
         }
 
         // Marcar cita como atendida sólo si el SP fue OK y la acción corresponde

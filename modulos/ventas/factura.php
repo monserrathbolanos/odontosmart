@@ -193,24 +193,13 @@ try {
                 <td colspan="3" style="text-align:right;">Subtotal:</td>
                 <td>₡<?php echo number_format($venta['subtotal'], 2); ?></td>
             </tr>
-            <?php if (!empty($promociones)): ?>
-            <tr style="background:#d4edda;">
-                <td colspan="3" style="text-align:right; color:#155724;">
-                    <strong>Descuentos aplicados:</strong>
-                    <?php foreach ($promociones as $promo): ?>
-                        <br><small><?php echo $promo['nombre_promocion']; ?> 
-                        (<?php 
-                            if ($promo['tipo_descuento'] == 'porcentaje') {
-                                echo $promo['valor_descuento'] . '%';
-                            } else {
-                                echo '₡' . number_format($promo['valor_descuento'], 0);
-                            }
-                        ?>)</small>
-                    <?php endforeach; ?>
-                </td>
-                <td style="color:#28a745; font-weight:bold;">-₡<?php echo number_format($descuento_total, 2); ?></td>
-            </tr>
-            <?php endif; ?>
+          <?php if (!empty($promociones)): ?>
+                <tr>
+                    <td colspan="4" style="text-align:right; font-style:italic; color:#155724;">
+                        * El subtotal incluye descuentos promocionales aplicados.
+                    </td>
+                </tr>
+                <?php endif; ?>
             <tr>
                 <td colspan="3" style="text-align:right;">Impuestos:</td>
                 <td>₡<?php echo number_format($venta['impuestos'], 2); ?></td>

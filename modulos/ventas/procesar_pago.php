@@ -347,7 +347,25 @@ if ($stmtLog) {
 }
 
 // Redirigir a factura
+
     $conn->commit();
+
+    // Registro en bitácora de venta exitosa (SP_USUARIO_BITACORA)
+    try {
+        $accion_bitacora = 'VENTA_EXITOSA';
+        $modulo_bitacora = 'modulos/ventas/procesar_pago';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
+        $detalles_bitacora = 'Venta ID: ' . $id_venta . ', Total: ' . $total;
+        $stmtLog = $conn->prepare("CALL SP_USUARIO_BITACORA(?, ?, ?, ?, ?, ?)");
+        if ($stmtLog) {
+            $stmtLog->bind_param("isssss", $id_usuario, $accion_bitacora, $modulo_bitacora, $ip_cliente, $user_agent, $detalles_bitacora);
+            $stmtLog->execute();
+            $stmtLog->close();
+        }
+    } catch (Throwable $logError) {
+        error_log("Fallo en logging de venta exitosa: " . $logError->getMessage());
+    }
+
     header("Location: factura.php?id_venta=" . $id_venta);
     exit;
 
