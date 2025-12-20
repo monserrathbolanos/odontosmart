@@ -224,7 +224,7 @@ if (intval($role_id) === 3 && $new_user_id > 0) {
 
         // --- LOGGING FALLBACK (Fresh Connection) ---
         try { 
-            if (isset($conn)) { @$conn->close(); }
+            // No cerrar aquí, se cierra al final del script
             include_once '../../config/conexion.php';
 
             $id_usuario_log = $_SESSION['user']['id_usuario'] ?? null;
@@ -240,7 +240,7 @@ if (intval($role_id) === 3 && $new_user_id > 0) {
                 $stmtLog->execute();
                 $stmtLog->close();
             }
-            if (isset($conn)) { @$conn->close(); }
+            // No cerrar aquí, se cierra al final del script
         } catch (Throwable $t) { error_log("Fallo al escribir en bitácora (admin_crear): " . $t->getMessage()); }
     }
 }

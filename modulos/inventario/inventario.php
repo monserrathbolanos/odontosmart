@@ -294,9 +294,11 @@ $categorias = $conn->query("SELECT id_categoria, nombre FROM categoria_productos
                     <select name="id_categoria" required>
                         <option value="">Seleccione una categoría</option>
                         <?php while($cat = $categorias->fetch_assoc()): ?>
-                            <option value="<?php echo $cat["id_categoria"]; ?>">
-                                <?php echo $cat["nombre"]; ?>
-                            </option>
+                            <?php if (strtolower($cat["nombre"]) !== 'servicios'): ?>
+                                <option value="<?php echo $cat["id_categoria"]; ?>">
+                                    <?php echo $cat["nombre"]; ?>
+                                </option>
+                            <?php endif; ?>
                         <?php endwhile; ?>
                     </select>
                 </div>

@@ -78,7 +78,7 @@ function tienePermiso(string $permiso, array $permisos): bool {
     <?php endif; ?>
 
     <?php if (tienePermiso('ver_servicios', $permisos)): ?>
-        <a href="/odontosmart/modulos/ventas/servicios.php">🦷 Servicios</a>
+        <a href="/odontosmart/modulos/ventas/productos.php">🦷 Productos</a>
     <?php endif; ?>
 
     <?php if (tienePermiso('agendar_cita', $permisos)): ?>

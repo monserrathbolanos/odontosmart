@@ -76,7 +76,7 @@ if ($result_detalle->num_rows > 0) {
     $stmt->execute();
 }
 
-    header("Location: servicios.php?agregado=1");
+    header("Location: productos.php?agregado=1");
     exit;
 } catch (Throwable $e) {
     try {

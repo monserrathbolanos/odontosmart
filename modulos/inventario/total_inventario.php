@@ -121,7 +121,6 @@ $inventario_error = false;
             try {
             // Mostrar las 5 categorías
             mostrarCategoria($conn, "Medicamentos");
-            mostrarCategoria($conn, "Servicios");
             mostrarCategoria($conn, "Equipo médico complejo");
             mostrarCategoria($conn, "Instrumento dental");
             mostrarCategoria($conn, "Productos de higiene");
