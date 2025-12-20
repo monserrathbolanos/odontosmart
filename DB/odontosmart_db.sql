@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 19, 2025 at 10:39 PM
+-- Generation Time: Dec 20, 2025 at 02:19 AM
 -- Server version: 8.4.3
 -- PHP Version: 8.4.13
 
@@ -554,6 +554,13 @@ CREATE TABLE `atencion_cita` (
   `requiere_control` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `atencion_cita`
+--
+
+INSERT INTO `atencion_cita` (`id_atencion`, `id_cita`, `hora_llegada`, `hora_inicio_atencion`, `hora_fin_atencion`, `observaciones`, `requiere_control`) VALUES
+(1, 1, '2025-12-19 19:06:02', '2025-12-19 19:06:19', '2025-12-19 19:06:36', NULL, 0);
+
 -- --------------------------------------------------------
 
 --
@@ -576,7 +583,72 @@ CREATE TABLE `bitacoras` (
 --
 
 INSERT INTO `bitacoras` (`id_bitacora`, `id_usuario`, `accion`, `modulo`, `fecha`, `ip`, `user_agent`, `detalles`) VALUES
-(2, 1, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-19 16:39:08', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'Usuario creado: admin@gmail.com (rol 3)');
+(2, 1, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-19 16:39:08', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'Usuario creado: admin@gmail.com (rol 3)'),
+(4, 1, 'LOGIN_FAIL', 'login', '2025-12-19 17:51:26', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(5, 1, 'LOGIN', 'login', '2025-12-19 17:51:43', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(6, 2, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-19 17:59:05', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: josueacuna@gmail.com (rol 3)'),
+(7, 1, 'LOGOUT', 'login', '2025-12-19 17:59:25', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(8, NULL, 'Intento fallido de creación de usuario', 'Registro público - Crear usuario', '2025-12-19 18:00:41', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Datos duplicados (email o identificación)'),
+(9, 1, 'LOGIN', 'login', '2025-12-19 18:03:42', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(10, 3, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-19 18:04:34', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: azucenaflores@gmail.com (rol 3)'),
+(11, 4, 'Usuario creado', 'Gestión de usuarios - Crear usuario', '2025-12-19 18:08:23', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: cristian@gmail.com (rol 2)'),
+(12, 1, 'LOGOUT', 'login', '2025-12-19 18:09:33', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(13, 3, 'LOGIN', 'login', '2025-12-19 18:09:36', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(14, 3, 'Cita agendada', 'agendar_cita', '2025-12-19 18:10:14', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cita ID 1 para fecha 2025-12-26 09:30:00'),
+(15, 3, 'LOGOUT', 'login', '2025-12-19 18:10:31', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(16, 3, 'LOGIN', 'login', '2025-12-19 18:10:40', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(17, 3, 'LOGOUT', 'login', '2025-12-19 18:10:58', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(18, 1, 'LOGIN', 'login', '2025-12-19 18:11:07', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(19, 1, 'LOGOUT', 'login', '2025-12-19 18:11:14', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(20, 4, 'LOGIN_FAIL', 'login', '2025-12-19 18:11:25', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(21, 4, 'LOGIN', 'login', '2025-12-19 18:11:34', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(22, 4, 'LOGOUT', 'login', '2025-12-19 18:12:19', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(23, 1, 'LOGIN', 'login', '2025-12-19 18:12:26', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(24, 1, 'Producto creado', 'Inventario - Crear producto', '2025-12-19 18:13:48', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto: anestesia (cat 1)'),
+(25, 1, 'LOGOUT', 'login', '2025-12-19 18:38:36', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(26, 1, 'LOGIN', 'login', '2025-12-19 18:38:38', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(27, 1, 'LOGOUT', 'login', '2025-12-19 18:38:46', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(28, NULL, 'LOGIN_FAIL', 'login', '2025-12-19 18:39:26', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con correo no registrado: josueacunaflores@gmail.com'),
+(29, NULL, 'LOGIN_FAIL', 'login', '2025-12-19 18:39:33', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con correo no registrado: josueacunaflores@gmail.com'),
+(30, 2, 'RECOVERY_REQUEST', 'login', '2025-12-19 18:39:57', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(31, 2, 'PASSWORD_RESET', 'login', '2025-12-19 18:40:02', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(32, NULL, 'LOGIN_FAIL', 'login', '2025-12-19 18:40:06', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con correo no registrado: josueacunaflores@gmail.com'),
+(33, 2, 'LOGIN_FAIL', 'login', '2025-12-19 18:40:13', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(34, 2, 'LOGIN', 'login', '2025-12-19 18:40:22', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(35, 2, 'Venta registrada', NULL, '2025-12-19 18:41:01', '::1', NULL, 'Venta ID 1 por 8475.00'),
+(36, 2, 'VENTA_EXITOSA', 'modulos/ventas/procesar_pago', '2025-12-19 18:41:01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Venta ID: 1, Total: 8475'),
+(37, 2, 'LOGOUT', 'login', '2025-12-19 18:41:13', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(38, 1, 'LOGIN', 'login', '2025-12-19 18:41:21', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(39, 1, 'Producto creado', 'Inventario - Crear producto', '2025-12-19 18:42:50', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto: Pasta Dental Colgate (cat 5)'),
+(40, 1, 'LOGOUT', 'login', '2025-12-19 18:43:05', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(41, 5, 'Usuario creado', 'Registro público - Crear usuario', '2025-12-19 18:50:36', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario creado: erick@gmail.com (rol 3)'),
+(42, 5, 'LOGIN_FAIL', 'login', '2025-12-19 18:51:00', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(43, 5, 'LOGIN', 'login', '2025-12-19 18:51:16', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(44, 5, 'Venta registrada', NULL, '2025-12-19 18:54:14', '::1', NULL, 'Venta ID 3 por 2825.00'),
+(45, 5, 'VENTA_EXITOSA', 'modulos/ventas/procesar_pago', '2025-12-19 18:54:14', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Venta ID: 3, Total: 2825'),
+(46, 5, 'LOGOUT', 'login', '2025-12-19 18:55:26', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(47, 1, 'LOGIN', 'login', '2025-12-19 18:56:03', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(48, 2, 'Usuario actualizado', 'gestion_usuarios', '2025-12-19 18:57:25', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario actualizado: josueacuna@gmail.com'),
+(49, 1, 'LOGOUT', 'login', '2025-12-19 18:57:30', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(50, 5, 'LOGIN', 'login', '2025-12-19 18:57:37', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(51, 5, 'Cita agendada', 'agendar_cita', '2025-12-19 18:59:23', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cita ID 2 para fecha 2025-12-23 09:00:00'),
+(52, 5, 'LOGOUT', 'login', '2025-12-19 18:59:56', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(53, 1, 'LOGIN', 'login', '2025-12-19 19:00:40', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.'),
+(54, 1, 'Producto creado', 'Inventario - Crear producto', '2025-12-19 19:03:43', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Producto: Ácido grabador 37% (cat 1)'),
+(55, 1, 'Gestión cita: registrar_llegada', NULL, '2025-12-19 19:06:02', '::1', NULL, 'Cita ID 1. Hora de llegada registrada'),
+(56, 1, 'REGISTRAR_LLEGADA', 'modulos/citas/gestion_citas', '2025-12-19 19:06:02', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Acción sobre cita ID: 1'),
+(57, 1, 'Gestión cita: iniciar_atencion', NULL, '2025-12-19 19:06:19', '::1', NULL, 'Cita ID 1. Hora de inicio registrada'),
+(58, 1, 'INICIAR_ATENCION', 'modulos/citas/gestion_citas', '2025-12-19 19:06:19', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Acción sobre cita ID: 1'),
+(59, 1, 'Gestión cita: finalizar_atencion', NULL, '2025-12-19 19:06:36', '::1', NULL, 'Cita ID 1. Hora de fin registrada'),
+(60, 1, 'FINALIZAR_ATENCION', 'modulos/citas/gestion_citas', '2025-12-19 19:06:36', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Acción sobre cita ID: 1'),
+(61, 1, 'LOGOUT', 'login', '2025-12-19 19:13:07', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Cierre de sesión del usuario.'),
+(62, 5, 'RECOVERY_REQUEST', 'login', '2025-12-19 19:13:34', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(63, 5, 'PASSWORD_RESET', 'login', '2025-12-19 19:14:36', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(64, 5, 'LOGIN_FAIL', 'login', '2025-12-19 19:14:55', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(65, 5, 'LOGIN_FAIL', 'login', '2025-12-19 19:15:05', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Intento de inicio de sesión con contraseña incorrecta.'),
+(66, 5, 'RECOVERY_REQUEST', 'login', '2025-12-19 19:15:30', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario solicitó enlace de recuperación de contraseña.'),
+(67, 5, 'PASSWORD_RESET', 'login', '2025-12-19 19:15:52', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Usuario restableció su contraseña mediante enlace de recuperación.'),
+(68, 5, 'LOGIN', 'login', '2025-12-19 19:16:09', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0', 'Inicio de sesión correcto.');
 
 -- --------------------------------------------------------
 
@@ -641,6 +713,14 @@ CREATE TABLE `citas` (
   `motivo` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `citas`
+--
+
+INSERT INTO `citas` (`id_cita`, `id_cliente`, `id_odontologo`, `fecha_cita`, `estado`, `motivo`) VALUES
+(1, 4, 1, '2025-12-26 09:30:00', 'atendida', 'Revision anual'),
+(2, 6, 2, '2025-12-23 09:00:00', 'cancelada', 'Dolor de muela');
+
 -- --------------------------------------------------------
 
 --
@@ -658,7 +738,10 @@ CREATE TABLE `clientes` (
 --
 
 INSERT INTO `clientes` (`id_cliente`, `id_usuario`, `fecha_registro`) VALUES
-(1, 1, '2025-12-19 16:39:08');
+(1, 1, '2025-12-19 16:39:08'),
+(2, 2, '2025-12-19 17:59:05'),
+(4, 3, '2025-12-19 18:04:34'),
+(6, 5, '2025-12-19 18:50:36');
 
 -- --------------------------------------------------------
 
@@ -677,6 +760,14 @@ CREATE TABLE `detalle_venta` (
   `descuento` decimal(10,2) DEFAULT '0.00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `detalle_venta`
+--
+
+INSERT INTO `detalle_venta` (`id_detalle`, `id_venta`, `id_producto`, `id_lote`, `cantidad`, `precio_unitario`, `total`, `descuento`) VALUES
+(1, 1, 16, NULL, 1, 7500.00, 7500.00, 0.00),
+(2, 3, 25, NULL, 1, 2500.00, 2500.00, 0.00);
+
 -- --------------------------------------------------------
 
 --
@@ -691,6 +782,15 @@ CREATE TABLE `lote_producto` (
   `cantidad` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `lote_producto`
+--
+
+INSERT INTO `lote_producto` (`id_lote`, `id_producto`, `numero_lote`, `fecha_caducidad`, `cantidad`) VALUES
+(1, 2, '12345', '2026-01-30', 50),
+(2, 25, '1457894', '2026-02-25', 19),
+(3, 26, '123546', '2025-12-23', 25);
+
 -- --------------------------------------------------------
 
 --
@@ -702,6 +802,14 @@ CREATE TABLE `odontologos` (
   `id_usuario` int NOT NULL,
   `estado` enum('ACTIVO','INACTIVO') NOT NULL DEFAULT 'ACTIVO'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `odontologos`
+--
+
+INSERT INTO `odontologos` (`id_odontologo`, `id_usuario`, `estado`) VALUES
+(1, 4, 'ACTIVO'),
+(2, 2, 'ACTIVO');
 
 -- --------------------------------------------------------
 
@@ -718,6 +826,14 @@ CREATE TABLE `pagos` (
   `digitos_tarjeta` varchar(4) DEFAULT NULL,
   `vencimiento` varchar(7) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `pagos`
+--
+
+INSERT INTO `pagos` (`id_pago`, `id_venta`, `monto`, `fecha_pago`, `metodo`, `digitos_tarjeta`, `vencimiento`) VALUES
+(1, 1, 8475.00, '2025-12-19 18:41:01', 'Tarjeta', '1314', '2026-01'),
+(2, 3, 2825.00, '2025-12-19 18:54:14', 'Tarjeta', '5459', '2026-07');
 
 -- --------------------------------------------------------
 
@@ -774,7 +890,17 @@ CREATE TABLE `productos` (
 --
 
 INSERT INTO `productos` (`id_producto`, `nombre`, `descripcion`, `unidad`, `id_categoria`, `precio`, `costo_unidad`, `stock_total`, `stock_minimo`, `fecha_creacion`, `actualizado_en`, `fecha_caducidad`, `estado`, `descuento`) VALUES
-(1, 'CEPILLO DENTAL ADULTO SUAVE', 'Cepillo dental para adultos con cerdas suaves de nylon, diseño ergonómico antideslizante y cabezal compacto. Ideal para higiene bucal diaria y uso clínico en consultas odontológicas.', 'Unidad', 5, 2500.00, 1450.00, 113, 25, '2025-12-19 12:01:25', '2025-12-19 22:32:49', '2027-11-30', 'activo', 0.00);
+(2, 'anestesia', 'Para el dolor de muela', 'unidad', 1, 10000.00, 15000.00, 50, 20, '2025-12-19 18:13:48', '2025-12-20 00:13:48', '2026-01-30', 'activo', 0.00),
+(14, 'Lidocaína 2% (cartucho)', 'Anestesia local en cartucho', 'UNIDAD', 1, 650.00, 400.00, 1500, 150, '2025-12-19 18:29:56', '2025-12-20 00:29:56', NULL, 'activo', 0.00),
+(15, 'Ibuprofeno 400mg (tableta)', 'Analgésico/antiinflamatorio', 'UNIDAD', 1, 200.00, 120.00, 5000, 500, '2025-12-19 18:29:56', '2025-12-20 00:29:56', NULL, 'activo', 0.00),
+(16, 'Guantes de nitrilo (caja)', 'Caja de guantes nitrilo talla M', 'CAJA', 5, 7500.00, 5200.00, 199, 20, '2025-12-19 18:29:56', '2025-12-20 00:41:01', NULL, 'activo', 0.00),
+(17, 'Mascarillas quirúrgicas (caja)', 'Caja de mascarillas desechables', 'CAJA', 5, 5000.00, 3200.00, 180, 15, '2025-12-19 18:29:56', '2025-12-20 00:29:56', NULL, 'activo', 0.00),
+(18, 'Espejo dental #5', 'Instrumento de exploración (espejo)', 'UNIDAD', 4, 2500.00, 1500.00, 300, 30, '2025-12-19 18:29:56', '2025-12-20 00:29:56', NULL, 'activo', 0.00),
+(22, 'Consulta general', 'Evaluación, diagnóstico y plan de tratamiento', 'SERVICIO', 2, 15000.00, NULL, 999999, 1, '2025-12-19 18:35:49', '2025-12-20 00:35:49', NULL, 'activo', 0.00),
+(23, 'Limpieza dental', 'Profilaxis: limpieza y pulido para remover placa/sarro', 'SERVICIO', 2, 25000.00, NULL, 999999, 1, '2025-12-19 18:35:49', '2025-12-20 00:35:49', NULL, 'activo', 0.00),
+(24, 'Resina dental (restauración)', 'Restauración estética con resina compuesta', 'SERVICIO', 2, 35000.00, NULL, 999999, 1, '2025-12-19 18:35:49', '2025-12-20 00:35:49', NULL, 'activo', 0.00),
+(25, 'Pasta Dental Colgate', 'Pasta de dientes', 'paquete', 5, 2500.00, 1500.00, 19, 200, '2025-12-19 18:42:50', '2025-12-20 00:54:14', '2026-02-25', 'activo', 0.00),
+(26, 'Ácido grabador 37%', 'para adhesión en resinas', 'Unidad', 1, 5000.00, 4000.00, 25, 10, '2025-12-19 19:03:43', '2025-12-20 01:03:43', '2025-12-23', 'activo', 0.00);
 
 -- --------------------------------------------------------
 
@@ -817,13 +943,6 @@ CREATE TABLE `promocion_productos` (
   `id_producto` int NOT NULL,
   `fecha_asignacion` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Productos incluidos en promociones';
-
---
--- Dumping data for table `promocion_productos`
---
-
-INSERT INTO `promocion_productos` (`id_promocion_producto`, `id_promocion`, `id_producto`, `fecha_asignacion`) VALUES
-(3, 6, 1, '2025-12-19 15:44:35');
 
 -- --------------------------------------------------------
 
@@ -897,7 +1016,11 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id_usuario`, `nombre`, `apellido1`, `apellido2`, `email`, `telefono`, `identificacion`, `tipo_doc`, `password`, `id_rol`, `fecha_creacion`) VALUES
-(1, 'Administrador', 'Manager', 'Manager', 'admin@gmail.com', '+50610228523', '12345678A', 'PASAPORTE', '$2y$12$0qciXcRZvvRjz6u2f8h7fOeO/pr6gtD/icFB/WyK6f6CxPhX8RWwa', 1, '2025-12-19 16:39:08');
+(1, 'Administrador', 'Manager', 'Manager', 'admin@gmail.com', '+50610228523', '12345678A', 'PASAPORTE', '$2y$12$0qciXcRZvvRjz6u2f8h7fOeO/pr6gtD/icFB/WyK6f6CxPhX8RWwa', 1, '2025-12-19 16:39:08'),
+(2, 'Josue', 'Acuña', 'Flores', 'josueacuna@gmail.com', '+50662043116', '2-0782-0616', 'CEDULA', '$2y$12$uq9FQS1LHMzRz1VyxkBxl.P.VmKFovHVFNsb7Ad7XAWRtFe4gGVBW', 2, '2025-12-19 17:59:05'),
+(3, 'Azucena', 'Flores', 'Lara', 'azucenaflores@gmail.com', '+50684406442', '12365478', 'PASAPORTE', '$2y$12$SnQ34/FZFRc.J1G1E0Z1f.rmuaXH.sbywhATypl7NQOXPtZ.eBVKi', 3, '2025-12-19 18:04:34'),
+(4, 'Cristian', 'Acuna', 'Flores', 'cristian@gmail.com', '+50684406441', '12365477', 'PASAPORTE', '$2y$12$v3Hq.IPLOuTDl921SX3bkuk1LpRMh8fAA6ZBhc4zvLt0KsYtTl8Cm', 2, '2025-12-19 18:08:23'),
+(5, 'Erick', 'Brenes', 'Galarza', 'erick@gmail.com', '+50662043116', '1-2345-6584', 'CEDULA', '$2y$12$D3XoYdgsVMWF2pI6l7sqTupp01w67K/akIguCDD5kH1OYF2fyC6JO', 3, '2025-12-19 18:50:36');
 
 -- --------------------------------------------------------
 
@@ -916,6 +1039,14 @@ CREATE TABLE `ventas` (
   `metodo_pago` varchar(50) DEFAULT NULL,
   `estado` tinyint(1) DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `ventas`
+--
+
+INSERT INTO `ventas` (`id_venta`, `id_usuario`, `id_cliente`, `fecha_venta`, `subtotal`, `impuestos`, `total`, `metodo_pago`, `estado`) VALUES
+(1, 2, 2, '2025-12-19 18:41:01', 7500.00, 975.00, 8475.00, 'Tarjeta', 1),
+(3, 5, 6, '2025-12-19 18:54:14', 2500.00, 325.00, 2825.00, 'Tarjeta', 1);
 
 -- --------------------------------------------------------
 
@@ -1151,25 +1282,25 @@ ALTER TABLE `agendar_medico`
 -- AUTO_INCREMENT for table `atencion_cita`
 --
 ALTER TABLE `atencion_cita`
-  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_atencion` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `bitacoras`
 --
 ALTER TABLE `bitacoras`
-  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_bitacora` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `carrito`
 --
 ALTER TABLE `carrito`
-  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_carrito` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `carrito_detalle`
 --
 ALTER TABLE `carrito_detalle`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `categoria_productos`
@@ -1181,37 +1312,37 @@ ALTER TABLE `categoria_productos`
 -- AUTO_INCREMENT for table `citas`
 --
 ALTER TABLE `citas`
-  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_cita` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_cliente` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `lote_producto`
 --
 ALTER TABLE `lote_producto`
-  MODIFY `id_lote` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_lote` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `odontologos`
 --
 ALTER TABLE `odontologos`
-  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_odontologo` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `id_pago` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_pago` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `permisos`
@@ -1223,7 +1354,7 @@ ALTER TABLE `permisos`
 -- AUTO_INCREMENT for table `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_producto` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `promociones`
@@ -1241,7 +1372,7 @@ ALTER TABLE `promocion_productos`
 -- AUTO_INCREMENT for table `restablecer_contrasenas`
 --
 ALTER TABLE `restablecer_contrasenas`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -1259,13 +1390,13 @@ ALTER TABLE `rol_permisos`
 -- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_usuario` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_venta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `ventas_promociones`
